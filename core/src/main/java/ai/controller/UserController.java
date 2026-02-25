@@ -1,0 +1,74 @@
+package ai.controller;
+
+import ai.dto.own.request.UserCreateRequestDto;
+import ai.dto.own.request.UserUpdateRequestDto;
+import ai.dto.own.response.UserResponseDto;
+import ai.model.ApiResponseModel;
+import ai.service.UserService;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequestMapping("/prv/user")
+@RestController
+public class UserController {
+    UserService userService;
+
+    @GetMapping("/{userId}")
+    ResponseEntity<ApiResponseModel<UserResponseDto>> getById(@PathVariable String userId){
+        return ResponseEntity.ok(
+                ApiResponseModel.<UserResponseDto>builder()
+                        .message("Get user successfully")
+                        .data(userService.getById(userId))
+                        .build()
+        );
+    }
+
+    @GetMapping
+    ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getAll(){
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<UserResponseDto>>builder()
+                        .message("Get list users successfully")
+                        .data(userService.getAll())
+                        .build()
+        );
+    }
+
+    @PostMapping
+    ResponseEntity<ApiResponseModel<UserResponseDto>> create(@RequestBody UserCreateRequestDto requestDto){
+        return ResponseEntity.ok(
+                ApiResponseModel.<UserResponseDto>builder()
+                        .message("Create user successfully")
+                        .data(userService.create(requestDto))
+                        .build()
+        );
+    }
+
+    @PutMapping("/{userId}")
+    ResponseEntity<ApiResponseModel<UserResponseDto>> update(@PathVariable String userId, @RequestBody UserUpdateRequestDto requestDto){
+        return ResponseEntity.ok(
+                ApiResponseModel.<UserResponseDto>builder()
+                        .message("Update user successfully")
+                        .data(userService.update(userId, requestDto))
+                        .build()
+        );
+    }
+
+
+    @DeleteMapping("/{userId}")
+    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable String userId){
+        userService.delete(userId);
+
+        return ResponseEntity.ok(
+                ApiResponseModel.<Void>builder()
+                        .message("Delete user successfully")
+                        .build()
+        );
+    }
+}

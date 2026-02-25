@@ -1,19 +1,18 @@
 package ai.entity.postgres;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.Set;
 import java.util.UUID;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "user")
+@Table(name = "users")
 @Entity
 public class UserEntity {
     @Id
@@ -29,4 +28,13 @@ public class UserEntity {
 
     @Column(name = "full_name", nullable = false)
     String fullName;
+
+    @Column(name = "email", nullable = false)
+    String email;
+
+    @Column(name = "source", nullable = false)
+    String source;
+
+    @ManyToMany
+    Set<RoleEntity> roles;
 }
