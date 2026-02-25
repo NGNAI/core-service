@@ -22,6 +22,6 @@
 
     <modules>
         <module>core</module>
-        <module>application</module>
+        <module>common</module>
     </modules>
 </project>
