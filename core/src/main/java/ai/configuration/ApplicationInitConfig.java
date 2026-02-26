@@ -26,7 +26,7 @@ public class ApplicationInitConfig {
                 UserEntity user = UserEntity.builder()
                         .userName("admin")
                         .password(passwordEncoder.encode("admin"))
-                        .fullName("Administrator")
+                        .firstName("Administrator")
                         .email("admin@tmp.com")
                         .source("local")
                         .build();

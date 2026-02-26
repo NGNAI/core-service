@@ -40,19 +40,19 @@ public class PermissionController {
         );
     }
 
-    @PutMapping("/{permissionName}")
-    ResponseEntity<ApiResponseModel<PermissionResponseDto>> update(@PathVariable String permissionName, @RequestBody PermissionUpdateRequestDto requestDto){
+    @PutMapping("/{permissionId}")
+    ResponseEntity<ApiResponseModel<PermissionResponseDto>> update(@PathVariable int permissionId, @RequestBody PermissionUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<PermissionResponseDto>builder()
                         .message("Update permission successfully")
-                        .data(permissionService.update(permissionName, requestDto))
+                        .data(permissionService.update(permissionId, requestDto))
                         .build()
         );
     }
 
-    @DeleteMapping("/{permissionName}")
-    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable String permissionName){
-        permissionService.delete(permissionName);
+    @DeleteMapping("/{permissionId}")
+    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable int permissionId){
+        permissionService.delete(permissionId);
 
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()

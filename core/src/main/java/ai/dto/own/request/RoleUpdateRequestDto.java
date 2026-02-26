@@ -9,7 +9,6 @@ import java.util.Set;
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RoleUpdateRequestDto {
+    String name;
     String description;
-
-    Set<String> permissions;
 }

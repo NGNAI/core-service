@@ -21,7 +21,7 @@ public class UserController {
     UserService userService;
 
     @GetMapping("/{userId}")
-    ResponseEntity<ApiResponseModel<UserResponseDto>> getById(@PathVariable String userId){
+    ResponseEntity<ApiResponseModel<UserResponseDto>> getById(@PathVariable int userId){
         return ResponseEntity.ok(
                 ApiResponseModel.<UserResponseDto>builder()
                         .message("Get user successfully")
@@ -51,7 +51,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}")
-    ResponseEntity<ApiResponseModel<UserResponseDto>> update(@PathVariable String userId, @RequestBody UserUpdateRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<UserResponseDto>> update(@PathVariable int userId, @RequestBody UserUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<UserResponseDto>builder()
                         .message("Update user successfully")
@@ -62,7 +62,7 @@ public class UserController {
 
 
     @DeleteMapping("/{userId}")
-    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable String userId){
+    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable int userId){
         userService.delete(userId);
 
         return ResponseEntity.ok(

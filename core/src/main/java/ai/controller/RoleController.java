@@ -1,6 +1,7 @@
 package ai.controller;
 
 import ai.dto.own.request.RoleCreateRequestDto;
+import ai.dto.own.request.RolePermissionUpdateRequestDto;
 import ai.dto.own.request.RoleUpdateRequestDto;
 import ai.dto.own.response.RoleResponseDto;
 import ai.model.ApiResponseModel;
@@ -40,23 +41,33 @@ public class RoleController {
         );
     }
 
-    @PutMapping("/{roleName}")
-    ResponseEntity<ApiResponseModel<RoleResponseDto>> update(@PathVariable String roleName, @RequestBody RoleUpdateRequestDto requestDto){
+    @PutMapping("/{roleId}")
+    ResponseEntity<ApiResponseModel<RoleResponseDto>> update(@PathVariable int roleId, @RequestBody RoleUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<RoleResponseDto>builder()
                         .message("Update Role successfully")
-                        .data(roleService.update(roleName, requestDto))
+                        .data(roleService.update(roleId, requestDto))
                         .build()
         );
     }
 
-    @DeleteMapping("/{roleName}")
-    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable String roleName){
-        roleService.delete(roleName);
+    @PutMapping("/{roleId}/permissions")
+    ResponseEntity<ApiResponseModel<RoleResponseDto>> updateRolePermission(@PathVariable int roleId, @RequestBody RolePermissionUpdateRequestDto requestDto){
+        return ResponseEntity.ok(
+                ApiResponseModel.<RoleResponseDto>builder()
+                        .message("Update role permissions successfully")
+                        .data(roleService.updatePermissions(roleId, requestDto))
+                        .build()
+        );
+    }
+
+    @DeleteMapping("/{roleId}")
+    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable int roleId){
+        roleService.delete(roleId);
 
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
-                        .message("Delete Role successfully")
+                        .message("Delete role successfully")
                         .build()
         );
     }

@@ -11,6 +11,4 @@ import java.util.Set;
 public class RoleCreateRequestDto {
     String name;
     String description;
-
-    Set<String> permissions;
 }

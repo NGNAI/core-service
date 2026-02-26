@@ -10,11 +10,10 @@ import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface RoleMapper {
-    @Mapping(target = "permissions", ignore = true)
     RoleEntity createRequestDtoToEntity(RoleCreateRequestDto entity);
 
+    @Mapping(target = "permissions", ignore = true)
     RoleResponseDto entityToResponseDto(RoleEntity entity);
 
-    @Mapping(target = "permissions", ignore = true)
     void updateEntity(@MappingTarget RoleEntity entity, RoleUpdateRequestDto requestDto);
 }

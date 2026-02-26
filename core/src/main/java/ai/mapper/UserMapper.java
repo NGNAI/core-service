@@ -9,14 +9,11 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
-public interface UserMapper extends GeneralMapper{
+public interface UserMapper {
     @Mapping(target = "password", ignore = true)
-    @Mapping(target = "roles", ignore = true)
     UserEntity createRequestDtoToEntity(UserCreateRequestDto entity);
 
-    @Mapping(target = "userId", source = "userId", qualifiedByName = "uuidToString")
     UserResponseDto entityToResponseDto(UserEntity entity);
 
-    @Mapping(target = "roles", ignore = true)
     void updateEntity(@MappingTarget UserEntity entity, UserUpdateRequestDto requestDTO);
 }

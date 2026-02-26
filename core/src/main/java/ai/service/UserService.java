@@ -3,7 +3,6 @@ package ai.service;
 import ai.dto.own.request.UserCreateRequestDto;
 import ai.dto.own.request.UserUpdateRequestDto;
 import ai.dto.own.response.UserResponseDto;
-import ai.entity.postgres.RoleEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
@@ -16,9 +15,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -29,9 +26,9 @@ public class UserService {
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
 
-    public UserResponseDto getById(String id){
+    public UserResponseDto getById(int id){
         return userMapper.entityToResponseDto(
-                userRepository.findById(UUID.fromString(id))
+                userRepository.findById(id)
                         .orElseThrow(() -> new AppException(ApiResponseStatus.USER_NOT_EXISTS)));
     }
 
@@ -46,31 +43,17 @@ public class UserService {
 
         newEntity.setPassword(passwordEncoder.encode(createRequestDto.getPassword()));
 
-        List<RoleEntity> roles = roleRepository.findAllById(createRequestDto.getRoles());
-
-        if(roles.size()!=createRequestDto.getRoles().size())
-            throw new AppException(ApiResponseStatus.ROLE_NAME_NOT_EXISTS);
-
-        newEntity.setRoles(new HashSet<>(roles));
-
         return userMapper.entityToResponseDto(userRepository.save(newEntity));
     }
 
-    public UserResponseDto update(String id, UserUpdateRequestDto updateRequestDto){
-        UserEntity entity = userRepository.findById(UUID.fromString(id)).orElseThrow(() -> new AppException(ApiResponseStatus.USER_NOT_EXISTS));
+    public UserResponseDto update(int id, UserUpdateRequestDto updateRequestDto){
+        UserEntity entity = userRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.USER_NOT_EXISTS));
         userMapper.updateEntity(entity, updateRequestDto);
-
-        List<RoleEntity> roles = roleRepository.findAllById(updateRequestDto.getRoles());
-
-        if(roles.size()!=updateRequestDto.getRoles().size())
-            throw new AppException(ApiResponseStatus.PERMISSION_NAME_NOT_EXISTS);
-
-        entity.setRoles(new HashSet<>(roles));
 
         return userMapper.entityToResponseDto(userRepository.save(entity));
     }
 
-    public void delete(String id){
-        userRepository.deleteById(UUID.fromString(id));
+    public void delete(int id){
+        userRepository.deleteById(id);
     }
 }

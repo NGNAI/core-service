@@ -27,21 +27,21 @@ public class PermissionService {
     }
 
     public PermissionResponseDto create(PermissionCreateRequestDto createRequestDto){
-        if(permissionRepository.existsById(createRequestDto.getName()))
+        if(permissionRepository.existsByName(createRequestDto.getName()))
             throw new AppException(ApiResponseStatus.PERMISSION_NAME_EXISTED);
         PermissionEntity newEntity = permissionMapper.createRequestDtoToEntity(createRequestDto);
 
         return permissionMapper.entityToResponseDto(permissionRepository.save(newEntity));
     }
 
-    public PermissionResponseDto update(String name, PermissionUpdateRequestDto updateRequestDto){
-        PermissionEntity entity = permissionRepository.findById(name).orElseThrow(() -> new AppException(ApiResponseStatus.PERMISSION_NAME_NOT_EXISTS));
+    public PermissionResponseDto update(int id, PermissionUpdateRequestDto updateRequestDto){
+        PermissionEntity entity = permissionRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.PERMISSION_ID_NOT_EXISTS));
         permissionMapper.updateEntity(entity, updateRequestDto);
 
         return permissionMapper.entityToResponseDto(permissionRepository.save(entity));
     }
 
-    public void delete(String name){
-        permissionRepository.deleteById(name);
+    public void delete(int id){
+        permissionRepository.deleteById(id);
     }
 }
