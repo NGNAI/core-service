@@ -14,10 +14,10 @@ import java.util.Set;
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "permission")
+@Table(name = "organizations")
 @EntityListeners(AuditingEntityListener.class)
 @Entity
-public class PermissionEntity {
+public class OrganizationEntity {
     @Id
     @GeneratedValue
     @Column(name = "id", nullable = false)
@@ -32,6 +32,13 @@ public class PermissionEntity {
     @Embedded
     AuditEmbed audit = new AuditEmbed();
 
-    @OneToMany(mappedBy = "permission", cascade = CascadeType.ALL, orphanRemoval = true)
-    Set<RolePermissionEntity> rolePermissions = new HashSet<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    OrganizationEntity parent;
+
+    @OneToMany(mappedBy = "parent",orphanRemoval = true)
+    Set<OrganizationEntity> children = new HashSet<>();
+
+    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
+    Set<OrganizationUserRoleEntity> orgUsersRole;
 }

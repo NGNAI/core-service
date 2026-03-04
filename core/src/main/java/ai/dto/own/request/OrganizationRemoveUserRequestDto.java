@@ -8,8 +8,6 @@ import java.util.Set;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class RoleUpdateRequestDto {
-    String name;
-    String description;
-    boolean defaultAssign;
+public class OrganizationRemoveUserRequestDto {
+    Set<Integer> userIds;
 }

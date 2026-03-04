@@ -84,6 +84,7 @@ public class AuthService {
                 .expirationTime(new Date(Instant.now().plus(appProperties.getJwt().getExpiryDuration(), ChronoUnit.SECONDS).toEpochMilli()))
                 .jwtID(UUID.randomUUID().toString())
                 .claim("scope",buildJwtScope(userEntity))
+                .claim("user_id",userEntity.getId())
                 .build();
 
         Payload payload = new Payload(jwtClaimsSet.toJSONObject());

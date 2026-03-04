@@ -4,9 +4,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.AuditorAware;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
+import java.util.Optional;
+
+@EnableJpaAuditing(auditorAwareRef = "auditorAware") // Enable audit for entity
 @Configuration
 public class ApplicationConfig {
     @Bean
@@ -19,5 +28,26 @@ public class ApplicationConfig {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         return objectMapper;
+    }
+
+    @Bean
+    public AuditorAware<Integer> auditorAware() {
+        return () -> {
+            Authentication authentication =
+                    SecurityContextHolder.getContext().getAuthentication();
+
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return Optional.empty();
+            }
+
+            if (authentication instanceof JwtAuthenticationToken jwtAuth) {
+                Jwt jwt = jwtAuth.getToken();
+
+                Integer userId = Integer.valueOf(jwt.getClaimAsString("user_id"));
+                return Optional.of(userId);
+            }
+
+            return Optional.empty();
+        };
     }
 }

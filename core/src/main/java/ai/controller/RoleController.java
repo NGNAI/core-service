@@ -45,18 +45,18 @@ public class RoleController {
     ResponseEntity<ApiResponseModel<RoleResponseDto>> update(@PathVariable int roleId, @RequestBody RoleUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<RoleResponseDto>builder()
-                        .message("Update Role successfully")
+                        .message("Update role successfully")
                         .data(roleService.update(roleId, requestDto))
                         .build()
         );
     }
 
-    @PutMapping("/{roleId}/permissions")
-    ResponseEntity<ApiResponseModel<RoleResponseDto>> updateRolePermission(@PathVariable int roleId, @RequestBody RolePermissionUpdateRequestDto requestDto){
+    @PostMapping("/{roleId}/permissions")
+    ResponseEntity<ApiResponseModel<RoleResponseDto>> assignPermission(@PathVariable int roleId, @RequestBody RolePermissionUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<RoleResponseDto>builder()
-                        .message("Update role permissions successfully")
-                        .data(roleService.updatePermissions(roleId, requestDto))
+                        .message("Assign permissions to successfully")
+                        .data(roleService.assignPermissions(roleId, requestDto))
                         .build()
         );
     }

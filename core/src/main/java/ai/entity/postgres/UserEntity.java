@@ -4,6 +4,9 @@ import ai.entity.postgres.embeddable.AuditEmbed;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.util.Set;
 
 @Data
 @AllArgsConstructor
@@ -11,6 +14,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Table(name = "users")
+@EntityListeners(AuditingEntityListener.class)
 @Entity
 public class UserEntity {
     @Id
@@ -44,4 +48,7 @@ public class UserEntity {
 
     @Column(name = "source", nullable = false)
     String source;
+
+    @OneToMany(mappedBy = "user")
+    Set<OrganizationUserRoleEntity> orgUsersRole;
 }

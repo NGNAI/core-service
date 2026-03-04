@@ -4,7 +4,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
@@ -16,14 +18,15 @@ public class AuditEmbed {
     @Column(name = "created_at", updatable = false)
     LocalDateTime createdAt;
 
-    @Column(name = "create_by", updatable = false)
-    int createBy;
+    @CreatedBy
+    @Column(name = "created_by", updatable = false)
+    Integer createBy;
 
     @LastModifiedDate
-    @Column(name = "updated", updatable = false)
+    @Column(name = "updated_at")
     LocalDateTime updatedAt;
 
-    @CreatedDate
-    @Column(name = "updated_by", updatable = false)
-    int updatedBy;
+    @LastModifiedBy
+    @Column(name = "updated_by")
+    Integer updatedBy;
 }

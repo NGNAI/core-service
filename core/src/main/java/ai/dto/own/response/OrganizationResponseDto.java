@@ -1,21 +1,20 @@
 package ai.dto.own.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
 import java.util.HashSet;
 import java.util.Set;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
-@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class RoleResponseDto {
+public class OrganizationResponseDto {
     int id;
     String name;
     String description;
-    boolean defaultAssign;
-
-    Set<PermissionResponseDto> permissions;
+    Integer parentId;
+    Set<OrganizationResponseDto> children;
 }

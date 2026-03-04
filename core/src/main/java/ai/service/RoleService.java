@@ -3,9 +3,11 @@ package ai.service;
 import ai.dto.own.request.RoleCreateRequestDto;
 import ai.dto.own.request.RolePermissionUpdateRequestDto;
 import ai.dto.own.request.RoleUpdateRequestDto;
+import ai.dto.own.response.PermissionResponseDto;
 import ai.dto.own.response.RoleResponseDto;
 import ai.entity.postgres.PermissionEntity;
 import ai.entity.postgres.RoleEntity;
+import ai.entity.postgres.RolePermissionEntity;
 import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
 import ai.mapper.PermissionMapper;
@@ -30,11 +32,19 @@ public class RoleService {
     RoleMapper roleMapper;
     PermissionMapper permissionMapper;
 
+    public RoleResponseDto getById(int roleId){
+        RoleEntity role = roleRepository.findByIdWithPermissions(roleId).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
+
+        RoleResponseDto responseDto = roleMapper.entityToResponseDto(role);
+        responseDto.setPermissions(rolePermissionsToPermissionDto(role.getRolePermissions()));
+
+        return responseDto;
+    }
+
     public List<RoleResponseDto> getAll(){
         return roleRepository.findAllWithPermissions().stream().map(roleEntity -> {
             RoleResponseDto responseDto = roleMapper.entityToResponseDto(roleEntity);
-            responseDto.setPermissions(roleEntity.getRolePermissions()
-                    .stream().map(rpEntity->permissionMapper.entityToResponseDto(rpEntity.getPermission())).collect(Collectors.toSet()));
+            responseDto.setPermissions(rolePermissionsToPermissionDto(roleEntity.getRolePermissions()));
             return responseDto;
         }).toList();
     }
@@ -44,6 +54,9 @@ public class RoleService {
             throw new AppException(ApiResponseStatus.ROLE_NAME_EXISTED);
         RoleEntity newEntity = roleMapper.createRequestDtoToEntity(createRequestDto);
 
+        if(newEntity.isDefaultAssign())
+            roleRepository.deActiveAllDefaultAssign();
+
         return roleMapper.entityToResponseDto(roleRepository.save(newEntity));
     }
 
@@ -51,10 +64,13 @@ public class RoleService {
         RoleEntity entity = roleRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
         roleMapper.updateEntity(entity, updateRequestDto);
 
+        if(entity.isDefaultAssign())
+            roleRepository.deActiveAllDefaultAssign();
+
         return roleMapper.entityToResponseDto(roleRepository.save(entity));
     }
 
-    public RoleResponseDto updatePermissions(int roleId, RolePermissionUpdateRequestDto requestDto){
+    public RoleResponseDto assignPermissions(int roleId, RolePermissionUpdateRequestDto requestDto){
         List<PermissionEntity> permissions = permissionRepository.findAllById(requestDto.getPermissionIds());
         RoleEntity roleEntity = roleRepository.findById(roleId).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
 
@@ -66,12 +82,17 @@ public class RoleService {
         permissions.forEach(roleEntity::addPermission);
 
         RoleResponseDto responseDto = roleMapper.entityToResponseDto(roleRepository.save(roleEntity));
-        responseDto.setPermissions(roleEntity.getRolePermissions()
-                .stream().map(rpEntity->permissionMapper.entityToResponseDto(rpEntity.getPermission())).collect(Collectors.toSet()));
+        responseDto.setPermissions(rolePermissionsToPermissionDto(roleEntity.getRolePermissions()));
         return responseDto;
     }
 
     public void delete(int id){
         roleRepository.deleteById(id);
+    }
+
+    private Set<PermissionResponseDto> rolePermissionsToPermissionDto(Set<RolePermissionEntity> rpEntities) {
+        if(rpEntities==null || rpEntities.isEmpty())
+            return Set.of();
+        return rpEntities.stream().map(rpEntity->permissionMapper.entityToResponseDto(rpEntity.getPermission())).collect(Collectors.toSet());
     }
 }

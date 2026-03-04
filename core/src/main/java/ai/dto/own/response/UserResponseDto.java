@@ -11,7 +11,6 @@ public class UserResponseDto {
     String userName;
     String firstName;
     String lastName;
-    String password;
     int gender;
     String email;
     String phoneNumber;
