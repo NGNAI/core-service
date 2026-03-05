@@ -1,11 +1,13 @@
 package ai.entity.postgres;
 
 import ai.entity.postgres.embeddable.AuditEmbed;
+import ai.mapper.GeneralMapper;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
+import org.mapstruct.Mapping;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.util.HashSet;

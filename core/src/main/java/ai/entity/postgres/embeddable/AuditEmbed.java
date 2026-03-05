@@ -9,6 +9,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -16,15 +17,15 @@ import java.time.LocalDateTime;
 public class AuditEmbed {
     @CreatedDate
     @Column(name = "created_at", updatable = false)
-    LocalDateTime createdAt;
+    Instant createdAt;
 
     @CreatedBy
     @Column(name = "created_by", updatable = false)
-    Integer createBy;
+    Integer createdBy;
 
     @LastModifiedDate
     @Column(name = "updated_at")
-    LocalDateTime updatedAt;
+    Instant updatedAt;
 
     @LastModifiedBy
     @Column(name = "updated_by")

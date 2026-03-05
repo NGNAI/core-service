@@ -1,14 +1,23 @@
 package ai.mapper;
 
+import ai.entity.postgres.embeddable.AuditEmbed;
 import org.mapstruct.Mapper;
-import org.mapstruct.Named;
-
-import java.util.UUID;
 
 @Mapper(componentModel = "spring")
 public interface GeneralMapper {
-    @Named("uuidToString")
-    default String uuidToString(UUID uuid){
-        return uuid.toString();
+    default String createdDateFromAudit(AuditEmbed audit){
+        return audit.toString();
+    }
+
+    default String createdByFromAudit(AuditEmbed audit){
+        return audit.toString();
+    }
+
+    default String updatedDateFromAudit(AuditEmbed audit){
+        return audit.toString();
+    }
+
+    default String updatedByFromAudit(AuditEmbed audit){
+        return audit.toString();
     }
 }

@@ -11,6 +11,6 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserWithRoleInOrgResponseDto extends UserResponseDto {
-    Set<RoleResponseDto> roles = new HashSet<>();
+public class UserWithOrgResponseDto extends UserResponseDto {
+    Set<OrganizationWithUserRoleDto> organizations = new HashSet<>();
 }

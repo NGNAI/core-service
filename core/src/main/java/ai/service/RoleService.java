@@ -3,11 +3,9 @@ package ai.service;
 import ai.dto.own.request.RoleCreateRequestDto;
 import ai.dto.own.request.RolePermissionUpdateRequestDto;
 import ai.dto.own.request.RoleUpdateRequestDto;
-import ai.dto.own.response.PermissionResponseDto;
 import ai.dto.own.response.RoleResponseDto;
 import ai.entity.postgres.PermissionEntity;
 import ai.entity.postgres.RoleEntity;
-import ai.entity.postgres.RolePermissionEntity;
 import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
 import ai.mapper.PermissionMapper;
@@ -20,23 +18,22 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class RoleService {
+    PermissionService permissionService;
+
     RoleRepository roleRepository;
     PermissionRepository permissionRepository;
     RoleMapper roleMapper;
-    PermissionMapper permissionMapper;
-
+    
     public RoleResponseDto getById(int roleId){
         RoleEntity role = roleRepository.findByIdWithPermissions(roleId).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
 
         RoleResponseDto responseDto = roleMapper.entityToResponseDto(role);
-        responseDto.setPermissions(rolePermissionsToPermissionDto(role.getRolePermissions()));
+        responseDto.setPermissions(permissionService.rolePermissionsToPermissionDto(role.getRolePermissions()));
 
         return responseDto;
     }
@@ -44,7 +41,7 @@ public class RoleService {
     public List<RoleResponseDto> getAll(){
         return roleRepository.findAllWithPermissions().stream().map(roleEntity -> {
             RoleResponseDto responseDto = roleMapper.entityToResponseDto(roleEntity);
-            responseDto.setPermissions(rolePermissionsToPermissionDto(roleEntity.getRolePermissions()));
+            responseDto.setPermissions(permissionService.rolePermissionsToPermissionDto(roleEntity.getRolePermissions()));
             return responseDto;
         }).toList();
     }
@@ -82,17 +79,11 @@ public class RoleService {
         permissions.forEach(roleEntity::addPermission);
 
         RoleResponseDto responseDto = roleMapper.entityToResponseDto(roleRepository.save(roleEntity));
-        responseDto.setPermissions(rolePermissionsToPermissionDto(roleEntity.getRolePermissions()));
+        responseDto.setPermissions(permissionService.rolePermissionsToPermissionDto(roleEntity.getRolePermissions()));
         return responseDto;
     }
 
     public void delete(int id){
         roleRepository.deleteById(id);
-    }
-
-    private Set<PermissionResponseDto> rolePermissionsToPermissionDto(Set<RolePermissionEntity> rpEntities) {
-        if(rpEntities==null || rpEntities.isEmpty())
-            return Set.of();
-        return rpEntities.stream().map(rpEntity->permissionMapper.entityToResponseDto(rpEntity.getPermission())).collect(Collectors.toSet());
     }
 }

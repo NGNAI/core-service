@@ -9,6 +9,6 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthResponseDto {
-    UserResponseDto user;
+    UserWithOrgResponseDto user;
     String token;
 }

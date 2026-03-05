@@ -1,5 +1,6 @@
 package ai.repository;
 
+import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.OrganizationUserRoleEntity;
 import ai.entity.postgres.UserEntity;
 import ai.entity.postgres.embeddable.RolePermissionIdEmbed;
@@ -31,6 +32,17 @@ public interface OrganizationUserRoleRepository extends JpaRepository<Organizati
     List<OrganizationUserRoleEntity> findByOrganizationIdAndUserIdIn(int orgId, Collection<Integer> userIds);
 
     List<OrganizationUserRoleEntity> findByOrganizationIdAndRoleId(int orgId, int roleId);
+
+    @Query("""
+        SELECT our
+        FROM OrganizationUserRoleEntity our
+        JOIN fetch our.organization
+        JOIN fetch our.role r
+        LEFT JOIN fetch r.rolePermissions rp
+        LEFT JOIN fetch rp.permission
+        WHERE our.user.id = :userId
+        """)
+    List<OrganizationUserRoleEntity> findByUserWithPermission(int userId);
 
     @Query("""
         SELECT u

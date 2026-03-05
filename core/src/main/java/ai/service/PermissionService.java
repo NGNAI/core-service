@@ -4,6 +4,7 @@ import ai.dto.own.request.PermissionCreateRequestDto;
 import ai.dto.own.request.PermissionUpdateRequestDto;
 import ai.dto.own.response.PermissionResponseDto;
 import ai.entity.postgres.PermissionEntity;
+import ai.entity.postgres.RolePermissionEntity;
 import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
 import ai.mapper.PermissionMapper;
@@ -14,6 +15,8 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -43,5 +46,11 @@ public class PermissionService {
 
     public void delete(int id){
         permissionRepository.deleteById(id);
+    }
+
+    public Set<PermissionResponseDto> rolePermissionsToPermissionDto(Set<RolePermissionEntity> rpEntities) {
+        if(rpEntities==null || rpEntities.isEmpty())
+            return Set.of();
+        return rpEntities.stream().map(rpEntity->permissionMapper.entityToResponseDto(rpEntity.getPermission())).collect(Collectors.toSet());
     }
 }
