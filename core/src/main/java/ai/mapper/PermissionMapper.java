@@ -12,7 +12,10 @@ import org.mapstruct.MappingTarget;
 public interface PermissionMapper extends GeneralMapper{
     PermissionEntity createRequestDtoToEntity(PermissionCreateRequestDto entity);
 
-    @Mapping(target = "createdDate", expression = "java(createdDateFromAudit(entity.getAudit())")
+    @Mapping(target = "createdAt", expression = "java(createdAtFromAudit(entity.getAudit()))")
+    @Mapping(target = "createdBy", expression = "java(createdByFromAudit(entity.getAudit()))")
+    @Mapping(target = "updatedAt", expression = "java(updatedAtFromAudit(entity.getAudit()))")
+    @Mapping(target = "updatedBy", expression = "java(updatedByFromAudit(entity.getAudit()))")
     PermissionResponseDto entityToResponseDto(PermissionEntity entity);
 
     void updateEntity(@MappingTarget PermissionEntity entity, PermissionUpdateRequestDto requestDto);

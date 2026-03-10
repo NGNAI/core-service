@@ -3,11 +3,15 @@ package ai.exeption;
 import ai.enums.ApiResponseStatus;
 import ai.model.ApiResponseModel;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import java.util.Objects;
 
 @Slf4j
 @ControllerAdvice
@@ -30,7 +34,19 @@ public class GlobalExceptionHandler {
         return buildResponse(ApiResponseStatus.INVALID_REQUEST_INFORMATION);
     }
 
-    /* App exception */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    private ResponseEntity<ApiResponseModel<Void>> handlingMethodArgumentNotValidException(MethodArgumentNotValidException exception){
+        log.error("Request input invalid!",exception);
+        ApiResponseStatus apiResponseStatus;
+
+        try {
+            apiResponseStatus = ApiResponseStatus.valueOf(Objects.requireNonNull(exception.getFieldError()).getDefaultMessage());
+        } catch (IllegalArgumentException e) {
+            apiResponseStatus = ApiResponseStatus.UNEXPECTED;
+        }
+        return buildResponse(apiResponseStatus);
+    }
+
     @ExceptionHandler(AppException.class)
     private ResponseEntity<ApiResponseModel<Void>> handlingAppException(AppException appException){
         log.warn(appException.getMessage(),appException);

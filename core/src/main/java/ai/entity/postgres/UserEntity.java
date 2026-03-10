@@ -44,7 +44,7 @@ public class UserEntity {
     String phoneNumber;
 
     @Embedded
-    AuditEmbed audit;
+    AuditEmbed audit = new AuditEmbed();
 
     @Column(name = "source", nullable = false)
     String source;

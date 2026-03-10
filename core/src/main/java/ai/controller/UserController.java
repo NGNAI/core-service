@@ -2,9 +2,11 @@ package ai.controller;
 
 import ai.dto.own.request.UserCreateRequestDto;
 import ai.dto.own.request.UserUpdateRequestDto;
+import ai.dto.own.request.filter.UserFilterDto;
 import ai.dto.own.response.UserResponseDto;
 import ai.model.ApiResponseModel;
 import ai.service.UserService;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -31,17 +33,17 @@ public class UserController {
     }
 
     @GetMapping
-    ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getAll(){
+    ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getAll(UserFilterDto filterDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<List<UserResponseDto>>builder()
                         .message("Get list users successfully")
-                        .data(userService.getAll())
+                        .data(userService.getAll(filterDto))
                         .build()
         );
     }
 
     @PostMapping
-    ResponseEntity<ApiResponseModel<UserResponseDto>> create(@RequestBody UserCreateRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<UserResponseDto>> create(@Valid @RequestBody UserCreateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<UserResponseDto>builder()
                         .message("Create user successfully")
@@ -51,7 +53,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}")
-    ResponseEntity<ApiResponseModel<UserResponseDto>> update(@PathVariable int userId, @RequestBody UserUpdateRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<UserResponseDto>> update(@PathVariable int userId,@Valid @RequestBody UserUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<UserResponseDto>builder()
                         .message("Update user successfully")

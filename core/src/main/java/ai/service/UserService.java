@@ -2,6 +2,7 @@ package ai.service;
 
 import ai.dto.own.request.UserCreateRequestDto;
 import ai.dto.own.request.UserUpdateRequestDto;
+import ai.dto.own.request.filter.UserFilterDto;
 import ai.dto.own.response.UserResponseDto;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
@@ -12,6 +13,7 @@ import ai.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +24,6 @@ import java.util.List;
 @Service
 public class UserService {
     UserRepository userRepository;
-    RoleRepository roleRepository;
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
 
@@ -32,8 +33,11 @@ public class UserService {
                         .orElseThrow(() -> new AppException(ApiResponseStatus.USER_NOT_EXISTS)));
     }
 
-    public List<UserResponseDto> getAll(){
-        return userRepository.findAll().stream().map(userMapper::entityToResponseDto).toList();
+    public List<UserResponseDto> getAll(UserFilterDto filterDto){
+        Specification<UserEntity> spec = (root, query, criteriaBuilder) -> filterDto.createSpec(root,criteriaBuilder);
+        return userRepository.findAll(spec,filterDto.createPageable())
+                .stream().map(userMapper::entityToResponseDto)
+                .toList();
     }
 
     public UserResponseDto create(UserCreateRequestDto createRequestDto){

@@ -5,19 +5,19 @@ import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface GeneralMapper {
-    default String createdDateFromAudit(AuditEmbed audit){
-        return audit.toString();
+    default String createdAtFromAudit(AuditEmbed audit){
+        return audit!=null ? audit.getCreatedAt().toString() : null;
     }
 
-    default String createdByFromAudit(AuditEmbed audit){
-        return audit.toString();
+    default Integer createdByFromAudit(AuditEmbed audit){
+        return audit!=null ? audit.getCreatedBy(): null;
     }
 
-    default String updatedDateFromAudit(AuditEmbed audit){
-        return audit.toString();
+    default String updatedAtFromAudit(AuditEmbed audit){
+        return audit!=null ? audit.getUpdatedAt().toString(): null;
     }
 
-    default String updatedByFromAudit(AuditEmbed audit){
-        return audit.toString();
+    default Integer updatedByFromAudit(AuditEmbed audit){
+        return audit!=null ? audit.getUpdatedBy(): null;
     }
 }

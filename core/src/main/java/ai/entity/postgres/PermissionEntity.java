@@ -2,6 +2,7 @@ package ai.entity.postgres;
 
 import ai.entity.postgres.embeddable.AuditEmbed;
 import ai.mapper.GeneralMapper;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

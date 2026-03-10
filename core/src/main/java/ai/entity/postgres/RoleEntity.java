@@ -33,7 +33,7 @@ public class RoleEntity {
     boolean defaultAssign;
 
     @Embedded
-    AuditEmbed audit;
+    AuditEmbed audit= new AuditEmbed();
 
     @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, orphanRemoval = true)
     Set<RolePermissionEntity> rolePermissions = new HashSet<>();

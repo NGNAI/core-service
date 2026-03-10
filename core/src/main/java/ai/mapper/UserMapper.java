@@ -11,13 +11,22 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
-public interface UserMapper {
+public interface UserMapper extends GeneralMapper{
     @Mapping(target = "password", ignore = true)
     UserEntity createRequestDtoToEntity(UserCreateRequestDto entity);
 
+    @Mapping(target = "createdAt", expression = "java(createdAtFromAudit(entity.getAudit()))")
+    @Mapping(target = "createdBy", expression = "java(createdByFromAudit(entity.getAudit()))")
+    @Mapping(target = "updatedAt", expression = "java(updatedAtFromAudit(entity.getAudit()))")
+    @Mapping(target = "updatedBy", expression = "java(updatedByFromAudit(entity.getAudit()))")
     UserResponseDto entityToResponseDto(UserEntity entity);
 
     UserWithOrgResponseDto entityToWithOrgResponseDto(UserEntity entity);
+
+    @Mapping(target = "createdAt", expression = "java(createdAtFromAudit(entity.getAudit()))")
+    @Mapping(target = "createdBy", expression = "java(createdByFromAudit(entity.getAudit()))")
+    @Mapping(target = "updatedAt", expression = "java(updatedAtFromAudit(entity.getAudit()))")
+    @Mapping(target = "updatedBy", expression = "java(updatedByFromAudit(entity.getAudit()))")
     UserWithRoleInOrgResponseDto entityToWithRoleResponseDto(UserEntity entity);
 
     void updateEntity(@MappingTarget UserEntity entity, UserUpdateRequestDto requestDTO);

@@ -1,10 +1,10 @@
 package ai.service;
 
 import ai.dto.own.request.*;
-import ai.dto.own.response.OrganizationResponseDto;
-import ai.dto.own.response.RoleResponseDto;
-import ai.dto.own.response.UserResponseDto;
-import ai.dto.own.response.UserWithRoleInOrgResponseDto;
+import ai.dto.own.request.filter.OrganizationFilterDto;
+import ai.dto.own.request.filter.RoleFilterDto;
+import ai.dto.own.request.filter.UserFilterDto;
+import ai.dto.own.response.*;
 import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.RoleEntity;
 import ai.entity.postgres.UserEntity;
@@ -18,9 +18,13 @@ import ai.repository.OrganizationRepository;
 import ai.repository.OrganizationUserRoleRepository;
 import ai.repository.RoleRepository;
 import ai.repository.UserRepository;
+import ai.specification.UserEntitySpecification;
+import jakarta.persistence.criteria.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -30,6 +34,8 @@ import java.util.stream.Collectors;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class OrganizationService {
+    RoleService roleService;
+
     OrganizationRepository orgRepository;
     UserRepository userRepository;
     RoleRepository roleRepository;
@@ -50,12 +56,14 @@ public class OrganizationService {
         return responseDto;
     }
 
-    public List<OrganizationResponseDto> getAll(){
-        return orgRepository.findAll().stream().map(orgMapper::entityToResponseDto).toList();
+    public List<OrganizationResponseDto> getAll(OrganizationFilterDto filterDto){
+        return orgRepository.findAll(filterDto.createSpec(),filterDto.createPageable())
+                .stream().map(orgMapper::entityToResponseDto).toList();
     }
 
-    public List<OrganizationResponseDto> getRoot(Integer nestedChild){
-        return orgRepository.findByParentIsNull().stream().map(entity -> {
+    public List<OrganizationResponseDto> getRoot(Integer nestedChild, OrganizationFilterDto filterDto){
+        Specification<OrganizationEntity> spec = filterDto.createSpec().and(((root, query, criteriaBuilder) -> criteriaBuilder.isNull(root.get("parent"))));
+        return orgRepository.findAll(spec,filterDto.createPageable()).stream().map(entity -> {
             OrganizationResponseDto childResponseDto = orgMapper.entityToResponseDto(entity);
             if(nestedChild!=null && nestedChild > 0)
                 appendChild(1,nestedChild, childResponseDto);
@@ -64,10 +72,12 @@ public class OrganizationService {
         }).collect(Collectors.toList());
     }
 
-    public List<OrganizationResponseDto> getChild(int parentId, Integer nestedChild){
+    public List<OrganizationResponseDto> getChild(int parentId, Integer nestedChild, OrganizationFilterDto filterDto){
         if(!orgRepository.existsById(parentId))
             throw new AppException(ApiResponseStatus.PARENT_ORGANIZATION_NOT_EXISTS);
-        return orgRepository.findByParentId(parentId).stream().map(entity -> {
+        Specification<OrganizationEntity> spec = filterDto.createSpec().and(((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("parent").get("id"),parentId)));
+
+        return orgRepository.findAll(spec,filterDto.createPageable()).stream().map(entity -> {
             OrganizationResponseDto childResponseDto = orgMapper.entityToResponseDto(entity);
             if(nestedChild!=null && nestedChild > 0)
                 appendChild(1,nestedChild, childResponseDto);
@@ -115,30 +125,63 @@ public class OrganizationService {
         orgRepository.deleteById(id);
     }
 
-    public List<UserWithRoleInOrgResponseDto> getUsersByOrgId(int orgId){
+    public List<UserWithRoleInOrgResponseDto> getUsersByOrgId(int orgId, UserFilterDto userFilterDto){
         if(!orgRepository.existsById(orgId))
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
 
         Map<Integer, UserWithRoleInOrgResponseDto> mapResult = new HashMap<>();
-        ourRepository.findUserRoleByOrgId(orgId).forEach(our->{
-            int userId = our.getUser().getId();
-            RoleResponseDto role = roleMapper.entityToResponseDto(our.getRole());
-            if(!mapResult.containsKey(userId)) {
-                UserWithRoleInOrgResponseDto userResponseDto = userMapper.entityToWithRoleResponseDto(our.getUser());
-                userResponseDto.getRoles().add(role);
 
-                mapResult.put(userId, userResponseDto);
-            } else
-                mapResult.get(userId).getRoles().add(role);
-        });
+        Specification<OrganizationUserRoleEntity> spec = (root, query, criteriaBuilder) -> {
+            Join<?,?> user = root.join("user");
+
+            Predicate userSearch = userFilterDto.createSpec(user, criteriaBuilder);
+            Predicate orgIdSearch = criteriaBuilder.equal(root.get("organization").get("id"), orgId);
+            return criteriaBuilder.and(userSearch,orgIdSearch);
+        };
+
+        Page<OrganizationUserRoleEntity> users = ourRepository.findAll(spec,userFilterDto.createPageable());
+        if(!users.isEmpty()) {
+            RoleFilterDto roleFilter = new RoleFilterDto();
+            roleFilter.setPageSize(20);
+
+            Map<Integer,Set<String>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
+
+            users.forEach(our->{
+                int userId = our.getUser().getId();
+                RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(our.getRole());
+                role.setPermissions(mapRolePermission.getOrDefault(role.getId(),Set.of()));
+                if(!mapResult.containsKey(userId)) {
+                    UserWithRoleInOrgResponseDto userResponseDto = userMapper.entityToWithRoleResponseDto(our.getUser());
+                    userResponseDto.getRoles().add(role);
+
+                    mapResult.put(userId, userResponseDto);
+                } else
+                    mapResult.get(userId).getRoles().add(role);
+            });
+        }
+
         return mapResult.values().stream().toList();
     }
 
-    public List<UserResponseDto> getUsersNotInOrg(int orgId){
+    public List<UserResponseDto> getUsersNotInOrg(int orgId, UserFilterDto userFilterDto){
         if(!orgRepository.existsById(orgId))
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
+        Specification<UserEntity> spec = (root, query, criteriaBuilder) -> {
+            Predicate userSearch = userFilterDto.createSpec(root, criteriaBuilder);
+            Subquery<Integer> sub = query.subquery(Integer.class);
+            Root<OrganizationUserRoleEntity> our = sub.from(OrganizationUserRoleEntity.class);
+            sub.select(criteriaBuilder.literal(1));
 
-        return ourRepository.findUsersNotInOrg(orgId).stream().map(userMapper::entityToResponseDto).toList();
+            sub.where(
+                    criteriaBuilder.equal(our.get("organization").get("id"), orgId),
+                    criteriaBuilder.equal(our.get("user"), root));
+
+            Predicate notExists = criteriaBuilder.not(criteriaBuilder.exists(sub));
+
+            return criteriaBuilder.and(userSearch,notExists);
+        };
+
+        return userRepository.findAll(spec,userFilterDto.createPageable()).stream().map(userMapper::entityToResponseDto).toList();
     }
 
     public void assignUsers(int id, OrganizationAssignUserRequestDto requestDto){

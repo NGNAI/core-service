@@ -1,6 +1,7 @@
 package ai.dto.own.request.filter;
 
-import ai.entity.postgres.OrganizationEntity;
+import ai.entity.postgres.PermissionEntity;
+import ai.entity.postgres.UserEntity;
 import ai.util.StringUtil;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
@@ -12,13 +13,13 @@ import org.springframework.data.jpa.domain.Specification;
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
 @Setter
-@FieldDefaults(level = AccessLevel.PROTECTED)
-public class OrganizationFilterDto extends PageableFilterDto{
+@Getter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class PermissionFilterDto extends PageableFilterDto{
     String keyword;
 
-    public Specification<OrganizationEntity> createSpec(){
+    public Specification<PermissionEntity> createSpec(){
         return ((root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             if(keyword!=null && !keyword.isEmpty()) {

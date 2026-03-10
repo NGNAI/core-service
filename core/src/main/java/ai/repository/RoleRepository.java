@@ -2,6 +2,10 @@ package ai.repository;
 
 import ai.entity.postgres.RoleEntity;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +24,12 @@ public interface RoleRepository extends JpaRepository<RoleEntity, Integer> {
         UPDATE RoleEntity r SET r.defaultAssign = false
         """)
     void deActiveAllDefaultAssign();
+
+    @EntityGraph(attributePaths = {
+            "rolePermissions",
+            "rolePermissions.permission"
+    })
+    Page<RoleEntity> findAll(Specification<RoleEntity> spec, Pageable pageable);
 
     @Query("""
        SELECT r

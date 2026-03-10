@@ -1,17 +1,23 @@
 package ai.dto.own.response;
 
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.util.HashSet;
 import java.util.Set;
 
-@Data
-@Builder
+@JsonPropertyOrder({
+        "id",
+        "name",
+        "description",
+        "defaultAssign",
+        "permissions"
+})
+@Getter
+@Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class RoleResponseDto {
+public class RoleResponseDto extends AuditResponseDto {
     int id;
     String name;
     String description;

@@ -1,11 +1,15 @@
 package ai.controller;
 
 import ai.dto.own.request.*;
+import ai.dto.own.request.filter.OrganizationFilterDto;
+import ai.dto.own.request.filter.UserFilterDto;
 import ai.dto.own.response.OrganizationResponseDto;
 import ai.dto.own.response.UserResponseDto;
 import ai.dto.own.response.UserWithRoleInOrgResponseDto;
 import ai.model.ApiResponseModel;
 import ai.service.OrganizationService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -22,7 +26,8 @@ public class OrganizationController {
     OrganizationService organizationService;
 
     @GetMapping("/{organizationId}")
-    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getById(@PathVariable int organizationId, @RequestParam(required = false) Integer nestedChild){
+    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getById(@PathVariable int organizationId
+            , @Valid @Min(value = 0, message = "NESTED_CHILD_VALUE_INVALID") @RequestParam(required = false) Integer nestedChild){
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationResponseDto>builder()
                         .message("Get organization successfully")
@@ -32,51 +37,51 @@ public class OrganizationController {
     }
 
     @GetMapping
-    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getAll(){
+    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getAll(OrganizationFilterDto filterDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<List<OrganizationResponseDto>>builder()
                         .message("Get list organizations successfully")
-                        .data(organizationService.getAll())
+                        .data(organizationService.getAll(filterDto))
                         .build()
         );
     }
 
-    @GetMapping("/getRoot")
-    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getRoot(@RequestParam(required = false) Integer nestedChild){
+    @GetMapping("/root")
+    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getRoot(@RequestParam(required = false) Integer nestedChild, OrganizationFilterDto filterDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<List<OrganizationResponseDto>>builder()
                         .message("Get root list organizations successfully")
-                        .data(organizationService.getRoot(nestedChild))
+                        .data(organizationService.getRoot(nestedChild,filterDto))
                         .build()
         );
     }
 
-    @GetMapping("/getChild/{organizationId}")
-    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getChild(@PathVariable int organizationId, @RequestParam(required = false) Integer nestedChild){
+    @GetMapping("/{organizationId}/children")
+    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getChild(@PathVariable int organizationId, @RequestParam(required = false) Integer nestedChild, OrganizationFilterDto filterDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<List<OrganizationResponseDto>>builder()
                         .message("Get children of organizations successfully")
-                        .data(organizationService.getChild(organizationId, nestedChild))
+                        .data(organizationService.getChild(organizationId, nestedChild, filterDto))
                         .build()
         );
     }
 
     @GetMapping("/{organizationId}/users")
-    ResponseEntity<ApiResponseModel<List<UserWithRoleInOrgResponseDto>>> getUserByOrgId(@PathVariable int organizationId){
+    ResponseEntity<ApiResponseModel<List<UserWithRoleInOrgResponseDto>>> getUserByOrgId(@PathVariable int organizationId, @ModelAttribute UserFilterDto userFilterDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<List<UserWithRoleInOrgResponseDto>>builder()
                         .message("Get users in organization successfully")
-                        .data(organizationService.getUsersByOrgId(organizationId))
+                        .data(organizationService.getUsersByOrgId(organizationId, userFilterDto))
                         .build()
         );
     }
 
-    @GetMapping("/{organizationId}/users/not-assign")
-    ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getUserNotInOrg(@PathVariable int organizationId){
+    @GetMapping("/{organizationId}/unassigned-users")
+    ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getUserNotInOrg(@PathVariable int organizationId, @ModelAttribute UserFilterDto userFilterDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<List<UserResponseDto>>builder()
                         .message("Get users not in organization successfully")
-                        .data(organizationService.getUsersNotInOrg(organizationId))
+                        .data(organizationService.getUsersNotInOrg(organizationId,userFilterDto))
                         .build()
         );
     }
@@ -92,7 +97,7 @@ public class OrganizationController {
     }
 
     @PostMapping("/{organizationId}/users")
-    ResponseEntity<ApiResponseModel<Void>> assignUsers(@PathVariable int organizationId, @RequestBody OrganizationAssignUserRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<Void>> assignUsers(@PathVariable int organizationId,@Valid @RequestBody OrganizationAssignUserRequestDto requestDto){
         organizationService.assignUsers(organizationId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
@@ -102,7 +107,7 @@ public class OrganizationController {
     }
 
     @PostMapping("/{organizationId}/users/remove")
-    ResponseEntity<ApiResponseModel<Void>> removeUsers(@PathVariable int organizationId, @RequestBody OrganizationRemoveUserRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<Void>> removeUsers(@PathVariable int organizationId,@Valid @RequestBody OrganizationRemoveUserRequestDto requestDto){
         organizationService.removeUsers(organizationId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
@@ -111,8 +116,8 @@ public class OrganizationController {
         );
     }
 
-    @PostMapping("/{organizationId}/users/roles")
-    ResponseEntity<ApiResponseModel<Void>> assignRole(@PathVariable int organizationId, @RequestBody OrganizationAssignRoleRequestDto requestDto){
+    @PostMapping("/{organizationId}/users/roles/assign")
+    ResponseEntity<ApiResponseModel<Void>> assignRole(@PathVariable int organizationId,@Valid @RequestBody OrganizationAssignRoleRequestDto requestDto){
         organizationService.assignRole(organizationId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
@@ -122,7 +127,7 @@ public class OrganizationController {
     }
 
     @PostMapping("/{organizationId}/users/roles/remove")
-    ResponseEntity<ApiResponseModel<Void>> removeRole(@PathVariable int organizationId, @RequestBody OrganizationRemoveRoleRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<Void>> removeRole(@PathVariable int organizationId,@Valid @RequestBody OrganizationRemoveRoleRequestDto requestDto){
         organizationService.removeRole(organizationId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
@@ -132,7 +137,7 @@ public class OrganizationController {
     }
 
     @PostMapping("/{organizationId}/users/roles/replace")
-    ResponseEntity<ApiResponseModel<Void>> replaceRole(@PathVariable int organizationId, @RequestBody OrganizationReplaceRoleRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<Void>> replaceRole(@PathVariable int organizationId,@Valid @RequestBody OrganizationReplaceRoleRequestDto requestDto){
         organizationService.replaceRole(organizationId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
@@ -142,7 +147,7 @@ public class OrganizationController {
     }
 
     @PostMapping("/{organizationId}/users/roles/reset")
-    ResponseEntity<ApiResponseModel<Void>> resetRole(@PathVariable int organizationId, @RequestBody OrganizationResetRoleRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<Void>> resetRole(@PathVariable int organizationId,@Valid @RequestBody OrganizationResetRoleRequestDto requestDto){
         organizationService.resetRole(organizationId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
@@ -152,7 +157,7 @@ public class OrganizationController {
     }
 
     @PutMapping("/{organizationId}")
-    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> update(@PathVariable int organizationId, @RequestBody OrganizationUpdateRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> update(@PathVariable int organizationId,@Valid @RequestBody OrganizationUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationResponseDto>builder()
                         .message("Update organization successfully")
