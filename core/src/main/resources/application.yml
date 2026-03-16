@@ -1,0 +1,39 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: "NGN AI core"
+
+  datasource:
+    url: "jdbc:postgresql://192.168.30.72:5432/core_service"
+    username: "postgres"
+    password: "P@ssw0rd"
+
+  jpa:
+    database-platform: "org.hibernate.dialect.PostgreSQLDialect"
+    hibernate:
+      ddl-auto: "update"
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    org.springframework.jdbc.core: "DEBUG"
+  file:
+    name: "application.log"
+    path: "logs"
+
+sql:
+  init:
+    mode: "always"
+
+jwt:
+  secret-key: "2daEri6ObwgO7dlnqH8SlcgtKWQ1njWdkg7hFv+gjTlfxxaeqBdg7XimfhBEIJEn"
+  expiry-duration: 216000
+
+otp:
+  url: "http://192.168.200.42:16500"
+  x-api-key: "kgw5KynWd9MAGht7waCZsFI0eTumLPxLVUEnRVtEXjypXNkpQ3vHEtPvWK5llC4MDf4bvl0BsbedKaGFsnOPJOd8kpaTcW7R04FDsZZMOAwlyKwguh0LVEsi3qQnDJM3BkVeBjH4F2WYga6D3TGqKljEJSl7QyluPpq0+Rp0S+HYx07sp4Wjynvaxb4oRB14"

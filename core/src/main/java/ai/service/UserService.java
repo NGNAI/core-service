@@ -8,7 +8,6 @@ import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
 import ai.mapper.UserMapper;
-import ai.repository.RoleRepository;
 import ai.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
