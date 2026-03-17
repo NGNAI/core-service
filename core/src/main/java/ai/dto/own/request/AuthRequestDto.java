@@ -9,4 +9,5 @@ import lombok.experimental.FieldDefaults;
 public class AuthRequestDto {
     String username;
     String password;
+    String source;
 }

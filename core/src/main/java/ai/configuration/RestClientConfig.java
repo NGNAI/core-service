@@ -10,6 +10,8 @@ public class RestClientConfig {
     @Bean
     RestClient otpRestClient(AppProperties appProperties){
         return RestClient.builder()
+                .baseUrl(appProperties.getOtp().getUrl())
+                .defaultHeader("X-API-KEY", appProperties.getOtp().getXApiKey())
                 .build();
     }
 }

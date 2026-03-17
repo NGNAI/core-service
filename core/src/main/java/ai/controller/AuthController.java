@@ -6,6 +6,7 @@ import ai.dto.own.response.AuthResponseDto;
 import ai.dto.own.response.IntrospectResponseDto;
 import ai.model.ApiResponseModel;
 import ai.service.AuthService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ public class AuthController {
     }
 
     @PostMapping
-    ResponseEntity<ApiResponseModel<AuthResponseDto>> auth(@RequestBody AuthRequestDto authRequestDto) throws JOSEException {
+    ResponseEntity<ApiResponseModel<AuthResponseDto>> auth(@RequestBody AuthRequestDto authRequestDto) throws JOSEException, JsonProcessingException {
         return ResponseEntity.ok(
                 ApiResponseModel.<AuthResponseDto>builder()
                         .message("Authenticated successfully")

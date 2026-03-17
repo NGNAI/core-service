@@ -1,6 +1,8 @@
 package ai.service;
 
 import ai.AppProperties;
+import ai.dto.outer.otp.request.OtpAuthRequestDto;
+import ai.dto.outer.otp.response.OtpAuthResponseDto;
 import ai.dto.own.request.AuthRequestDto;
 import ai.dto.own.request.IntrospectRequestDto;
 import ai.dto.own.response.*;
@@ -11,8 +13,10 @@ import ai.exeption.AppException;
 import ai.mapper.OrganizationMapper;
 import ai.mapper.RoleMapper;
 import ai.mapper.UserMapper;
+import ai.model.OtpApiResponseModel;
 import ai.repository.OrganizationUserRoleRepository;
 import ai.repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
@@ -35,6 +39,7 @@ import java.util.*;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class AuthService {
+    OtpApiService otpApiService;
     PermissionService permissionService;
 
     UserRepository userRepository;
@@ -58,12 +63,35 @@ public class AuthService {
         return IntrospectResponseDto.builder().valid(isValid).build();
     }
 
-    public AuthResponseDto auth(AuthRequestDto authRequestDto) throws JOSEException {
-        UserEntity userEntity = userRepository.findByUserName(authRequestDto.getUsername())
-                .orElseThrow(() -> new AppException(ApiResponseStatus.AUTHENTICATE_FAILED));
+    public AuthResponseDto auth(AuthRequestDto authRequestDto) throws JOSEException, JsonProcessingException {
+        UserEntity userEntity = null;
+        if(authRequestDto.getSource().equals("local")){
+            userEntity = userRepository.findByUserNameAndSource(authRequestDto.getUsername(),"local")
+                    .orElseThrow(() -> new AppException(ApiResponseStatus.AUTHENTICATE_FAILED));
 
-        if(!passwordEncoder.matches(authRequestDto.getPassword(),userEntity.getPassword())){
-            throw new AppException(ApiResponseStatus.AUTHENTICATE_FAILED);
+            if(!passwordEncoder.matches(authRequestDto.getPassword(),userEntity.getPassword()))
+                throw new AppException(ApiResponseStatus.AUTHENTICATE_FAILED);
+        } else {
+            OtpAuthRequestDto otpAuthRequestDto = new OtpAuthRequestDto(authRequestDto.getUsername(),authRequestDto.getPassword(),"ngn");
+            OtpApiResponseModel<OtpAuthResponseDto> authResponse = otpApiService.auth(otpAuthRequestDto);
+            if(authResponse.isSuccess()) {
+                OtpAuthResponseDto authResponseDto = authResponse.getData();
+
+                userEntity = userRepository.findByUserNameAndSource(authResponseDto.getUserId(),"ldap")
+                        .orElse(new UserEntity());
+
+                userEntity.setUserName(authResponseDto.getUserId());
+                userEntity.setEmail(authResponseDto.getEmail());
+                userEntity.setFirstName(authResponseDto.getFullName());
+                userEntity.setSource("ldap");
+
+                //FIXME remove this after recreate database
+                userEntity.setPassword("");
+
+                userEntity = userRepository.save(userEntity);
+            } else {
+                throw new AppException(ApiResponseStatus.AUTHENTICATE_FAILED);
+            }
         }
 
         String token = generateToken(userEntity);
