@@ -3,6 +3,8 @@ package ai.controller;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +23,7 @@ import ai.dto.own.request.MediaUpdateFolderRequestDto;
 import ai.dto.own.request.MediaUploadRequestDto;
 import ai.dto.own.response.MediaJobStatusResponseDto;
 import ai.dto.own.response.MediaPageResponseDto;
+import ai.dto.own.response.MediaPresignedUrlResponseDto;
 import ai.dto.own.response.MediaResponseDto;
 import ai.dto.own.response.MediaUploadResponseDto;
 import ai.enums.MediaUploadTarget;
@@ -88,6 +91,38 @@ public class MediaController {
                         .build()
         );
     }
+
+        @Operation(summary = "Download media file", description = "Download file bytes from MinIO by media id")
+        @GetMapping("/{mediaId}/download")
+        ResponseEntity<byte[]> download(@PathVariable UUID mediaId) {
+        MediaService.MediaDownloadData fileData = mediaService.downloadById(mediaId);
+
+        HttpHeaders headers = new HttpHeaders();
+        String contentType = (fileData.contentType() == null || fileData.contentType().isBlank())
+            ? MediaType.APPLICATION_OCTET_STREAM_VALUE
+            : fileData.contentType();
+        headers.setContentType(MediaType.parseMediaType(contentType));
+        headers.setContentDisposition(ContentDisposition.attachment().filename(fileData.fileName()).build());
+
+        return ResponseEntity.ok()
+            .headers(headers)
+            .body(fileData.bytes());
+        }
+
+        @Operation(summary = "Get media download URL", description = "Get MinIO presigned URL for file download")
+        @GetMapping("/{mediaId}/download-url")
+        ResponseEntity<ApiResponseModel<MediaPresignedUrlResponseDto>> getDownloadUrl(
+            @PathVariable UUID mediaId,
+            @Parameter(description = "URL expiration in seconds, default 900", example = "900")
+            @RequestParam(required = false) Integer expiresInSeconds
+        ) {
+        return ResponseEntity.ok(
+            ApiResponseModel.<MediaPresignedUrlResponseDto>builder()
+                .message("Get media download url successfully")
+                .data(mediaService.getPresignedDownloadUrl(mediaId, expiresInSeconds))
+                .build()
+        );
+        }
 
         @Operation(summary = "Upload media", description = "Upload media file to MinIO and optionally trigger ingestion")
         @ApiResponses(value = {

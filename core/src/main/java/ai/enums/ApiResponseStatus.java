@@ -59,6 +59,7 @@ public enum ApiResponseStatus {
     MEDIA_UNIT_REQUIRED(1108, "Media unit is required",HttpStatus.OK),
     MEDIA_USERNAME_REQUIRED(1109, "Media username is required",HttpStatus.OK),
     MEDIA_UPLOAD_FAILED(1110, "Media upload failed",HttpStatus.OK),
+    MEDIA_DOWNLOAD_FAILED(1121, "Media download failed",HttpStatus.OK),
     MEDIA_NOT_EXISTS(1111, "Media not exists",HttpStatus.OK),
     MEDIA_INGESTION_RETRY_ONLY_FAILED(1112, "Only failed media can retry ingestion",HttpStatus.OK),
     MEDIA_NAME_REQUIRED(1113, "Media name is required",HttpStatus.OK),

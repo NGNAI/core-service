@@ -7,6 +7,7 @@ import ai.dto.own.request.MediaRetryIngestionRequestDto;
 import ai.dto.own.request.MediaUpdateFolderRequestDto;
 import ai.dto.own.request.MediaUploadRequestDto;
 import ai.dto.own.response.MediaJobStatusResponseDto;
+import ai.dto.own.response.MediaPresignedUrlResponseDto;
 import ai.dto.own.response.MediaResponseDto;
 import ai.dto.own.response.MediaUploadResponseDto;
 import ai.entity.postgres.MediaEntity;
@@ -34,6 +35,8 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class MediaService {
+    private static final int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
+
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
             "name",
             "type",
@@ -56,7 +59,7 @@ public class MediaService {
         String unitValue = resolveUnitValue(requestDto);
         String visibilityValue = resolveVisibilityValue(requestDto.getVisibility());
 
-        String minioPath = minioService.upload(requestDto.getFile(), unitValue);
+        String minioPath = minioService.upload(requestDto.getFile(), unitValue, requestDto.getUsername());
 
         MediaEntity media = new MediaEntity();
         media.setName(requestDto.getFile().getOriginalFilename());
@@ -147,6 +150,43 @@ public class MediaService {
                 .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
         return toResponseDto(media);
     }
+
+        @Transactional
+        public MediaDownloadData downloadById(UUID mediaId) {
+        MediaEntity media = mediaRepository.findById(mediaId)
+            .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
+
+        validateDownloadableMedia(media);
+
+        MinioService.MinioObjectData objectData = minioService.download(media.getMinioPath());
+        Integer currentCount = media.getDownloadCount() == null ? 0 : media.getDownloadCount();
+        media.setDownloadCount(currentCount + 1);
+        mediaRepository.save(media);
+
+        return new MediaDownloadData(
+            media.getName(),
+            objectData.getContentType(),
+            objectData.getBytes()
+        );
+        }
+
+        @Transactional(readOnly = true)
+        public MediaPresignedUrlResponseDto getPresignedDownloadUrl(UUID mediaId, Integer expiresInSeconds) {
+        MediaEntity media = mediaRepository.findById(mediaId)
+            .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
+
+        validateDownloadableMedia(media);
+
+        int effectiveExpiry = expiresInSeconds == null || expiresInSeconds <= 0
+            ? DEFAULT_PRESIGNED_EXPIRY_SECONDS
+            : expiresInSeconds;
+
+        String url = minioService.generatePresignedDownloadUrl(media.getMinioPath(), effectiveExpiry);
+        return MediaPresignedUrlResponseDto.builder()
+            .url(url)
+            .expiresInSeconds(effectiveExpiry)
+            .build();
+        }
 
     @Transactional
     public MediaResponseDto updateFolder(UUID mediaId, MediaUpdateFolderRequestDto requestDto) {
@@ -300,6 +340,15 @@ public class MediaService {
         return responseDto.getStatus().trim().toUpperCase(Locale.ROOT);
     }
 
+    private void validateDownloadableMedia(MediaEntity media) {
+        if (media.getType() != null && "FOLDER".equalsIgnoreCase(media.getType())) {
+            throw new AppException(ApiResponseStatus.MEDIA_FOLDER_ONLY_OPERATION);
+        }
+        if (media.getMinioPath() == null || media.getMinioPath().isBlank()) {
+            throw new AppException(ApiResponseStatus.MEDIA_DOWNLOAD_FAILED);
+        }
+    }
+
     private MediaResponseDto toResponseDto(MediaEntity media) {
         return MediaResponseDto.builder()
                 .id(media.getId())
@@ -416,6 +465,9 @@ public class MediaService {
             return "private";
         }
         return visibility.trim().toLowerCase(Locale.ROOT);
+    }
+
+    public record MediaDownloadData(String fileName, String contentType, byte[] bytes) {
     }
 
     private String resolveFileType(String filename) {

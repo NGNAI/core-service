@@ -5,9 +5,12 @@ import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
+import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.StatObjectArgs;
+import io.minio.http.Method;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,6 +22,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -27,7 +32,8 @@ import java.util.UUID;
 public class MinioService {
     AppProperties appProperties;
 
-    public String upload(MultipartFile file, String unit) {
+    // Tải file lên Minio và trả về object path để lưu vào database, object path này sẽ được sử dụng để truy xuất file sau này
+    public String upload(MultipartFile file, String unit, String username) {
         try {
             AppProperties.Minio minio = appProperties.getMinio();
             MinioClient client = MinioClient.builder()
@@ -38,7 +44,7 @@ public class MinioService {
             String bucket = minio.getBucket();
             ensureBucket(client, bucket);
 
-            String objectPath = buildObjectPath(unit, file.getOriginalFilename());
+            String objectPath = buildObjectPath(unit, username, file.getOriginalFilename());
             try (InputStream inputStream = file.getInputStream()) {
                 client.putObject(
                         PutObjectArgs.builder()
@@ -56,6 +62,7 @@ public class MinioService {
         }
     }
 
+    // Tải file từ Minio theo object path và trả về dữ liệu dưới dạng byte array cùng với content type
     public MinioObjectData download(String objectPath) {
         try {
             AppProperties.Minio minio = appProperties.getMinio();
@@ -63,6 +70,13 @@ public class MinioService {
                     .endpoint(minio.getEndpoint())
                     .credentials(minio.getAccessKey(), minio.getSecretKey())
                     .build();
+
+            String contentType = client.statObject(
+                StatObjectArgs.builder()
+                    .bucket(minio.getBucket())
+                    .object(objectPath)
+                    .build()
+            ).contentType();
 
             try (InputStream inputStream = client.getObject(
                     GetObjectArgs.builder()
@@ -76,13 +90,41 @@ public class MinioService {
                     outputStream.write(buffer, 0, bytesRead);
                 }
 
-                return new MinioObjectData(outputStream.toByteArray(), "application/octet-stream");
+                return new MinioObjectData(
+                        outputStream.toByteArray(),
+                        normalizeContentType(contentType)
+                );
             }
         } catch (Exception exception) {
-            throw new AppException(ApiResponseStatus.MEDIA_UPLOAD_FAILED);
+            throw new AppException(ApiResponseStatus.MEDIA_DOWNLOAD_FAILED);
         }
     }
 
+    // Tao URL có chữ ký để tải file trực tiếp từ Minio, URL này sẽ hết hạn sau expiresInSeconds giây
+    public String generatePresignedDownloadUrl(String objectPath, int expiresInSeconds) {
+        try {
+            AppProperties.Minio minio = appProperties.getMinio();
+            MinioClient client = MinioClient.builder()
+                    .endpoint(minio.getEndpoint())
+                    .credentials(minio.getAccessKey(), minio.getSecretKey())
+                    .build();
+
+            int effectiveExpiry = expiresInSeconds > 0 ? expiresInSeconds : 900;
+
+            return client.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(minio.getBucket())
+                            .object(objectPath)
+                            .expiry(effectiveExpiry, TimeUnit.SECONDS)
+                            .build()
+            );
+        } catch (Exception exception) {
+            throw new AppException(ApiResponseStatus.MEDIA_DOWNLOAD_FAILED);
+        }
+    }
+
+    // Kiểm tra nếu bucket không tồn tại thì tạo mới
     private void ensureBucket(MinioClient client, String bucket) throws Exception {
         boolean exists = client.bucketExists(BucketExistsArgs.builder().bucket(bucket).build());
         if (!exists) {
@@ -90,16 +132,26 @@ public class MinioService {
         }
     }
 
-    private String buildObjectPath(String unit, String originalFilename) {
+    // Xây dựng đường dẫn đối tượng theo định dạng: unit/username/yyyy/MM/dd/safeFileName
+    private String buildObjectPath(String unit, String username, String originalFilename) {
         LocalDate now = LocalDate.now();
         String safeFileName = buildSafeFileName(originalFilename);
-        return unit + "/" + now.getYear() + "/" + now.getMonthValue() + "/" + safeFileName;
+        return unit + "/" + username + "/" + now.getYear() + "/" + now.getMonthValue() + "/"  + now.getDayOfMonth() + "/" + safeFileName;
     }
 
+    // Tạo tên file an toàn bằng cách loại bỏ các ký tự không hợp lệ và thêm UUID để tránh trùng lặp
     private String buildSafeFileName(String originalFilename) {
         String source = (originalFilename == null || originalFilename.isBlank()) ? "file.bin" : originalFilename;
         String normalized = source.replace("\\", "_").replace("/", "_").replace(" ", "_");
         return UUID.randomUUID() + "-" + normalized;
+    }
+
+    // Chuẩn hóa content type, nếu null hoặc rỗng thì mặc định là application/octet-stream
+    private String normalizeContentType(String contentType) {
+        if (contentType == null || contentType.isBlank()) {
+            return "application/octet-stream";
+        }
+        return contentType.trim().toLowerCase(Locale.ROOT);
     }
 
     @Data
