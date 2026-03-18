@@ -4,10 +4,10 @@ import ai.AppProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
-public class RestClientConfig {
+public class ApiClientConfig {
     @Bean
     RestClient otpRestClient(AppProperties appProperties){
         return RestClient.builder()
@@ -17,7 +17,16 @@ public class RestClientConfig {
     }
 
     @Bean
-    RestTemplate restTemplate() {
-        return new RestTemplate();
+    public WebClient ragWebClient(AppProperties appProperties) {
+        return WebClient.builder()
+                .baseUrl(appProperties.getRag().getUrl())
+                .build();
+    }
+
+    @Bean
+    RestClient ingestionRestClient(AppProperties appProperties) {
+        return RestClient.builder()
+                .baseUrl(appProperties.getIngestion().getUrl())
+                .build();
     }
 }

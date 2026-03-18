@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 public class AppProperties {
     Jwt jwt;
     Otp otp;
+    Rag rag;
     Ingestion ingestion;
     Minio minio;
 
@@ -30,6 +31,12 @@ public class AppProperties {
         String xApiKey;
     }
 
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Rag {
+        String url;
+    }
+    
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Ingestion {
