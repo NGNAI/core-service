@@ -3,7 +3,6 @@ package ai.exeption;
 import ai.enums.ApiResponseStatus;
 import ai.model.ApiResponseModel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;

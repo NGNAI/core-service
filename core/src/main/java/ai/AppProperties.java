@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 public class AppProperties {
     Jwt jwt;
     Otp otp;
+    Rag rag;
 
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -26,5 +27,11 @@ public class AppProperties {
     public static class Otp {
         String url;
         String xApiKey;
+    }
+
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Rag {
+        String url;
     }
 }
