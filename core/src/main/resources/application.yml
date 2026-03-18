@@ -5,6 +5,11 @@ spring:
   application:
     name: "NGN AI core"
 
+  servlet:
+    multipart:
+      max-file-size: "100MB"
+      max-request-size: "100MB"
+
   datasource:
     url: "jdbc:postgresql://192.168.30.72:5432/core_service"
     username: "postgres"
@@ -37,3 +42,12 @@ jwt:
 otp:
   url: "http://192.168.200.42:16500"
   x-api-key: "kgw5KynWd9MAGht7waCZsFI0eTumLPxLVUEnRVtEXjypXNkpQ3vHEtPvWK5llC4MDf4bvl0BsbedKaGFsnOPJOd8kpaTcW7R04FDsZZMOAwlyKwguh0LVEsi3qQnDJM3BkVeBjH4F2WYga6D3TGqKljEJSl7QyluPpq0+Rp0S+HYx07sp4Wjynvaxb4oRB14"
+
+ingestion:
+  url: "http://192.168.30.73:8000"
+
+minio:
+  endpoint: "http://192.168.30.16:9000"
+  access-key: "admin"
+  secret-key: "password"
+  bucket: "ingestion"

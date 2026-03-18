@@ -4,6 +4,7 @@ import ai.AppProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestTemplate;
 
 @Configuration
 public class RestClientConfig {
@@ -13,5 +14,10 @@ public class RestClientConfig {
                 .baseUrl(appProperties.getOtp().getUrl())
                 .defaultHeader("X-API-KEY", appProperties.getOtp().getXApiKey())
                 .build();
+    }
+
+    @Bean
+    RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }
