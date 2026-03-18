@@ -2,6 +2,7 @@ package ai.repository;
 
 import ai.entity.postgres.OrganizationUserRoleEntity;
 import ai.entity.postgres.UserEntity;
+import ai.entity.postgres.embeddable.OrganizationUserRoleIdEmbed;
 import ai.entity.postgres.embeddable.RolePermissionIdEmbed;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -12,7 +13,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Repository
-public interface OrganizationUserRoleRepository extends JpaRepository<OrganizationUserRoleEntity, RolePermissionIdEmbed>, JpaSpecificationExecutor<OrganizationUserRoleEntity> {
+public interface OrganizationUserRoleRepository extends JpaRepository<OrganizationUserRoleEntity, OrganizationUserRoleIdEmbed>, JpaSpecificationExecutor<OrganizationUserRoleEntity> {
     @Query("""
         SELECT our
         FROM OrganizationUserRoleEntity our
