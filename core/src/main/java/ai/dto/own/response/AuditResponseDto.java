@@ -12,7 +12,6 @@ import lombok.experimental.FieldDefaults;
         "updatedAt",
         "updatedBy"
 })
-@JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
 @FieldDefaults(level = AccessLevel.PROTECTED)
 public class AuditResponseDto {

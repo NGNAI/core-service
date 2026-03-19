@@ -16,6 +16,7 @@ import ai.mapper.UserMapper;
 import ai.model.OtpApiResponseModel;
 import ai.repository.OrganizationUserRoleRepository;
 import ai.repository.UserRepository;
+import ai.service.api.OtpApiService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;

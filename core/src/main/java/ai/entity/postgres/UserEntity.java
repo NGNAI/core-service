@@ -6,6 +6,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -51,4 +52,7 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "user")
     Set<OrganizationUserRoleEntity> orgUsersRole;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    List<TopicEntity> topics;
 }

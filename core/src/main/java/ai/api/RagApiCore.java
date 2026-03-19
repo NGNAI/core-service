@@ -24,12 +24,11 @@ public class RagApiCore {
     ObjectMapper objectMapper;
 
     public Flux<String> post(String endPoint, Object body) throws JsonProcessingException {
-        System.out.println(objectMapper.writeValueAsString(body)+"--s");
         return ragWebClient.post()
                 .uri(endPoint)
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.TEXT_EVENT_STREAM)
-                .bodyValue(objectMapper.writeValueAsString(body)) // FIX ở đây
+                .bodyValue(objectMapper.writeValueAsString(body))
                 .retrieve()
                 .bodyToFlux(String.class);
     }

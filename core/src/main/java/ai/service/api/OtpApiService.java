@@ -1,4 +1,4 @@
-package ai.service;
+package ai.service.api;
 
 import ai.api.OtpApiCore;
 import ai.dto.outer.otp.request.OtpAuthRequestDto;

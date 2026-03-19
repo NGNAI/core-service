@@ -2,22 +2,26 @@ package ai.dto.outer.rag.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
 
 @Data
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RagCompletionRequestDto {
     String model;
     List<Message> messages;
+    List<Message> history;
 
     @JsonProperty("top_k")
     int topK;
     boolean stream;
 
     @Data
+    @Builder
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Message {
         String role;
