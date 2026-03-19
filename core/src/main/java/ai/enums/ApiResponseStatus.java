@@ -53,7 +53,7 @@ public enum ApiResponseStatus {
     REQUEST_METHOD_NOT_ALLOWED(1029, "Request method not allowed!", HttpStatus.METHOD_NOT_ALLOWED),
     INVALID_REQUEST_INFORMATION(1030, "Invalid request information!", HttpStatus.BAD_REQUEST),
 
-    UNEXPECTED(9999, "An unexpected error occurred!",HttpStatus.OK);
+    UNEXPECTED(9999, "An unexpected error occurred!",HttpStatus.INTERNAL_SERVER_ERROR);
 
     int code;
     String message;
