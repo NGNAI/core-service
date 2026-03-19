@@ -1,0 +1,40 @@
+package ai.entity.postgres;
+
+import ai.entity.postgres.embeddable.AuditEmbed;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.FieldDefaults;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.util.List;
+
+@Getter
+@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@Table(name = "topic")
+@EntityListeners(AuditingEntityListener.class)
+@Entity
+public class TopicEntity {
+    @Id
+    @GeneratedValue
+    @Column(name = "id", nullable = false)
+    int id;
+
+    @Column(name = "title", nullable = false)
+    String title;
+
+    @Column(name = "type", nullable = false)
+    String type;
+
+    @Embedded
+    AuditEmbed audit= new AuditEmbed();
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    UserEntity user;
+
+    @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL)
+    List<MessageEntity> messages;
+}

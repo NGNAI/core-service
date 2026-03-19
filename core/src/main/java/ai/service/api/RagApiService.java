@@ -1,4 +1,4 @@
-package ai.service;
+package ai.service.api;
 
 import ai.api.RagApiCore;
 import ai.dto.outer.rag.request.RagCompletionRequestDto;

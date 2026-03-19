@@ -27,9 +27,17 @@ public class UserService {
     PasswordEncoder passwordEncoder;
 
     public UserResponseDto getById(int id){
-        return userMapper.entityToResponseDto(
-                userRepository.findById(id)
-                        .orElseThrow(() -> new AppException(ApiResponseStatus.USER_NOT_EXISTS)));
+        return userMapper.entityToResponseDto(getEntityById(id));
+    }
+
+    public UserEntity getEntityById(int id){
+        return  userRepository.findById(id)
+                .orElseThrow(() -> new AppException(ApiResponseStatus.USER_NOT_EXISTS));
+    }
+
+    public void validateUserId(int topicId){
+        if(!userRepository.existsById(topicId))
+            throw new AppException(ApiResponseStatus.USER_NOT_EXISTS);
     }
 
     public List<UserResponseDto> getAll(UserFilterDto filterDto){
