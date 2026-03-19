@@ -33,7 +33,7 @@ public class MinioService {
     AppProperties appProperties;
 
     // Tải file lên Minio và trả về object path để lưu vào database, object path này sẽ được sử dụng để truy xuất file sau này
-    public String upload(MultipartFile file, String unit, String username) {
+    public String upload(MultipartFile file, String username, String unit) {
         try {
             AppProperties.Minio minio = appProperties.getMinio();
             MinioClient client = MinioClient.builder()
@@ -44,7 +44,7 @@ public class MinioService {
             String bucket = minio.getBucket();
             ensureBucket(client, bucket);
 
-            String objectPath = buildObjectPath(unit, username, file.getOriginalFilename());
+            String objectPath = buildObjectPath(username, unit, file.getOriginalFilename());
             try (InputStream inputStream = file.getInputStream()) {
                 client.putObject(
                         PutObjectArgs.builder()
@@ -133,7 +133,7 @@ public class MinioService {
     }
 
     // Xây dựng đường dẫn đối tượng theo định dạng: unit/username/yyyy/MM/dd/safeFileName
-    private String buildObjectPath(String unit, String username, String originalFilename) {
+    private String buildObjectPath(String username, String unit, String originalFilename) {
         LocalDate now = LocalDate.now();
         String safeFileName = buildSafeFileName(originalFilename);
         return unit + "/" + username + "/" + now.getYear() + "/" + now.getMonthValue() + "/"  + now.getDayOfMonth() + "/" + safeFileName;

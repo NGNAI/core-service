@@ -6,6 +6,7 @@ import ai.dto.own.request.MediaCreateFolderRequestDto;
 import ai.dto.own.request.MediaRetryIngestionRequestDto;
 import ai.dto.own.request.MediaUpdateFolderRequestDto;
 import ai.dto.own.request.MediaUploadRequestDto;
+import ai.dto.own.request.filter.MediaFilterDto;
 import ai.dto.own.response.MediaJobStatusResponseDto;
 import ai.dto.own.response.MediaPresignedUrlResponseDto;
 import ai.dto.own.response.MediaResponseDto;
@@ -19,16 +20,11 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -36,17 +32,6 @@ import java.util.UUID;
 @Service
 public class MediaService {
     private static final int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
-
-    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
-            "name",
-            "type",
-            "size",
-            "createdAt",
-            "updatedAt",
-            "downloadCount",
-            "ingestionStatus",
-            "accessLevel"
-    );
 
     MediaRepository mediaRepository;
     IngestionService ingestionService;
@@ -59,7 +44,7 @@ public class MediaService {
         String unitValue = resolveUnitValue(requestDto);
         String visibilityValue = resolveVisibilityValue(requestDto.getVisibility());
 
-        String minioPath = minioService.upload(requestDto.getFile(), unitValue, requestDto.getUsername());
+        String minioPath = minioService.upload(requestDto.getFile(), requestDto.getUsername(), unitValue);
 
         MediaEntity media = new MediaEntity();
         media.setName(requestDto.getFile().getOriginalFilename());
@@ -123,8 +108,6 @@ public class MediaService {
 
     @Transactional
     public MediaResponseDto createFolder(MediaCreateFolderRequestDto requestDto) {
-        validateCreateFolderRequest(requestDto);
-
         MediaEntity media = new MediaEntity();
         media.setName(requestDto.getName().trim());
         media.setType("FOLDER");
@@ -231,27 +214,17 @@ public class MediaService {
     }
 
     @Transactional(readOnly = true)
-    public Page<MediaResponseDto> listMedia(UUID orgId, UUID ownerId, UUID parentId, MediaUploadTarget target,
-                                            Integer pageNumber, Integer pageSize, String sortBy, String sortDir) {
-        if (orgId == null) {
+    public Page<MediaResponseDto> listMedia(MediaFilterDto filterDto) {
+        if (filterDto.getOrgId() == null) {
             throw new AppException(ApiResponseStatus.MEDIA_ORG_ID_REQUIRED);
         }
 
-        Pageable pageable = createPageable(pageNumber, pageSize, sortBy, sortDir);
-
-        return mediaRepository.findByOrgAndOptionalOwnerAndParent(orgId, ownerId, parentId, target, pageable)
+        return mediaRepository.findAll(filterDto.createSpec(), filterDto.createPageable())
                 .map(this::toResponseDto);
     }
 
     @Transactional(noRollbackFor = AppException.class)
     public MediaUploadResponseDto retryIngestion(UUID mediaId, MediaRetryIngestionRequestDto requestDto) {
-        if (requestDto == null || requestDto.getUsername() == null || requestDto.getUsername().isBlank()) {
-            throw new AppException(ApiResponseStatus.MEDIA_USERNAME_REQUIRED);
-        }
-        if (requestDto.getUnit() == null || requestDto.getUnit().isBlank()) {
-            throw new AppException(ApiResponseStatus.MEDIA_UNIT_REQUIRED);
-        }
-
         MediaEntity media = mediaRepository.findById(mediaId)
                 .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
 
@@ -370,17 +343,8 @@ public class MediaService {
     }
 
     private void validateUploadRequest(MediaUploadRequestDto requestDto) {
-        if (requestDto.getFile() == null || requestDto.getFile().isEmpty()) {
+        if (requestDto.getFile().isEmpty()) {
             throw new AppException(ApiResponseStatus.MEDIA_FILE_REQUIRED);
-        }
-        if (requestDto.getTarget() == null) {
-            throw new AppException(ApiResponseStatus.MEDIA_TARGET_INVALID);
-        }
-        if (requestDto.getOrgId() == null) {
-            throw new AppException(ApiResponseStatus.MEDIA_ORG_ID_REQUIRED);
-        }
-        if (requestDto.getOwnerId() == null) {
-            throw new AppException(ApiResponseStatus.MEDIA_OWNER_ID_REQUIRED);
         }
         if (isIngestionTarget(requestDto.getTarget())) {
             if (requestDto.getUnit() == null || requestDto.getUnit().isBlank()) {
@@ -390,52 +354,6 @@ public class MediaService {
                 throw new AppException(ApiResponseStatus.MEDIA_USERNAME_REQUIRED);
             }
         }
-    }
-
-    private void validateCreateFolderRequest(MediaCreateFolderRequestDto requestDto) {
-        if (requestDto == null || requestDto.getName() == null || requestDto.getName().isBlank()) {
-            throw new AppException(ApiResponseStatus.MEDIA_NAME_REQUIRED);
-        }
-        if (requestDto.getTarget() == null) {
-            throw new AppException(ApiResponseStatus.MEDIA_TARGET_INVALID);
-        }
-        if (requestDto.getOrgId() == null) {
-            throw new AppException(ApiResponseStatus.MEDIA_ORG_ID_REQUIRED);
-        }
-        if (requestDto.getOwnerId() == null) {
-            throw new AppException(ApiResponseStatus.MEDIA_OWNER_ID_REQUIRED);
-        }
-    }
-
-    private Pageable createPageable(Integer pageNumber, Integer pageSize, String sortBy, String sortDir) {
-        int resolvedPage = pageNumber == null || pageNumber < 0 ? 0 : pageNumber;
-        int resolvedSize = pageSize == null || pageSize <= 0 ? 10 : pageSize;
-
-        String normalizedSortDir = sortDir == null ? "ASC" : sortDir.trim().toUpperCase(Locale.ROOT);
-        if (!"ASC".equals(normalizedSortDir) && !"DESC".equals(normalizedSortDir)) {
-            throw new AppException(ApiResponseStatus.MEDIA_SORT_DIR_INVALID);
-        }
-
-        if (sortBy == null || sortBy.isBlank()) {
-            return PageRequest.of(resolvedPage, resolvedSize);
-        }
-
-        if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
-            throw new AppException(ApiResponseStatus.MEDIA_SORT_BY_INVALID);
-        }
-
-        Sort.Direction direction = "DESC".equals(normalizedSortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
-        return PageRequest.of(resolvedPage, resolvedSize, Sort.by(direction, mapSortField(sortBy)));
-    }
-
-    private String mapSortField(String sortBy) {
-        if ("createdAt".equals(sortBy)) {
-            return "audit.createdAt";
-        }
-        if ("updatedAt".equals(sortBy)) {
-            return "audit.updatedAt";
-        }
-        return sortBy;
     }
 
     private boolean isDescendantOf(MediaEntity candidateParent, MediaEntity node) {

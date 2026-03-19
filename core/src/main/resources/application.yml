@@ -50,7 +50,7 @@ ingestion:
   url: "http://192.168.30.73:8000"
 
 minio:
-  endpoint: "http://192.168.30.16:9000"
+  endpoint: "http://192.168.30.71:9000"
   access-key: "admin"
   secret-key: "password"
-  bucket: "ingestion"
+  bucket: "ingestions"

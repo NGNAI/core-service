@@ -21,6 +21,7 @@ import ai.dto.own.request.MediaCreateFolderRequestDto;
 import ai.dto.own.request.MediaRetryIngestionRequestDto;
 import ai.dto.own.request.MediaUpdateFolderRequestDto;
 import ai.dto.own.request.MediaUploadRequestDto;
+import ai.dto.own.request.filter.MediaFilterDto;
 import ai.dto.own.response.MediaJobStatusResponseDto;
 import ai.dto.own.response.MediaPageResponseDto;
 import ai.dto.own.response.MediaPresignedUrlResponseDto;
@@ -36,6 +37,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -48,6 +50,7 @@ import lombok.experimental.FieldDefaults;
 public class MediaController {
     MediaService mediaService;
 
+    // Lấy media theo id, trả về chi tiết thông tin media
     @Operation(summary = "Get media by id", description = "Get detail of a single media item")
     @ApiResponses(value = {
         @ApiResponse(
@@ -165,7 +168,7 @@ public class MediaController {
             )
         })
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ResponseEntity<ApiResponseModel<MediaUploadResponseDto>> upload(@ModelAttribute MediaUploadRequestDto requestDto) {
+    ResponseEntity<ApiResponseModel<MediaUploadResponseDto>> upload(@Valid @ModelAttribute MediaUploadRequestDto requestDto) {
         return ResponseEntity.ok(
                 ApiResponseModel.<MediaUploadResponseDto>builder()
                         .message("Upload media successfully")
@@ -230,7 +233,7 @@ public class MediaController {
             )
     })
     @PostMapping("/folders")
-    ResponseEntity<ApiResponseModel<MediaResponseDto>> createFolder(@RequestBody MediaCreateFolderRequestDto requestDto) {
+    ResponseEntity<ApiResponseModel<MediaResponseDto>> createFolder(@Valid @RequestBody MediaCreateFolderRequestDto requestDto) {
         return ResponseEntity.ok(
                 ApiResponseModel.<MediaResponseDto>builder()
                         .message("Create media folder successfully")
@@ -285,25 +288,8 @@ public class MediaController {
             )
     })
     @GetMapping
-    ResponseEntity<ApiResponseModel<MediaPageResponseDto>> list(
-            @Parameter(description = "Organization id", required = true)
-            @RequestParam UUID orgId,
-            @Parameter(description = "Owner id filter")
-            @RequestParam(required = false) UUID ownerId,
-            @Parameter(description = "Parent folder id filter, null means root")
-            @RequestParam(required = false) UUID parentId,
-            @Parameter(description = "Media target filter: INGESTION or AVATAR")
-            @RequestParam(required = false) MediaUploadTarget target,
-            @Parameter(description = "Page index, 0-based", example = "0")
-            @RequestParam(required = false, defaultValue = "0") Integer pageNumber,
-            @Parameter(description = "Page size", example = "10")
-            @RequestParam(required = false, defaultValue = "10") Integer pageSize,
-            @Parameter(description = "Sort field whitelist: name,type,size,createdAt,updatedAt,downloadCount,ingestionStatus,accessLevel", example = "createdAt")
-            @RequestParam(required = false) String sortBy,
-            @Parameter(description = "Sort direction: ASC or DESC", example = "DESC")
-            @RequestParam(required = false, defaultValue = "ASC") String sortDir
-    ) {
-        Page<MediaResponseDto> page = mediaService.listMedia(orgId, ownerId, parentId, target, pageNumber, pageSize, sortBy, sortDir);
+    ResponseEntity<ApiResponseModel<MediaPageResponseDto>> list(@ModelAttribute MediaFilterDto filterDto) {
+        Page<MediaResponseDto> page = mediaService.listMedia(filterDto);
         MediaPageResponseDto data = MediaPageResponseDto.builder()
             .items(page.getContent())
             .pageNumber(page.getNumber())
@@ -315,6 +301,7 @@ public class MediaController {
         return ResponseEntity.ok(
             ApiResponseModel.<MediaPageResponseDto>builder()
                         .message("Get media list successfully")
+                        .count(page.getNumberOfElements())
                         .data(data)
                         .build()
         );
@@ -387,7 +374,7 @@ public class MediaController {
     @PutMapping("/folders/{mediaId}")
     ResponseEntity<ApiResponseModel<MediaResponseDto>> updateFolder(
             @PathVariable UUID mediaId,
-            @RequestBody MediaUpdateFolderRequestDto requestDto
+            @Valid @RequestBody MediaUpdateFolderRequestDto requestDto
     ) {
         return ResponseEntity.ok(
                 ApiResponseModel.<MediaResponseDto>builder()
@@ -442,7 +429,7 @@ public class MediaController {
         @PostMapping("/{mediaId}/ingestion/retry")
         ResponseEntity<ApiResponseModel<MediaUploadResponseDto>> retryIngestion(
             @PathVariable UUID mediaId,
-            @RequestBody MediaRetryIngestionRequestDto requestDto
+            @Valid @RequestBody MediaRetryIngestionRequestDto requestDto
         ) {
         return ResponseEntity.ok(
             ApiResponseModel.<MediaUploadResponseDto>builder()
