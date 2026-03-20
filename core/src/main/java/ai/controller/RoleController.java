@@ -7,6 +7,7 @@ import ai.dto.own.request.filter.PermissionFilterDto;
 import ai.dto.own.request.filter.RoleFilterDto;
 import ai.dto.own.response.RoleResponseDto;
 import ai.model.ApiResponseModel;
+import ai.model.CustomPairModel;
 import ai.service.RoleService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -25,11 +26,13 @@ public class RoleController {
     RoleService roleService;
 
     @GetMapping
-    ResponseEntity<ApiResponseModel<List<RoleResponseDto>>> getAll(@Valid @ModelAttribute RoleFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<RoleResponseDto>>> getAll(@ModelAttribute RoleFilterDto filterDto){
+        CustomPairModel<Long, List<RoleResponseDto>> result = roleService.getAll(filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<RoleResponseDto>>builder()
                         .message("Get list roles successfully")
-                        .data(roleService.getAll(filterDto))
+                        .count(result.getFirst())
+                        .data(result.getSecond())
                         .build()
         );
     }

@@ -3,8 +3,10 @@ package ai.controller;
 import ai.dto.own.request.TopicCreateRequestDto;
 import ai.dto.own.request.TopicRenameTitleRequestDto;
 import ai.dto.own.request.filter.TopicFilterDto;
+import ai.dto.own.response.MessageResponseDto;
 import ai.dto.own.response.TopicResponseDto;
 import ai.model.ApiResponseModel;
+import ai.model.CustomPairModel;
 import ai.service.MessageService;
 import ai.service.TopicService;
 import jakarta.validation.Valid;
@@ -18,22 +20,24 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequestMapping("/prv/topic")
+@RequestMapping("/prv")
 @RestController
 public class TopicController {
     TopicService topicService;
 
-    @GetMapping("/{userId}")
-    ResponseEntity<ApiResponseModel<List<TopicResponseDto>>> getAllByUserId(int userId, @Valid @ModelAttribute TopicFilterDto filterDto){
+    @GetMapping("user/{userId}/topic")
+    ResponseEntity<ApiResponseModel<List<TopicResponseDto>>> getAllByUserId(@PathVariable int userId, @ModelAttribute TopicFilterDto filterDto){
+        CustomPairModel<Long, List<TopicResponseDto>> result = topicService.getAll(userId, filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<TopicResponseDto>>builder()
                         .message("Get list topics successfully")
-                        .data(topicService.getAll(userId, filterDto))
+                        .count(result.getFirst())
+                        .data(result.getSecond())
                         .build()
         );
     }
 
-    @PostMapping
+    @PostMapping("/topic")
     ResponseEntity<ApiResponseModel<TopicResponseDto>> create(@Valid @RequestBody TopicCreateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<TopicResponseDto>builder()
@@ -43,8 +47,8 @@ public class TopicController {
         );
     }
 
-    @PatchMapping("/{topicId}")
-    ResponseEntity<ApiResponseModel<TopicResponseDto>> renameTitle(@Valid @PathVariable int topicId, @RequestBody TopicRenameTitleRequestDto requestDto){
+    @PatchMapping("/topic/{topicId}")
+    ResponseEntity<ApiResponseModel<TopicResponseDto>> renameTitle(@PathVariable int topicId,@Valid @RequestBody TopicRenameTitleRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<TopicResponseDto>builder()
                         .message("Rename topic title successfully")
@@ -53,7 +57,7 @@ public class TopicController {
         );
     }
 
-    @DeleteMapping("/{topicId}")
+    @DeleteMapping("/topic/{topicId}")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable int topicId){
         topicService.delete(topicId);
 

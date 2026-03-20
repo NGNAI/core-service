@@ -9,10 +9,12 @@ import ai.entity.postgres.TopicEntity;
 import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
 import ai.mapper.TopicMapper;
+import ai.model.CustomPairModel;
 import ai.repository.TopicRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -36,26 +38,27 @@ public class TopicService {
         return topicRepository.findById(topicId).orElseThrow(() -> new AppException(ApiResponseStatus.TOPIC_ID_NOT_EXISTS));
     }
 
-    public List<TopicResponseDto> getAll(int userId, TopicFilterDto filterDto){
+    public CustomPairModel<Long,List<TopicResponseDto>> getAll(int userId, TopicFilterDto filterDto){
         userService.validateUserId(userId);
         Specification<TopicEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("owner").get("id"), userId));
 
-        return topicRepository.findAll(
+        Page<TopicEntity> page = topicRepository.findAll(
                 spec,
                 filterDto.createPageable()
-        ).stream().map(topicMapper::entityToResponseDto).toList();
+        );
+
+        return new CustomPairModel<>(page.getTotalElements(),page.getContent().stream().map(topicMapper::entityToResponseDto).toList());
     }
 
     public TopicResponseDto create(TopicCreateRequestDto createRequestDto){
         TopicEntity newEntity = topicMapper.createRequestDtoToEntity(createRequestDto);
-        newEntity.setUser(userService.getEntityById(1));
+        newEntity.setOwner(userService.getEntityById(1));
 
         return topicMapper.entityToResponseDto(topicRepository.save(newEntity));
     }
 
     public TopicResponseDto renameTitle(int id, TopicRenameTitleRequestDto requestDto){
         TopicEntity entity = topicRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.TOPIC_ID_NOT_EXISTS));
-
         entity.setTitle(requestDto.getTitle());
 
         return topicMapper.entityToResponseDto(topicRepository.save(entity));

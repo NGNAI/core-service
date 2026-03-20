@@ -4,9 +4,7 @@ import ai.entity.postgres.embeddable.AuditEmbed;
 import ai.mapper.GeneralMapper;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.mapstruct.Mapping;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -14,8 +12,9 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.util.HashSet;
 import java.util.Set;
 
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Table(name = "permission")
 @EntityListeners(AuditingEntityListener.class)

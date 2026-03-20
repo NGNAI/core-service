@@ -11,6 +11,11 @@ import org.springframework.http.HttpStatusCode;
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum ApiResponseStatus {
+    USERNAME_CAN_NOT_BE_NULL_OR_EMPTY(1001, "Username can't be null or empty", HttpStatus.BAD_REQUEST),
+    PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY(1007, "Password can't be null or empty", HttpStatus.BAD_REQUEST),
+    SOURCE_CAN_NOT_BE_NULL_OR_EMPTY(1007, "Source can't be null or empty", HttpStatus.BAD_REQUEST),
+    TOKEN_CAN_NOT_BE_NULL_OR_EMPTY(1007, "Token can't be null or empty", HttpStatus.BAD_REQUEST),
+
     PARENT_ORGANIZATION_NOT_EXISTS(1001, "Parent organization not exists", HttpStatus.NOT_FOUND),
     ORGANIZATION_NOT_EXISTS(1002, "Organization not exists", HttpStatus.NOT_FOUND),
     ORGANIZATION_NOT_EMPTY(1003, "Organization not empty", HttpStatus.CONFLICT),
@@ -41,11 +46,15 @@ public enum ApiResponseStatus {
     USER_PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY(1023, "User password can't be null or empty", HttpStatus.BAD_REQUEST),
     USER_GENDER_VALUE_INVALID(1024, "User gender value only in 0 = male, 1 = female", HttpStatus.BAD_REQUEST),
     USER_EMAIL_VALUE_INVALID(1025, "User email is invalid", HttpStatus.BAD_REQUEST),
+    USER_EMAIL_CAN_NOT_BE_NULL_OR_EMPTY(1025, "Email can't be null or empty", HttpStatus.BAD_REQUEST),
 
     USER_IDS_CAN_NOT_BE_NULL_OR_EMPTY(1026, "User ids can't be null or empty", HttpStatus.BAD_REQUEST),
 
     TOPIC_ID_NOT_EXISTS(1009, "Topic id not exists", HttpStatus.NOT_FOUND),
-    TOPIC_TITLE_CAN_NOT_BE_NULL(1012, "Topic title can't be null or empty", HttpStatus.BAD_REQUEST),
+    TOPIC_TITLE_CAN_NOT_BE_NULL_OR_EMPTY(1012, "Topic title can't be null or empty", HttpStatus.BAD_REQUEST),
+    TOPIC_TYPE_CAN_NOT_BE_NULL_OR_EMPTY(1012, "Topic type can't be null or empty", HttpStatus.BAD_REQUEST),
+
+    MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1012, "message can't be null or empty", HttpStatus.BAD_REQUEST),
 
     UNAUTHENTICATED(1027, "Unauthenticated", HttpStatus.UNAUTHORIZED),
     TOKEN_INVALID(1031, "Token invalid", HttpStatus.UNAVAILABLE_FOR_LEGAL_REASONS),

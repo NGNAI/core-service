@@ -17,7 +17,6 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class TopicFilterDto extends PageableFilterDto{
     String keyword;
-    int userId;
 
     public Specification<TopicEntity> createSpec(){
         return ((root, query, criteriaBuilder) -> {

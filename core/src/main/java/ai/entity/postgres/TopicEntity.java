@@ -32,8 +32,8 @@ public class TopicEntity {
     AuditEmbed audit= new AuditEmbed();
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
-    UserEntity user;
+    @JoinColumn(name = "owner_id")
+    UserEntity owner;
 
     @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL)
     List<MessageEntity> messages;

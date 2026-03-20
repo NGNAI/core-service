@@ -5,6 +5,7 @@ import ai.dto.own.request.UserUpdateRequestDto;
 import ai.dto.own.request.filter.UserFilterDto;
 import ai.dto.own.response.UserResponseDto;
 import ai.model.ApiResponseModel;
+import ai.model.CustomPairModel;
 import ai.service.UserService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -33,11 +34,13 @@ public class UserController {
     }
 
     @GetMapping
-    ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getAll(UserFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getAll(@ModelAttribute UserFilterDto filterDto){
+        CustomPairModel<Long, List<UserResponseDto>> result = userService.getAll(filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<UserResponseDto>>builder()
                         .message("Get list users successfully")
-                        .data(userService.getAll(filterDto))
+                        .count(result.getFirst())
+                        .data(result.getSecond())
                         .build()
         );
     }

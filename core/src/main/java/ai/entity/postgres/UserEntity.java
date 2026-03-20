@@ -44,15 +44,16 @@ public class UserEntity {
     @Column(name = "phone_number")
     String phoneNumber;
 
+    @Builder.Default
     @Embedded
     AuditEmbed audit = new AuditEmbed();
 
     @Column(name = "source", nullable = false)
     String source;
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     Set<OrganizationUserRoleEntity> orgUsersRole;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     List<TopicEntity> topics;
 }

@@ -19,6 +19,7 @@ public class UserUpdateRequestDto {
     @Min(value = 0, message = "USER_GENDER_VALUE_INVALID")
     @Max(value = 1, message = "USER_GENDER_VALUE_INVALID")
     int gender;
+    @NotBlank(message = "USER_EMAIL_CAN_NOT_BE_NULL_OR_EMPTY")
     @Email(message = "USER_EMAIL_VALUE_INVALID")
     String email;
     String phoneNumber;

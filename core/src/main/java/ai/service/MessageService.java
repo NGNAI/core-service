@@ -6,10 +6,12 @@ import ai.dto.own.response.MessageResponseDto;
 import ai.entity.postgres.MessageEntity;
 import ai.entity.postgres.TopicEntity;
 import ai.mapper.MessageMapper;
+import ai.model.CustomPairModel;
 import ai.repository.MessageRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -24,13 +26,14 @@ public class MessageService {
 
     MessageMapper messageMapper;
 
-    public List<MessageResponseDto> getAll(int topicId, MessageFilterDto filterDto){
+    public CustomPairModel<Long,List<MessageResponseDto>> getAll(int topicId, MessageFilterDto filterDto){
         topicService.validateTopicId(topicId);
 
         Specification<MessageEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("topic").get("id"),topicId));
 
-        return messageRepository.findAll(spec,filterDto.createPageable())
-                .stream().map(messageMapper::entityToResponseDto).toList();
+        Page<MessageEntity> page = messageRepository.findAll(spec,filterDto.createPageable());
+
+        return new CustomPairModel<>(page.getTotalElements(),page.getContent().stream().map(messageMapper::entityToResponseDto).toList());
     }
 
     public MessageResponseDto create(MessageCreateRequestDto createRequestDto){

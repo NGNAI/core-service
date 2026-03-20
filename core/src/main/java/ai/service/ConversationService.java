@@ -52,7 +52,7 @@ public class ConversationService {
         messageFilterDto.setSortDir("desc");
 
         //Query history
-        List<RagCompletionRequestDto.Message> historyConversations = messageService.getAll(finalTopicId, messageFilterDto)
+        List<RagCompletionRequestDto.Message> historyConversations = messageService.getAll(finalTopicId, messageFilterDto).getSecond()
                 .stream().map(messageResponseDto -> RagCompletionRequestDto.Message.builder()
                 .role(messageResponseDto.getContent())
                 .content(messageResponseDto.getType()).build()).collect(Collectors.toList());
