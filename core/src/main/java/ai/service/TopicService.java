@@ -11,6 +11,7 @@ import ai.exeption.AppException;
 import ai.mapper.TopicMapper;
 import ai.model.CustomPairModel;
 import ai.repository.TopicRepository;
+import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -38,7 +39,8 @@ public class TopicService {
         return topicRepository.findById(topicId).orElseThrow(() -> new AppException(ApiResponseStatus.TOPIC_ID_NOT_EXISTS));
     }
 
-    public CustomPairModel<Long,List<TopicResponseDto>> getAll(int userId, TopicFilterDto filterDto){
+    public CustomPairModel<Long,List<TopicResponseDto>> getAll(TopicFilterDto filterDto){
+        int userId = JwtUtil.getUserId();
         userService.validateUserId(userId);
         Specification<TopicEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("owner").get("id"), userId));
 
@@ -52,7 +54,7 @@ public class TopicService {
 
     public TopicResponseDto create(TopicCreateRequestDto createRequestDto){
         TopicEntity newEntity = topicMapper.createRequestDtoToEntity(createRequestDto);
-        newEntity.setOwner(userService.getEntityById(1));
+        newEntity.setOwner(userService.getEntityById(JwtUtil.getUserId()));
 
         return topicMapper.entityToResponseDto(topicRepository.save(newEntity));
     }

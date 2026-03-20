@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
-public class ConversationService {
+public class RagService {
     RagApiService ragApiService;
     TopicService topicService;
     MessageService messageService;

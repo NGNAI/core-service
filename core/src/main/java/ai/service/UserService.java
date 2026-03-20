@@ -33,7 +33,7 @@ public class UserService {
     }
 
     public UserEntity getEntityById(int id){
-        return  userRepository.findById(id)
+        return userRepository.findById(id)
                 .orElseThrow(() -> new AppException(ApiResponseStatus.USER_NOT_EXISTS));
     }
 
