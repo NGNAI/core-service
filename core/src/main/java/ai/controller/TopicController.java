@@ -2,6 +2,7 @@ package ai.controller;
 
 import ai.dto.own.request.TopicCreateRequestDto;
 import ai.dto.own.request.TopicRenameTitleRequestDto;
+import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.request.filter.TopicFilterDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.dto.own.response.TopicResponseDto;
@@ -20,14 +21,15 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequestMapping("/prv")
+@RequestMapping("/user/topics")
 @RestController
 public class TopicController {
     TopicService topicService;
+    MessageService messageService;
 
-    @GetMapping("user/{userId}/topic")
-    ResponseEntity<ApiResponseModel<List<TopicResponseDto>>> getAllByUserId(@PathVariable int userId, @ModelAttribute TopicFilterDto filterDto){
-        CustomPairModel<Long, List<TopicResponseDto>> result = topicService.getAll(userId, filterDto);
+    @GetMapping()
+    ResponseEntity<ApiResponseModel<List<TopicResponseDto>>> getAllByUserId(@ModelAttribute TopicFilterDto filterDto){
+        CustomPairModel<Long, List<TopicResponseDto>> result = topicService.getAll(filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<TopicResponseDto>>builder()
                         .message("Get list topics successfully")
@@ -37,7 +39,7 @@ public class TopicController {
         );
     }
 
-    @PostMapping("/topic")
+    @PostMapping()
     ResponseEntity<ApiResponseModel<TopicResponseDto>> create(@Valid @RequestBody TopicCreateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<TopicResponseDto>builder()
@@ -47,7 +49,7 @@ public class TopicController {
         );
     }
 
-    @PatchMapping("/topic/{topicId}")
+    @PatchMapping("/{topicId}")
     ResponseEntity<ApiResponseModel<TopicResponseDto>> renameTitle(@PathVariable int topicId,@Valid @RequestBody TopicRenameTitleRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<TopicResponseDto>builder()
@@ -57,13 +59,25 @@ public class TopicController {
         );
     }
 
-    @DeleteMapping("/topic/{topicId}")
+    @DeleteMapping("/{topicId}")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable int topicId){
         topicService.delete(topicId);
 
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Delete topic successfully")
+                        .build()
+        );
+    }
+
+    @GetMapping("/{topicId}/messages")
+    ResponseEntity<ApiResponseModel<List<MessageResponseDto>>> getMessageByTopicId(@PathVariable int topicId, @ModelAttribute MessageFilterDto filterDto){
+        CustomPairModel<Long, List<MessageResponseDto>> result = messageService.getAll(topicId, filterDto);
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<MessageResponseDto>>builder()
+                        .message("Get list message of topic successfully")
+                        .count(result.getFirst())
+                        .data(result.getSecond())
                         .build()
         );
     }

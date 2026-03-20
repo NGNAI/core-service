@@ -20,7 +20,7 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequestMapping("/prv/role")
+@RequestMapping("/admin/roles")
 @RestController
 public class RoleController {
     RoleService roleService;

@@ -33,7 +33,13 @@ public class MessageService {
 
         Page<MessageEntity> page = messageRepository.findAll(spec,filterDto.createPageable());
 
-        return new CustomPairModel<>(page.getTotalElements(),page.getContent().stream().map(messageMapper::entityToResponseDto).toList());
+        List<MessageResponseDto> messages = page.getContent().stream().map(entity -> {
+            MessageResponseDto responseDto = messageMapper.entityToResponseDto(entity);
+            responseDto.setTopicId(topicId);
+            return responseDto;
+        }).toList();
+
+        return new CustomPairModel<>(page.getTotalElements(),messages);
     }
 
     public MessageResponseDto create(MessageCreateRequestDto createRequestDto){

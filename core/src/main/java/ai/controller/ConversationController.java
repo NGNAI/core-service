@@ -1,8 +1,7 @@
 package ai.controller;
 
-import ai.dto.outer.rag.request.RagCompletionRequestDto;
 import ai.dto.own.request.ConversationRequestDto;
-import ai.service.ConversationService;
+import ai.service.RagService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -14,10 +13,10 @@ import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequestMapping("/prv/conversation")
+@RequestMapping("/user/conversation")
 @RestController
 public class ConversationController {
-    ConversationService ragService;
+    RagService ragService;
 
     @PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> conversation(@Valid @RequestBody ConversationRequestDto requestDto) throws JsonProcessingException {
