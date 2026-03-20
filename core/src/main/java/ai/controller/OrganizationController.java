@@ -7,6 +7,7 @@ import ai.dto.own.response.OrganizationResponseDto;
 import ai.dto.own.response.UserResponseDto;
 import ai.dto.own.response.UserWithRoleInOrgResponseDto;
 import ai.model.ApiResponseModel;
+import ai.model.CustomPairModel;
 import ai.service.OrganizationService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -37,57 +38,70 @@ public class OrganizationController {
     }
 
     @GetMapping
-    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getAll(OrganizationFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getAll(@ModelAttribute OrganizationFilterDto filterDto){
+        CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getAll(filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<OrganizationResponseDto>>builder()
                         .message("Get list organizations successfully")
-                        .data(organizationService.getAll(filterDto))
+                        .count(result.getFirst())
+                        .data(result.getSecond())
                         .build()
         );
     }
 
     @GetMapping("/root")
-    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getRoot(@RequestParam(required = false) Integer nestedChild, OrganizationFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getRoot(@RequestParam(required = false) Integer nestedChild,@ModelAttribute OrganizationFilterDto filterDto){
+        CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getRoot(nestedChild,filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<OrganizationResponseDto>>builder()
                         .message("Get root list organizations successfully")
-                        .data(organizationService.getRoot(nestedChild,filterDto))
+                        .count(result.getFirst())
+                        .data(result.getSecond())
                         .build()
         );
     }
 
     @GetMapping("/{organizationId}/children")
-    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getChild(@PathVariable int organizationId, @RequestParam(required = false) Integer nestedChild, OrganizationFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getChild(@PathVariable int organizationId, @RequestParam(required = false) Integer nestedChild,@ModelAttribute OrganizationFilterDto filterDto){
+        CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getChild(organizationId, nestedChild, filterDto);
+
         return ResponseEntity.ok(
                 ApiResponseModel.<List<OrganizationResponseDto>>builder()
                         .message("Get children of organizations successfully")
-                        .data(organizationService.getChild(organizationId, nestedChild, filterDto))
+                        .count(result.getFirst())
+                        .data(result.getSecond())
                         .build()
         );
     }
 
     @GetMapping("/{organizationId}/users")
     ResponseEntity<ApiResponseModel<List<UserWithRoleInOrgResponseDto>>> getUserByOrgId(@PathVariable int organizationId, @ModelAttribute UserFilterDto userFilterDto){
+        CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> result = organizationService.getUsersByOrgId(organizationId, userFilterDto);
+
         return ResponseEntity.ok(
                 ApiResponseModel.<List<UserWithRoleInOrgResponseDto>>builder()
                         .message("Get users in organization successfully")
-                        .data(organizationService.getUsersByOrgId(organizationId, userFilterDto))
+                        .count(result.getFirst())
+                        .data(result.getSecond())
                         .build()
         );
     }
 
     @GetMapping("/{organizationId}/unassigned-users")
     ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getUserNotInOrg(@PathVariable int organizationId, @ModelAttribute UserFilterDto userFilterDto){
+        CustomPairModel<Long, List<UserResponseDto>> result = organizationService.getUsersNotInOrg(organizationId,userFilterDto);
+
         return ResponseEntity.ok(
                 ApiResponseModel.<List<UserResponseDto>>builder()
                         .message("Get users not in organization successfully")
-                        .data(organizationService.getUsersNotInOrg(organizationId,userFilterDto))
+                        .count(result.getFirst())
+                        .data(result.getSecond())
                         .build()
         );
     }
 
     @PostMapping
-    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> create(@RequestBody OrganizationCreateRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> create(@Valid @RequestBody OrganizationCreateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationResponseDto>builder()
                         .message("Create organization successfully")
@@ -97,7 +111,7 @@ public class OrganizationController {
     }
 
     @PostMapping("/{organizationId}/users")
-    ResponseEntity<ApiResponseModel<Void>> assignUsers(@PathVariable int organizationId,@Valid @RequestBody OrganizationAssignUserRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<Void>> assignUsers(@PathVariable int organizationId, @Valid @RequestBody OrganizationAssignUserRequestDto requestDto){
         organizationService.assignUsers(organizationId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()

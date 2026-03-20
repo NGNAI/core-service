@@ -14,6 +14,6 @@ public class ApiResponseModel<T> {
     @Builder.Default
     int status = 1000;
     String message;
-    Integer count;
+    Long count;
     T data;
 }

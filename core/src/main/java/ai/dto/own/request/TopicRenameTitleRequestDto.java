@@ -8,6 +8,6 @@ import lombok.experimental.FieldDefaults;
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class TopicRenameTitleRequestDto {
-    @NotBlank(message = "TOPIC_TITLE_CAN_NOT_BE_NULL")
+    @NotBlank(message = "TOPIC_TITLE_CAN_NOT_BE_NULL_OR_EMPTY")
     String title;
 }

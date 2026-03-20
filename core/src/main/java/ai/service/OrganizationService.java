@@ -14,6 +14,7 @@ import ai.exeption.AppException;
 import ai.mapper.OrganizationMapper;
 import ai.mapper.RoleMapper;
 import ai.mapper.UserMapper;
+import ai.model.CustomPairModel;
 import ai.repository.OrganizationRepository;
 import ai.repository.OrganizationUserRoleRepository;
 import ai.repository.RoleRepository;
@@ -55,34 +56,41 @@ public class OrganizationService {
         return responseDto;
     }
 
-    public List<OrganizationResponseDto> getAll(OrganizationFilterDto filterDto){
-        return orgRepository.findAll(filterDto.createSpec(),filterDto.createPageable())
-                .stream().map(orgMapper::entityToResponseDto).toList();
+    public CustomPairModel<Long,List<OrganizationResponseDto>> getAll(OrganizationFilterDto filterDto){
+        Page<OrganizationEntity> page = orgRepository.findAll(filterDto.createSpec(),filterDto.createPageable());
+        List<OrganizationResponseDto> organizations = page.getContent().stream().map(orgMapper::entityToResponseDto).toList();
+        return new CustomPairModel<>(page.getTotalElements(),organizations);
     }
 
-    public List<OrganizationResponseDto> getRoot(Integer nestedChild, OrganizationFilterDto filterDto){
+    public CustomPairModel<Long,List<OrganizationResponseDto>> getRoot(Integer nestedChild, OrganizationFilterDto filterDto){
         Specification<OrganizationEntity> spec = filterDto.createSpec().and(((root, query, criteriaBuilder) -> criteriaBuilder.isNull(root.get("parent"))));
-        return orgRepository.findAll(spec,filterDto.createPageable()).stream().map(entity -> {
+        Page<OrganizationEntity> page = orgRepository.findAll(spec,filterDto.createPageable());
+        List<OrganizationResponseDto> organizations = page.getContent().stream().map(entity -> {
             OrganizationResponseDto childResponseDto = orgMapper.entityToResponseDto(entity);
             if(nestedChild!=null && nestedChild > 0)
                 appendChild(1,nestedChild, childResponseDto);
 
             return childResponseDto;
-        }).collect(Collectors.toList());
+        }).toList();
+
+        return new CustomPairModel<>(page.getTotalElements(),organizations);
     }
 
-    public List<OrganizationResponseDto> getChild(int parentId, Integer nestedChild, OrganizationFilterDto filterDto){
+    public CustomPairModel<Long,List<OrganizationResponseDto>> getChild(int parentId, Integer nestedChild, OrganizationFilterDto filterDto){
         if(!orgRepository.existsById(parentId))
             throw new AppException(ApiResponseStatus.PARENT_ORGANIZATION_NOT_EXISTS);
         Specification<OrganizationEntity> spec = filterDto.createSpec().and(((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("parent").get("id"),parentId)));
 
-        return orgRepository.findAll(spec,filterDto.createPageable()).stream().map(entity -> {
+        Page<OrganizationEntity> page = orgRepository.findAll(spec,filterDto.createPageable());
+        List<OrganizationResponseDto> organizations = page.getContent().stream().map(entity -> {
             OrganizationResponseDto childResponseDto = orgMapper.entityToResponseDto(entity);
             if(nestedChild!=null && nestedChild > 0)
                 appendChild(1,nestedChild, childResponseDto);
 
             return childResponseDto;
         }).collect(Collectors.toList());
+
+        return new CustomPairModel<>(page.getTotalElements(),organizations);
     }
 
     public OrganizationResponseDto create(OrganizationCreateRequestDto requestDto){
@@ -124,7 +132,7 @@ public class OrganizationService {
         orgRepository.deleteById(id);
     }
 
-    public List<UserWithRoleInOrgResponseDto> getUsersByOrgId(int orgId, UserFilterDto userFilterDto){
+    public CustomPairModel<Long,List<UserWithRoleInOrgResponseDto>> getUsersByOrgId(int orgId, UserFilterDto userFilterDto){
         if(!orgRepository.existsById(orgId))
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
 
@@ -159,10 +167,10 @@ public class OrganizationService {
             });
         }
 
-        return mapResult.values().stream().toList();
+        return new CustomPairModel<>(users.getTotalElements(),mapResult.values().stream().toList());
     }
 
-    public List<UserResponseDto> getUsersNotInOrg(int orgId, UserFilterDto userFilterDto){
+    public CustomPairModel<Long,List<UserResponseDto>> getUsersNotInOrg(int orgId, UserFilterDto userFilterDto){
         if(!orgRepository.existsById(orgId))
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
         Specification<UserEntity> spec = (root, query, criteriaBuilder) -> {
@@ -180,7 +188,9 @@ public class OrganizationService {
             return criteriaBuilder.and(userSearch,notExists);
         };
 
-        return userRepository.findAll(spec,userFilterDto.createPageable()).stream().map(userMapper::entityToResponseDto).toList();
+        Page<UserEntity> page = userRepository.findAll(spec,userFilterDto.createPageable());
+
+        return new CustomPairModel<>(page.getTotalElements(), page.stream().map(userMapper::entityToResponseDto).toList());
     }
 
     public void assignUsers(int id, OrganizationAssignUserRequestDto requestDto){

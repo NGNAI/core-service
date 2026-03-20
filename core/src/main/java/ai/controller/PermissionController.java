@@ -4,7 +4,9 @@ import ai.dto.own.request.PermissionCreateRequestDto;
 import ai.dto.own.request.PermissionUpdateRequestDto;
 import ai.dto.own.request.filter.PermissionFilterDto;
 import ai.dto.own.response.PermissionResponseDto;
+import ai.dto.own.response.UserResponseDto;
 import ai.model.ApiResponseModel;
+import ai.model.CustomPairModel;
 import ai.service.PermissionService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -23,11 +25,14 @@ public class PermissionController {
     PermissionService permissionService;
 
     @GetMapping
-    ResponseEntity<ApiResponseModel<List<PermissionResponseDto>>> getAll(@Valid @ModelAttribute PermissionFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<PermissionResponseDto>>> getAll(@ModelAttribute PermissionFilterDto filterDto){
+        CustomPairModel<Long, List<PermissionResponseDto>> result = permissionService.getAll(filterDto);
+
         return ResponseEntity.ok(
                 ApiResponseModel.<List<PermissionResponseDto>>builder()
                         .message("Get list permissions successfully")
-                        .data(permissionService.getAll(filterDto))
+                        .count(result.getFirst())
+                        .data(result.getSecond())
                         .build()
         );
     }
@@ -43,7 +48,7 @@ public class PermissionController {
     }
 
     @PutMapping("/{permissionId}")
-    ResponseEntity<ApiResponseModel<PermissionResponseDto>> update(@Valid @PathVariable int permissionId, @RequestBody PermissionUpdateRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<PermissionResponseDto>> update(@PathVariable int permissionId,@Valid @RequestBody PermissionUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<PermissionResponseDto>builder()
                         .message("Update permission successfully")

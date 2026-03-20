@@ -1,6 +1,5 @@
 package ai.dto.own.request.filter;
 
-import ai.entity.postgres.PermissionEntity;
 import ai.entity.postgres.RoleEntity;
 import ai.util.StringUtil;
 import jakarta.persistence.criteria.Predicate;

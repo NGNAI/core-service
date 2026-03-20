@@ -11,12 +11,14 @@ import ai.entity.postgres.RoleEntity;
 import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
 import ai.mapper.RoleMapper;
+import ai.model.CustomPairModel;
 import ai.repository.PermissionRepository;
 import ai.repository.RoleRepository;
 import ai.util.StringUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -41,15 +43,19 @@ public class RoleService {
         return responseDto;
     }
 
-    public List<RoleResponseDto> getAll(RoleFilterDto filterDto){
-        return roleRepository.findAll(
+    public CustomPairModel<Long,List<RoleResponseDto>> getAll(RoleFilterDto filterDto){
+        Page<RoleEntity> page = roleRepository.findAll(
                 filterDto.createSpec(),
                 filterDto.createPageable()
-        ).stream().map(roleEntity -> {
+        );
+
+        List<RoleResponseDto> roles = page.getContent().stream().map(roleEntity -> {
             RoleResponseDto responseDto = roleMapper.entityToResponseDto(roleEntity);
             responseDto.setPermissions(permissionService.rolePermissionsToPermissionDto(roleEntity.getRolePermissions()));
             return responseDto;
         }).toList();
+
+        return new CustomPairModel<>(page.getTotalElements(),roles);
     }
 
     public RoleResponseDto create(RoleCreateRequestDto createRequestDto){
@@ -94,7 +100,7 @@ public class RoleService {
     public Map<Integer, Set<String>> getPermissionListOfRole(RoleFilterDto roleFilter){
         Map<Integer, Set<String>> mapPermissions = new HashMap<>();
 
-        getAll(roleFilter).forEach(role->{
+        getAll(roleFilter).getSecond().forEach(role->{
             mapPermissions.put(role.getId(),new HashSet<>(role.getPermissions().stream().map(PermissionResponseDto::getName).collect(Collectors.toSet())));
         });
 

@@ -8,6 +8,7 @@ import ai.model.ApiResponseModel;
 import ai.service.AuthService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.JOSEException;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -25,7 +26,7 @@ public class AuthController {
     AuthService authService;
 
     @PostMapping("/introspect")
-    ResponseEntity<ApiResponseModel<IntrospectResponseDto>> auth(@RequestBody IntrospectRequestDto introspectRequestDto) {
+    ResponseEntity<ApiResponseModel<IntrospectResponseDto>> auth(@Valid @RequestBody IntrospectRequestDto introspectRequestDto) {
         return ResponseEntity.ok(
                 ApiResponseModel.<IntrospectResponseDto>builder()
                         .message("Token validate!")
@@ -35,7 +36,7 @@ public class AuthController {
     }
 
     @PostMapping
-    ResponseEntity<ApiResponseModel<AuthResponseDto>> auth(@RequestBody AuthRequestDto authRequestDto) throws JOSEException, JsonProcessingException {
+    ResponseEntity<ApiResponseModel<AuthResponseDto>> auth(@Valid @RequestBody AuthRequestDto authRequestDto) throws JOSEException, JsonProcessingException {
         return ResponseEntity.ok(
                 ApiResponseModel.<AuthResponseDto>builder()
                         .message("Authenticated successfully")

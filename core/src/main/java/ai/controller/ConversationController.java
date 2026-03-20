@@ -4,6 +4,7 @@ import ai.dto.outer.rag.request.RagCompletionRequestDto;
 import ai.dto.own.request.ConversationRequestDto;
 import ai.service.ConversationService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,12 +20,12 @@ public class ConversationController {
     ConversationService ragService;
 
     @PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> conversation(@RequestBody ConversationRequestDto requestDto) throws JsonProcessingException {
+    public Flux<String> conversation(@Valid @RequestBody ConversationRequestDto requestDto) throws JsonProcessingException {
         return ragService.chat(null,requestDto);
     }
 
     @PostMapping(value = "/{topicId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> conversation(@PathVariable int topicId,@RequestBody ConversationRequestDto requestDto) throws JsonProcessingException {
+    public Flux<String> conversation(@PathVariable int topicId,@Valid @RequestBody ConversationRequestDto requestDto) throws JsonProcessingException {
         return ragService.chat(topicId,requestDto);
     }
 }

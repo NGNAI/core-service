@@ -8,10 +8,12 @@ import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
 import ai.mapper.UserMapper;
+import ai.model.CustomPairModel;
 import ai.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -40,11 +42,11 @@ public class UserService {
             throw new AppException(ApiResponseStatus.USER_NOT_EXISTS);
     }
 
-    public List<UserResponseDto> getAll(UserFilterDto filterDto){
+    public CustomPairModel<Long,List<UserResponseDto>> getAll(UserFilterDto filterDto){
         Specification<UserEntity> spec = (root, query, criteriaBuilder) -> filterDto.createSpec(root,criteriaBuilder);
-        return userRepository.findAll(spec,filterDto.createPageable())
-                .stream().map(userMapper::entityToResponseDto)
-                .toList();
+        Page<UserEntity> page = userRepository.findAll(spec,filterDto.createPageable());
+
+        return new CustomPairModel<>(page.getTotalElements(),page.getContent().stream().map(userMapper::entityToResponseDto).toList());
     }
 
     public UserResponseDto create(UserCreateRequestDto createRequestDto){

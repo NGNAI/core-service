@@ -6,14 +6,17 @@ import ai.dto.own.request.filter.PermissionFilterDto;
 import ai.dto.own.response.PermissionResponseDto;
 import ai.entity.postgres.PermissionEntity;
 import ai.entity.postgres.RolePermissionEntity;
+import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
 import ai.mapper.PermissionMapper;
+import ai.model.CustomPairModel;
 import ai.repository.PermissionRepository;
 import ai.util.StringUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,11 +30,13 @@ public class PermissionService {
     PermissionRepository permissionRepository;
     PermissionMapper permissionMapper;
 
-    public List<PermissionResponseDto> getAll(PermissionFilterDto filterDto){
-        return permissionRepository.findAll(
+    public CustomPairModel<Long,List<PermissionResponseDto>> getAll(PermissionFilterDto filterDto){
+        Page<PermissionEntity> page = permissionRepository.findAll(
                 filterDto.createSpec(),
                 filterDto.createPageable()
-        ).stream().map(permissionMapper::entityToResponseDto).toList();
+        );
+
+        return new CustomPairModel<>(page.getTotalElements(),page.getContent().stream().map(permissionMapper::entityToResponseDto).toList());
     }
 
     public PermissionResponseDto create(PermissionCreateRequestDto createRequestDto){
