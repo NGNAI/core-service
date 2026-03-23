@@ -19,6 +19,7 @@ public interface UserMapper extends GeneralMapper{
     @Mapping(target = "createdBy", expression = "java(createdByFromAudit(entity.getAudit()))")
     @Mapping(target = "updatedAt", expression = "java(updatedAtFromAudit(entity.getAudit()))")
     @Mapping(target = "updatedBy", expression = "java(updatedByFromAudit(entity.getAudit()))")
+    @Mapping(source = "lastLogin", target = "lastLogin", qualifiedByName = "instantToString")
     UserResponseDto entityToResponseDto(UserEntity entity);
 
     UserWithOrgResponseDto entityToWithOrgResponseDto(UserEntity entity);

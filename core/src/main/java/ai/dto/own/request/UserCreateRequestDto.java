@@ -25,6 +25,7 @@ public class UserCreateRequestDto {
     @Email(message = "USER_EMAIL_VALUE_INVALID")
     String email;
     String phoneNumber;
+    boolean active = true;
     @NotBlank(message = "SOURCE_CAN_NOT_BE_NULL_OR_EMPTY")
     String source;
 }

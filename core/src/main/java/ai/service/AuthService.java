@@ -49,7 +49,6 @@ public class AuthService {
     UserService userService;
     OrganizationService organizationService;
     RoleService roleService;
-    PermissionService permissionService;
 
     UserRepository userRepository;
     OrganizationUserRoleRepository ourRepository;
@@ -97,12 +96,12 @@ public class AuthService {
 
                 //FIXME remove this after recreate database
                 userEntity.setPassword("");
-
-                userEntity = userRepository.save(userEntity);
             } else {
                 throw new AppException(ApiResponseStatus.AUTHENTICATE_FAILED);
             }
         }
+        userEntity.setLastLogin(Instant.now());
+        userEntity = userRepository.save(userEntity);
 
         UserWithOrgResponseDto userResponse = userMapper.entityToWithOrgResponseDto(userEntity);
 

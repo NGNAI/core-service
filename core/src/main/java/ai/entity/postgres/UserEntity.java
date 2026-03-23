@@ -6,6 +6,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
@@ -47,6 +48,12 @@ public class UserEntity {
     @Builder.Default
     @Embedded
     AuditEmbed audit = new AuditEmbed();
+
+    @Column(name = "active")
+    boolean active;
+
+    @Column(name = "last_login")
+    Instant lastLogin;
 
     @Column(name = "source", nullable = false)
     String source;

@@ -28,4 +28,6 @@ public class UserResponseDto extends AuditResponseDto{
     String email;
     String phoneNumber;
     String source;
+    boolean active;
+    String lastLogin;
 }
