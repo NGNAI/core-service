@@ -23,4 +23,5 @@ public class UserUpdateRequestDto {
     @Email(message = "USER_EMAIL_VALUE_INVALID")
     String email;
     String phoneNumber;
+    boolean active = true;
 }

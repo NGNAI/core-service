@@ -6,7 +6,6 @@ import ai.dto.own.request.filter.PermissionFilterDto;
 import ai.dto.own.response.PermissionResponseDto;
 import ai.entity.postgres.PermissionEntity;
 import ai.entity.postgres.RolePermissionEntity;
-import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
 import ai.mapper.PermissionMapper;
