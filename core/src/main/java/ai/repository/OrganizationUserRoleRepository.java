@@ -1,9 +1,7 @@
 package ai.repository;
 
 import ai.entity.postgres.OrganizationUserRoleEntity;
-import ai.entity.postgres.UserEntity;
 import ai.entity.postgres.embeddable.OrganizationUserRoleIdEmbed;
-import ai.entity.postgres.embeddable.RolePermissionIdEmbed;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -46,14 +44,13 @@ public interface OrganizationUserRoleRepository extends JpaRepository<Organizati
     List<OrganizationUserRoleEntity> findByUserWithPermission(int userId);
 
     @Query("""
-        SELECT u
-        FROM UserEntity u
-        WHERE NOT EXISTS (
-            SELECT 1
-            FROM OrganizationUserRoleEntity our
-            WHERE our.organization.id = :orgId
-                AND our.user.id = u.id
-            )
+        SELECT our
+        FROM OrganizationUserRoleEntity our
+        JOIN fetch our.organization
+        JOIN fetch our.role r
+        LEFT JOIN fetch r.rolePermissions rp
+        LEFT JOIN fetch rp.permission
+        WHERE our.user.id = :userId AND our.organization.id = :orgId
         """)
-    List<UserEntity> findUsersNotInOrg(int orgId);
+    List<OrganizationUserRoleEntity> findByUserAndOrgWithPermission(int userId, int orgId);
 }

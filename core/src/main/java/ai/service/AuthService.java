@@ -5,10 +5,13 @@ import ai.dto.outer.otp.request.OtpAuthRequestDto;
 import ai.dto.outer.otp.response.OtpAuthResponseDto;
 import ai.dto.own.request.AuthRequestDto;
 import ai.dto.own.request.IntrospectRequestDto;
+import ai.dto.own.request.OrganizationSelectRequestDto;
 import ai.dto.own.response.*;
+import ai.entity.postgres.OrganizationUserRoleEntity;
 import ai.entity.postgres.RoleEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.TokenType;
 import ai.exeption.AppException;
 import ai.mapper.OrganizationMapper;
 import ai.mapper.RoleMapper;
@@ -17,6 +20,7 @@ import ai.model.OtpApiResponseModel;
 import ai.repository.OrganizationUserRoleRepository;
 import ai.repository.UserRepository;
 import ai.service.api.OtpApiService;
+import ai.util.JwtUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -41,6 +45,8 @@ import java.util.*;
 @Service
 public class AuthService {
     OtpApiService otpApiService;
+    UserService userService;
+    OrganizationService organizationService;
     PermissionService permissionService;
 
     UserRepository userRepository;
@@ -60,6 +66,7 @@ public class AuthService {
             isValid = verifyToken(introspectRequestDto.getToken());
         } catch (JOSEException | ParseException ex) {
             log.info("Token {} is invalid", introspectRequestDto.getToken(), ex);
+            ex.printStackTrace();
         }
         return IntrospectResponseDto.builder().valid(isValid).build();
     }
@@ -95,7 +102,6 @@ public class AuthService {
             }
         }
 
-        String token = generateToken(userEntity);
         UserWithOrgResponseDto userResponse = userMapper.entityToWithOrgResponseDto(userEntity);
 
         Map<Integer, OrganizationWithUserRoleDto> mapResult = new HashMap<>();
@@ -118,9 +124,42 @@ public class AuthService {
 
         userResponse.getOrganizations().addAll(mapResult.values());
 
+        if(userResponse.getOrganizations().isEmpty())
+            throw new AppException(ApiResponseStatus.USER_NOT_IN_ORG);
+        System.out.println(userResponse.getOrganizations().size());
+        String token = userResponse.getOrganizations().size()==1
+                ? generateToken(userEntity, TokenType.ACCESS, userResponse.getOrganizations().iterator().next().getId())
+                : generateToken(userEntity, TokenType.TEMP, null);
+
         return AuthResponseDto.builder()
                 .token(token)
                 .user(userResponse)
+                .build();
+    }
+
+    public OrganizationSelectResponseDto selectOrg(OrganizationSelectRequestDto requestDto) throws JOSEException {
+        int orgId = requestDto.getOrgId();
+        int userId = JwtUtil.getUserId();
+        UserEntity userEntity = userService.getEntityById(userId);
+        organizationService.validateOrgId(orgId);
+        List<OrganizationUserRoleEntity> ours = ourRepository.findByUserAndOrgWithPermission(userId, orgId);
+
+        if(ours.isEmpty())
+            throw new AppException(ApiResponseStatus.USER_NOT_EXIST_IN_ORGANIZATION);
+
+        OrganizationWithUserRoleDto organizationWithUserRoleDto = new OrganizationWithUserRoleDto();
+
+        ours.forEach(our->{
+            RoleEntity roleEntity = our.getRole();
+            RoleResponseDto role = roleMapper.entityToResponseDto(roleEntity);
+            role.setPermissions(permissionService.rolePermissionsToPermissionDto(roleEntity.getRolePermissions()));
+
+            organizationWithUserRoleDto.getRoles().add(role);
+        });
+
+        return OrganizationSelectResponseDto.builder()
+                .token(generateToken(userEntity, TokenType.ACCESS, orgId))
+                .organization(organizationWithUserRoleDto)
                 .build();
     }
 
@@ -130,7 +169,7 @@ public class AuthService {
         return signedJWT.verify(jwsVerifier) && !signedJWT.getJWTClaimsSet().getExpirationTime().before(new Date());
     }
 
-    private String generateToken(UserEntity userEntity) throws JOSEException {
+    private String generateToken(UserEntity userEntity, TokenType type, Integer orgId) throws JOSEException {
         JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
                 .subject(userEntity.getUserName())
@@ -138,8 +177,10 @@ public class AuthService {
                 .issueTime(new Date())
                 .expirationTime(new Date(Instant.now().plus(appProperties.getJwt().getExpiryDuration(), ChronoUnit.SECONDS).toEpochMilli()))
                 .jwtID(UUID.randomUUID().toString())
+                .claim("type",type)
                 .claim("scope",buildJwtScope(userEntity))
                 .claim("user_id",userEntity.getId())
+                .claim("org_id",Objects.requireNonNullElse(orgId,-1))
                 .build();
 
         Payload payload = new Payload(jwtClaimsSet.toJSONObject());
