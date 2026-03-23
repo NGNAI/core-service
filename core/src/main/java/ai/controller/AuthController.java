@@ -28,7 +28,7 @@ public class AuthController {
     AuthService authService;
 
     @PostMapping("/introspect")
-    ResponseEntity<ApiResponseModel<IntrospectResponseDto>> auth(@Valid @RequestBody IntrospectRequestDto introspectRequestDto) {
+    ResponseEntity<ApiResponseModel<IntrospectResponseDto>> introspect(@Valid @RequestBody IntrospectRequestDto introspectRequestDto) {
         return ResponseEntity.ok(
                 ApiResponseModel.<IntrospectResponseDto>builder()
                         .message("Token validate!")
@@ -47,11 +47,11 @@ public class AuthController {
         );
     }
 
-    @PostMapping("select-org")
-    ResponseEntity<ApiResponseModel<OrganizationSelectResponseDto>> auth(@Valid @RequestBody OrganizationSelectRequestDto selectRequestDto) throws JOSEException {
+    @PostMapping("/select-org")
+    ResponseEntity<ApiResponseModel<OrganizationSelectResponseDto>> selectOrg(@Valid @RequestBody OrganizationSelectRequestDto selectRequestDto) throws JOSEException {
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationSelectResponseDto>builder()
-                        .message("Authenticated successfully")
+                        .message("Select organization successfully")
                         .data(authService.selectOrg(selectRequestDto))
                         .build()
         );

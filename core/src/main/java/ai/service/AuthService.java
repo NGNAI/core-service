@@ -6,6 +6,7 @@ import ai.dto.outer.otp.response.OtpAuthResponseDto;
 import ai.dto.own.request.AuthRequestDto;
 import ai.dto.own.request.IntrospectRequestDto;
 import ai.dto.own.request.OrganizationSelectRequestDto;
+import ai.dto.own.request.filter.RoleFilterDto;
 import ai.dto.own.response.*;
 import ai.entity.postgres.OrganizationUserRoleEntity;
 import ai.entity.postgres.RoleEntity;
@@ -47,6 +48,7 @@ public class AuthService {
     OtpApiService otpApiService;
     UserService userService;
     OrganizationService organizationService;
+    RoleService roleService;
     PermissionService permissionService;
 
     UserRepository userRepository;
@@ -105,12 +107,16 @@ public class AuthService {
         UserWithOrgResponseDto userResponse = userMapper.entityToWithOrgResponseDto(userEntity);
 
         Map<Integer, OrganizationWithUserRoleDto> mapResult = new HashMap<>();
+        RoleFilterDto roleFilter = new RoleFilterDto();
+        roleFilter.setPageSize(20);
+
+        Map<Integer,Set<String>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
 
         ourRepository.findByUserWithPermission(userResponse.getId()).forEach(our->{
             int orgId = our.getOrganization().getId();
             RoleEntity roleEntity = our.getRole();
-            RoleResponseDto role = roleMapper.entityToResponseDto(roleEntity);
-            role.setPermissions(permissionService.rolePermissionsToPermissionDto(roleEntity.getRolePermissions()));
+            RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(roleEntity);
+            role.setPermissions(mapRolePermission.getOrDefault(role.getId(),Set.of()));
 
             if(!mapResult.containsKey(orgId)) {
                 OrganizationWithUserRoleDto orgWithRole = organizationMapper.entityToWithUserRoleResponseDto(our.getOrganization());
@@ -126,7 +132,7 @@ public class AuthService {
 
         if(userResponse.getOrganizations().isEmpty())
             throw new AppException(ApiResponseStatus.USER_NOT_IN_ORG);
-        System.out.println(userResponse.getOrganizations().size());
+
         String token = userResponse.getOrganizations().size()==1
                 ? generateToken(userEntity, TokenType.ACCESS, userResponse.getOrganizations().iterator().next().getId())
                 : generateToken(userEntity, TokenType.TEMP, null);
@@ -148,15 +154,17 @@ public class AuthService {
             throw new AppException(ApiResponseStatus.USER_NOT_EXIST_IN_ORGANIZATION);
 
         OrganizationWithUserRoleDto organizationWithUserRoleDto = new OrganizationWithUserRoleDto();
+        RoleFilterDto roleFilter = new RoleFilterDto();
+        roleFilter.setPageSize(20);
 
+        Map<Integer,Set<String>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
         ours.forEach(our->{
             RoleEntity roleEntity = our.getRole();
-            RoleResponseDto role = roleMapper.entityToResponseDto(roleEntity);
-            role.setPermissions(permissionService.rolePermissionsToPermissionDto(roleEntity.getRolePermissions()));
+            RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(roleEntity);
+            role.setPermissions(mapRolePermission.getOrDefault(role.getId(),Set.of()));
 
             organizationWithUserRoleDto.getRoles().add(role);
         });
-
         return OrganizationSelectResponseDto.builder()
                 .token(generateToken(userEntity, TokenType.ACCESS, orgId))
                 .organization(organizationWithUserRoleDto)

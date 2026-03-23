@@ -12,5 +12,5 @@ import java.util.Set;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrganizationWithUserRoleDto extends OrganizationResponseDto{
-    Set<RoleResponseDto> roles = new HashSet<>();
+    Set<RoleSimplifyResponseDto> roles = new HashSet<>();
 }
