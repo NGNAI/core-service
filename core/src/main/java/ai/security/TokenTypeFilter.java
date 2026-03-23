@@ -31,7 +31,8 @@ public class TokenTypeFilter extends OncePerRequestFilter {
         if (auth != null && auth.getPrincipal() instanceof Jwt jwt) {
             TokenType tokenType = TokenType.valueOf(jwt.getClaim("type"));
             if(!tokenType.equals(this.type)){
-                ServletUtil.makeResponse(response, ApiResponseStatus.UNAUTHENTICATED);
+                ServletUtil.makeResponse(response, ApiResponseStatus.PERMISSION_DENIED);
+                return;
             }
         }
 

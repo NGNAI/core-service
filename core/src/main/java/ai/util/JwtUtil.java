@@ -21,4 +21,9 @@ public class JwtUtil {
         Jwt jwt = getJwt();
         return jwt != null ? Integer.parseInt(jwt.getClaimAsString("user_id")) : -1;
     }
+
+    public int getOrgId() {
+        Jwt jwt = getJwt();
+        return jwt != null ? Integer.parseInt(jwt.getClaimAsString("org_id")) : -1;
+    }
 }
