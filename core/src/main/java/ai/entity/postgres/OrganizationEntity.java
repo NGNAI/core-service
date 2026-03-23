@@ -41,4 +41,7 @@ public class OrganizationEntity {
 
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
     Set<OrganizationUserRoleEntity> orgUsersRole;
+
+    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
+    Set<MediaEntity> medias;
 }

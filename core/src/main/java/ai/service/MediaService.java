@@ -12,9 +12,12 @@ import ai.dto.own.response.MediaPresignedUrlResponseDto;
 import ai.dto.own.response.MediaResponseDto;
 import ai.dto.own.response.MediaUploadResponseDto;
 import ai.entity.postgres.MediaEntity;
+import ai.entity.postgres.OrganizationEntity;
+import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.MediaUploadTarget;
 import ai.exeption.AppException;
+import ai.mapper.MediaMapper;
 import ai.repository.MediaRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -36,22 +39,26 @@ public class MediaService {
     MediaRepository mediaRepository;
     IngestionService ingestionService;
     MinioService minioService;
+    MediaMapper mediaMapper;
+    UserService userService;
+    OrganizationService organizationService;
 
     @Transactional(noRollbackFor = AppException.class)
     public MediaUploadResponseDto uploadMedia(MediaUploadRequestDto requestDto) {
         validateUploadRequest(requestDto);
 
-        String unitValue = resolveUnitValue(requestDto);
-        String visibilityValue = resolveVisibilityValue(requestDto.getVisibility());
+        UserEntity user = userService.getEntityById(requestDto.getOwnerId());
+        OrganizationEntity organization = organizationService.getEntityById(requestDto.getOrgId());
 
-        String minioPath = minioService.upload(requestDto.getFile(), requestDto.getUsername(), unitValue);
+
+       // String minioPath = minioService.upload(requestDto.getFile(), requestDto.getUsername(), unitValue);
 
         MediaEntity media = new MediaEntity();
         media.setName(requestDto.getFile().getOriginalFilename());
         media.setMinioPath(minioPath);
         media.setSize(requestDto.getFile().getSize());
         media.setType(resolveFileType(requestDto.getFile().getOriginalFilename()));
-        media.setAccessLevel(visibilityValue);
+        media.setAccessLevel(requestDto.getAccessLevel());
         media.setOwnerId(requestDto.getOwnerId());
         media.setOrgId(requestDto.getOrgId());
         media.setTarget(requestDto.getTarget());
@@ -66,12 +73,7 @@ public class MediaService {
         media = mediaRepository.save(media);
 
         if (requestDto.getTarget() == MediaUploadTarget.AVATAR) {
-            return MediaUploadResponseDto.builder()
-                    .mediaId(media.getId())
-                    .minioPath(media.getMinioPath())
-                    .target(media.getTarget())
-                    .ingestionStatus(media.getIngestionStatus())
-                    .build();
+            return mediaMapper.entityToUploadResponseDto(media);
         }
 
         try {
@@ -124,14 +126,14 @@ public class MediaService {
             media.setParent(parent);
         }
 
-        return toResponseDto(mediaRepository.save(media));
+        return mediaMapper.entityToResponseDto(mediaRepository.save(media));
     }
 
     @Transactional(readOnly = true)
     public MediaResponseDto getById(UUID mediaId) {
         MediaEntity media = mediaRepository.findById(mediaId)
                 .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
-        return toResponseDto(media);
+        return mediaMapper.entityToResponseDto(media);
     }
 
         @Transactional
@@ -173,8 +175,7 @@ public class MediaService {
 
     @Transactional
     public MediaResponseDto updateFolder(UUID mediaId, MediaUpdateFolderRequestDto requestDto) {
-        MediaEntity folder = mediaRepository.findById(mediaId)
-                .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
+        MediaEntity folder = mediaRepository.findById(mediaId).orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
 
         if (!"FOLDER".equalsIgnoreCase(folder.getType())) {
             throw new AppException(ApiResponseStatus.MEDIA_FOLDER_ONLY_OPERATION);
@@ -210,17 +211,12 @@ public class MediaService {
             folder.setParent(parent);
         }
 
-        return toResponseDto(mediaRepository.save(folder));
+        return mediaMapper.entityToResponseDto(mediaRepository.save(folder));
     }
 
     @Transactional(readOnly = true)
-    public Page<MediaResponseDto> listMedia(MediaFilterDto filterDto) {
-        if (filterDto.getOrgId() == null) {
-            throw new AppException(ApiResponseStatus.MEDIA_ORG_ID_REQUIRED);
-        }
-
-        return mediaRepository.findAll(filterDto.createSpec(), filterDto.createPageable())
-                .map(this::toResponseDto);
+    public Page<MediaResponseDto> getAll(MediaFilterDto filterDto) {
+        return mediaRepository.findAll(filterDto.createSpec(), filterDto.createPageable()).map(mediaMapper::entityToResponseDto);
     }
 
     @Transactional(noRollbackFor = AppException.class)
@@ -262,13 +258,7 @@ public class MediaService {
             media.setIngestionStatus("PENDING");
             mediaRepository.save(media);
 
-            return MediaUploadResponseDto.builder()
-                    .mediaId(media.getId())
-                    .minioPath(media.getMinioPath())
-                    .target(media.getTarget())
-                    .ingestionStatus(media.getIngestionStatus())
-                    .jobId(media.getJobId())
-                    .build();
+            return mediaMapper.entityToUploadResponseDto(media);
         } catch (AppException exception) {
             media.setIngestionStatus("FAILED");
             mediaRepository.save(media);
@@ -322,26 +312,6 @@ public class MediaService {
         }
     }
 
-    private MediaResponseDto toResponseDto(MediaEntity media) {
-        return MediaResponseDto.builder()
-                .id(media.getId())
-                .name(media.getName())
-                .type(media.getType())
-                .size(media.getSize())
-                .minioPath(media.getMinioPath())
-                .parentId(media.getParent() != null ? media.getParent().getId() : null)
-                .ownerId(media.getOwnerId())
-                .orgId(media.getOrgId())
-                .accessLevel(media.getAccessLevel())
-                .jobId(media.getJobId())
-                .ingestionStatus(media.getIngestionStatus())
-                .downloadCount(media.getDownloadCount())
-                .createdAt(media.getAudit() != null ? media.getAudit().getCreatedAt() : null)
-                .updatedAt(media.getAudit() != null ? media.getAudit().getUpdatedAt() : null)
-                .target(media.getTarget())
-                .build();
-    }
-
     private void validateUploadRequest(MediaUploadRequestDto requestDto) {
         if (requestDto.getFile().isEmpty()) {
             throw new AppException(ApiResponseStatus.MEDIA_FILE_REQUIRED);
@@ -371,12 +341,6 @@ public class MediaService {
         return target == MediaUploadTarget.INGESTION || target == MediaUploadTarget.RAG;
     }
 
-    private String resolveUnitValue(MediaUploadRequestDto requestDto) {
-        if (requestDto.getUnit() != null && !requestDto.getUnit().isBlank()) {
-            return requestDto.getUnit().trim();
-        }
-        return requestDto.getTarget() == MediaUploadTarget.AVATAR ? "avatar" : "documents";
-    }
 
     private String resolveVisibilityValue(String visibility) {
         if (visibility == null || visibility.isBlank()) {

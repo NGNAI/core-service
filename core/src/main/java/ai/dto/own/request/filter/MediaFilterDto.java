@@ -1,23 +1,25 @@
 package ai.dto.own.request.filter;
 
-import ai.entity.postgres.MediaEntity;
-import ai.enums.ApiResponseStatus;
-import ai.enums.MediaUploadTarget;
-import ai.exeption.AppException;
-import ai.specification.MediaEntitySpecification;
-import jakarta.persistence.criteria.Predicate;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.FieldDefaults;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
+import ai.entity.postgres.MediaEntity;
+import ai.enums.ApiResponseStatus;
+import ai.enums.MediaUploadTarget;
+import ai.exeption.AppException;
+import ai.specification.MediaEntitySpecification;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.criteria.Predicate;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.FieldDefaults;
 
 @Getter
 @Setter
@@ -34,9 +36,16 @@ public class MediaFilterDto extends PageableFilterDto {
             "accessLevel"
     );
 
+    @Schema(description = "Organization ID to filter media", example = "123e4567-e89b-12d3-a456-426614174000")
     UUID orgId;
+
+    @Schema(description = "Owner ID to filter media", example = "123e4567-e89b-12d3-a456-426614174000")
     UUID ownerId;
+
+    @Schema(description = "Parent ID to filter media", example = "123e4567-e89b-12d3-a456-426614174000")
     UUID parentId;
+
+    @Schema(description = "Target to filter media", example = "UPLOAD")
     MediaUploadTarget target;
 
     public Specification<MediaEntity> createSpec() {
@@ -74,10 +83,10 @@ public class MediaFilterDto extends PageableFilterDto {
 
     private String mapSortField(String sortBy) {
         if ("createdAt".equals(sortBy)) {
-            return "audit.createdAt";
+            return "createdAt";
         }
         if ("updatedAt".equals(sortBy)) {
-            return "audit.updatedAt";
+            return "updatedAt";
         }
         return sortBy;
     }

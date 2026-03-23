@@ -9,6 +9,9 @@ import java.util.UUID;
 
 public class MediaEntitySpecification {
     public static Predicate buildOrgId(Path<?> root, CriteriaBuilder criteriaBuilder, UUID orgId) {
+        if (orgId == null) {
+            return criteriaBuilder.conjunction();
+        }
         return criteriaBuilder.equal(root.get("orgId"), orgId);
     }
 

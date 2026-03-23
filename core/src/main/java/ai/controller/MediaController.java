@@ -1,5 +1,6 @@
 package ai.controller;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -23,11 +24,9 @@ import ai.dto.own.request.MediaUpdateFolderRequestDto;
 import ai.dto.own.request.MediaUploadRequestDto;
 import ai.dto.own.request.filter.MediaFilterDto;
 import ai.dto.own.response.MediaJobStatusResponseDto;
-import ai.dto.own.response.MediaPageResponseDto;
 import ai.dto.own.response.MediaPresignedUrlResponseDto;
 import ai.dto.own.response.MediaResponseDto;
 import ai.dto.own.response.MediaUploadResponseDto;
-import ai.enums.MediaUploadTarget;
 import ai.model.ApiResponseModel;
 import ai.service.MediaService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,7 +44,7 @@ import lombok.experimental.FieldDefaults;
 @Tag(name = "Media", description = "Media management APIs")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequestMapping("/prv/media")
+@RequestMapping("/user/media")
 @RestController
 public class MediaController {
     MediaService mediaService;
@@ -243,7 +242,7 @@ public class MediaController {
     }
 
     @Operation(
-            summary = "Get paged media list",
+            summary = "Get media list with paging",
             description = "Return media items with paging metadata: pageNumber, pageSize, totalPages, totalElements"
     )
     @ApiResponses(value = {
@@ -288,21 +287,14 @@ public class MediaController {
             )
     })
     @GetMapping
-    ResponseEntity<ApiResponseModel<MediaPageResponseDto>> list(@ModelAttribute MediaFilterDto filterDto) {
-        Page<MediaResponseDto> page = mediaService.listMedia(filterDto);
-        MediaPageResponseDto data = MediaPageResponseDto.builder()
-            .items(page.getContent())
-            .pageNumber(page.getNumber())
-            .pageSize(page.getSize())
-            .totalPages(page.getTotalPages())
-            .totalElements(page.getTotalElements())
-            .build();
-
-        return ResponseEntity.ok(
-            ApiResponseModel.<MediaPageResponseDto>builder()
+    ResponseEntity<ApiResponseModel<List<MediaResponseDto>>> list(@ModelAttribute MediaFilterDto filterDto) {
+        Page<MediaResponseDto> page = mediaService.getAll(filterDto);
+        
+        return ResponseEntity.ok(   
+            ApiResponseModel.<List<MediaResponseDto>>builder()
                         .message("Get media list successfully")
-                        .count(page.getNumberOfElements())
-                        .data(data)
+                        .count(page.getTotalElements())
+                        .data(page.getContent())
                         .build()
         );
     }
