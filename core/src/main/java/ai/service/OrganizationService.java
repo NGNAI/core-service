@@ -45,6 +45,11 @@ public class OrganizationService {
     UserMapper userMapper;
     RoleMapper roleMapper;
 
+    public void validateOrgId(int orgId){
+        if(!orgRepository.existsById(orgId))
+            throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
+    }
+
     public OrganizationResponseDto getById(int id, Integer nestedChild){
         OrganizationResponseDto responseDto = orgMapper.entityToResponseDto(
                 orgRepository.findById(id)

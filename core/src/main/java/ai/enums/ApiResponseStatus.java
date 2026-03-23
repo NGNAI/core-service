@@ -57,6 +57,8 @@ public enum ApiResponseStatus {
     MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1012, "message can't be null or empty", HttpStatus.BAD_REQUEST),
 
     UNAUTHENTICATED(1027, "Unauthenticated", HttpStatus.UNAUTHORIZED),
+    PERMISSION_DENIED(1001, "You don't have permission", HttpStatus.FORBIDDEN),
+    USER_NOT_IN_ORG(1001, "User not in any org", HttpStatus.FORBIDDEN),
     TOKEN_INVALID(1031, "Token invalid", HttpStatus.UNAVAILABLE_FOR_LEGAL_REASONS),
     AUTHENTICATE_FAILED(1028, "Authenticate failed!", HttpStatus.UNAUTHORIZED),
     REQUEST_METHOD_NOT_ALLOWED(1029, "Request method not allowed!", HttpStatus.METHOD_NOT_ALLOWED),

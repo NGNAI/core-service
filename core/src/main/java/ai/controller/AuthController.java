@@ -2,8 +2,10 @@ package ai.controller;
 
 import ai.dto.own.request.AuthRequestDto;
 import ai.dto.own.request.IntrospectRequestDto;
+import ai.dto.own.request.OrganizationSelectRequestDto;
 import ai.dto.own.response.AuthResponseDto;
 import ai.dto.own.response.IntrospectResponseDto;
+import ai.dto.own.response.OrganizationSelectResponseDto;
 import ai.model.ApiResponseModel;
 import ai.service.AuthService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -41,6 +43,16 @@ public class AuthController {
                 ApiResponseModel.<AuthResponseDto>builder()
                         .message("Authenticated successfully")
                         .data(authService.auth(authRequestDto))
+                        .build()
+        );
+    }
+
+    @PostMapping("select-org")
+    ResponseEntity<ApiResponseModel<OrganizationSelectResponseDto>> auth(@Valid @RequestBody OrganizationSelectRequestDto selectRequestDto) throws JOSEException {
+        return ResponseEntity.ok(
+                ApiResponseModel.<OrganizationSelectResponseDto>builder()
+                        .message("Authenticated successfully")
+                        .data(authService.selectOrg(selectRequestDto))
                         .build()
         );
     }
