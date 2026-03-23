@@ -1,18 +1,16 @@
 package ai.mapper;
 
-import ai.dto.own.response.MediaResponseDto;
-import ai.dto.own.response.MediaUploadResponseDto;
-import ai.entity.postgres.MediaEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
-public interface MediaMapper {
-    @Mapping(target = "parentId", source = "parent.id")
-    @Mapping(target = "createdAt", source = "audit.createdAt")
-    @Mapping(target = "updatedAt", source = "audit.updatedAt")
-    MediaResponseDto entityToResponseDto(MediaEntity entity);
+import ai.dto.own.response.MediaResponseDto;
+import ai.entity.postgres.MediaEntity;
 
-    @Mapping(target = "mediaId", source = "id")
-    MediaUploadResponseDto entityToUploadResponseDto(MediaEntity entity);
+@Mapper(componentModel = "spring")
+public interface MediaMapper extends GeneralMapper {
+    @Mapping(target = "createdAt", expression = "java(createdAtFromAudit(entity.getAudit()))")
+    @Mapping(target = "createdBy", expression = "java(createdByFromAudit(entity.getAudit()))")
+    @Mapping(target = "updatedAt", expression = "java(updatedAtFromAudit(entity.getAudit()))")
+    @Mapping(target = "updatedBy", expression = "java(updatedByFromAudit(entity.getAudit()))")
+    MediaResponseDto entityToResponseDto(MediaEntity entity);
 }

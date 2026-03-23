@@ -1,5 +1,6 @@
 package ai.dto.own.request;
 
+import ai.enums.DataScope;
 import ai.enums.MediaUploadTarget;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -14,12 +15,12 @@ import java.util.UUID;
 public class MediaCreateFolderRequestDto {
     @NotBlank(message = "MEDIA_NAME_REQUIRED")
     String name;
+
     UUID parentId;
-    @NotNull(message = "MEDIA_OWNER_ID_REQUIRED")
-    UUID ownerId;
-    @NotNull(message = "MEDIA_ORG_ID_REQUIRED")
-    UUID orgId;
-    String visibility;
+
+    @NotNull(message = "MEDIA_ACCESS_LEVEL_INVALID")
+    DataScope accessLevel;
+
     @NotNull(message = "MEDIA_TARGET_INVALID")
     MediaUploadTarget target;
 }

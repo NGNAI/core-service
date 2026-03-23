@@ -16,14 +16,8 @@ import lombok.experimental.FieldDefaults;
 public class MediaUploadRequestDto {
     @NotNull(message = "MEDIA_FILE_REQUIRED")
     MultipartFile file;
-
-    UUID parentId;
-
-    @NotNull(message = "MEDIA_OWNER_ID_REQUIRED")
-    int ownerId;
-
-    @NotNull(message = "MEDIA_ORG_ID_REQUIRED")
-    int orgId;
+    
+    UUID folderId;
 
     @NotNull(message = "MEDIA_ACCESS_LEVEL_INVALID")
     DataScope accessLevel;

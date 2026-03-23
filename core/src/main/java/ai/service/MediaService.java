@@ -1,34 +1,36 @@
 package ai.service;
 
-import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
-import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
-import ai.dto.own.request.MediaCreateFolderRequestDto;
-import ai.dto.own.request.MediaRetryIngestionRequestDto;
-import ai.dto.own.request.MediaUpdateFolderRequestDto;
-import ai.dto.own.request.MediaUploadRequestDto;
-import ai.dto.own.request.filter.MediaFilterDto;
-import ai.dto.own.response.MediaJobStatusResponseDto;
-import ai.dto.own.response.MediaPresignedUrlResponseDto;
-import ai.dto.own.response.MediaResponseDto;
-import ai.dto.own.response.MediaUploadResponseDto;
-import ai.entity.postgres.MediaEntity;
-import ai.entity.postgres.OrganizationEntity;
-import ai.entity.postgres.UserEntity;
-import ai.enums.ApiResponseStatus;
-import ai.enums.MediaUploadTarget;
-import ai.exeption.AppException;
-import ai.mapper.MediaMapper;
-import ai.repository.MediaRepository;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Locale;
-import java.util.Optional;
-import java.util.UUID;
+import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
+import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
+import ai.dto.own.request.MediaCreateFolderRequestDto;
+import ai.dto.own.request.MediaUpdateFolderRequestDto;
+import ai.dto.own.request.MediaUploadRequestDto;
+import ai.dto.own.request.filter.MediaFilterDto;
+import ai.dto.own.response.MediaDownloadData;
+import ai.dto.own.response.MediaJobStatusResponseDto;
+import ai.dto.own.response.MediaPresignedUrlResponseDto;
+import ai.dto.own.response.MediaResponseDto;
+import ai.entity.postgres.MediaEntity;
+import ai.entity.postgres.OrganizationEntity;
+import ai.entity.postgres.UserEntity;
+import ai.enums.ApiResponseStatus;
+import ai.enums.IngestionStatus;
+import ai.enums.MediaUploadTarget;
+import ai.exeption.AppException;
+import ai.mapper.MediaMapper;
+import ai.repository.MediaRepository;
+import ai.util.JwtUtil;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -44,65 +46,70 @@ public class MediaService {
     OrganizationService organizationService;
 
     @Transactional(noRollbackFor = AppException.class)
-    public MediaUploadResponseDto uploadMedia(MediaUploadRequestDto requestDto) {
-        validateUploadRequest(requestDto);
+    public MediaResponseDto uploadMedia(MediaUploadRequestDto requestDto) {
+        UserEntity user = userService.getEntityById(JwtUtil.getUserId());
+        OrganizationEntity organization = organizationService.getEntityById(JwtUtil.getOrgId());
 
-        UserEntity user = userService.getEntityById(requestDto.getOwnerId());
-        OrganizationEntity organization = organizationService.getEntityById(requestDto.getOrgId());
-
-
-       // String minioPath = minioService.upload(requestDto.getFile(), requestDto.getUsername(), unitValue);
+        // Push lên MinIO trước để tránh trường hợp đã lưu media vào database nhưng
+        // upload file lên MinIO thất bại, dẫn đến media bị lỗi không thể retry
+        // ingestion được
+        String minioPath = minioService.upload(requestDto.getFile(), user.getUserName(), organization.getName());
 
         MediaEntity media = new MediaEntity();
         media.setName(requestDto.getFile().getOriginalFilename());
+        media.setFolder(false);
         media.setMinioPath(minioPath);
-        media.setSize(requestDto.getFile().getSize());
-        media.setType(resolveFileType(requestDto.getFile().getOriginalFilename()));
+        media.setFileSize(requestDto.getFile().getSize());
+        media.setContentType(resolveFileType(requestDto.getFile().getOriginalFilename()));
         media.setAccessLevel(requestDto.getAccessLevel());
-        media.setOwnerId(requestDto.getOwnerId());
-        media.setOrgId(requestDto.getOrgId());
+        media.setOwner(user);
+        media.setOrganization(organization);
         media.setTarget(requestDto.getTarget());
-        media.setIngestionStatus(isIngestionTarget(requestDto.getTarget()) ? "PENDING" : "NONE");
+        media.setIngestionStatus(IngestionStatus.PENDING);
 
-        if (requestDto.getParentId() != null) {
-            MediaEntity parent = mediaRepository.findById(requestDto.getParentId())
+        if (requestDto.getFolderId() != null) {
+            MediaEntity parent = mediaRepository.findById(requestDto.getFolderId())
                     .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_PARENT_NOT_EXISTS));
+            if(parent.isFolder() == false){
+                throw new AppException(ApiResponseStatus.MEDIA_PARENT_MUST_BE_FOLDER);
+            }
             media.setParent(parent);
         }
 
         media = mediaRepository.save(media);
 
-        if (requestDto.getTarget() == MediaUploadTarget.AVATAR) {
-            return mediaMapper.entityToUploadResponseDto(media);
+        // Nếu target không phải là INGESTION thì không cần đẩy sang ingestion service,
+        // trả về response ngay
+        if (!requestDto.getTarget().equals(MediaUploadTarget.INGESTION)) {
+            return mediaMapper.entityToResponseDto(media);
         }
 
         try {
             IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
                     requestDto.getFile(),
-                    requestDto.getUsername(),
-                    unitValue,
-                    visibilityValue
-            );
+                    user.getUserName(),
+                    organization.getName(),
+                    "public");
 
+            // Nếu response từ ingestion service không hợp lệ thì đánh dấu media này là
+            // failed để tránh trường hợp media bị treo ở trạng thái pending mãi mãi, đồng
+            // thời trả về lỗi cho client để client có thể hiển thị thông báo lỗi chính xác
             if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
-                media.setIngestionStatus("FAILED");
+                media.setIngestionStatus(IngestionStatus.FAILED);
                 mediaRepository.save(media);
                 throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
             }
 
+            // Cập nhật jobId và trạng thái ingestion của media sau khi đã đẩy sang
+            // ingestion service thành công
             media.setJobId(ingestionResponse.getJobId());
-            media.setIngestionStatus("PENDING");
-            mediaRepository.save(media);
+            media.setIngestionStatus(IngestionStatus.PENDING);
+            media = mediaRepository.save(media);
 
-            return MediaUploadResponseDto.builder()
-                    .mediaId(media.getId())
-                    .minioPath(media.getMinioPath())
-                    .target(media.getTarget())
-                    .ingestionStatus(media.getIngestionStatus())
-                    .jobId(media.getJobId())
-                    .build();
+            return mediaMapper.entityToResponseDto(media);
+
         } catch (AppException exception) {
-            media.setIngestionStatus("FAILED");
+            media.setIngestionStatus(IngestionStatus.FAILED);
             mediaRepository.save(media);
             throw exception;
         }
@@ -110,19 +117,27 @@ public class MediaService {
 
     @Transactional
     public MediaResponseDto createFolder(MediaCreateFolderRequestDto requestDto) {
+        UserEntity user = userService.getEntityById(JwtUtil.getUserId());
+        OrganizationEntity organization = organizationService.getEntityById(JwtUtil.getOrgId());
+
         MediaEntity media = new MediaEntity();
         media.setName(requestDto.getName().trim());
-        media.setType("FOLDER");
-        media.setSize(0L);
-        media.setAccessLevel(resolveVisibilityValue(requestDto.getVisibility()));
-        media.setOwnerId(requestDto.getOwnerId());
-        media.setOrgId(requestDto.getOrgId());
+        media.setFolder(true);
+        media.setContentType("folder");
+        media.setFileSize(0L);
+        media.setAccessLevel(requestDto.getAccessLevel());
+        media.setOwner(user);
+        media.setOrganization(organization);
         media.setTarget(requestDto.getTarget());
-        media.setIngestionStatus("NONE");
+        media.setJobId(null);
+        media.setIngestionStatus(null);
 
         if (requestDto.getParentId() != null) {
             MediaEntity parent = mediaRepository.findById(requestDto.getParentId())
                     .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_PARENT_NOT_EXISTS));
+            if(parent.isFolder() == false){
+                throw new AppException(ApiResponseStatus.MEDIA_PARENT_MUST_BE_FOLDER);
+            }
             media.setParent(parent);
         }
 
@@ -136,48 +151,46 @@ public class MediaService {
         return mediaMapper.entityToResponseDto(media);
     }
 
-        @Transactional
-        public MediaDownloadData downloadById(UUID mediaId) {
+    @Transactional
+    public MediaDownloadData downloadById(UUID mediaId) {
         MediaEntity media = mediaRepository.findById(mediaId)
-            .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
+                .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
 
         validateDownloadableMedia(media);
 
         MinioService.MinioObjectData objectData = minioService.download(media.getMinioPath());
-        Integer currentCount = media.getDownloadCount() == null ? 0 : media.getDownloadCount();
-        media.setDownloadCount(currentCount + 1);
         mediaRepository.save(media);
 
         return new MediaDownloadData(
-            media.getName(),
-            objectData.getContentType(),
-            objectData.getBytes()
-        );
-        }
+                media.getName(),
+                objectData.getContentType(),
+                objectData.getBytes());
+    }
 
-        @Transactional(readOnly = true)
-        public MediaPresignedUrlResponseDto getPresignedDownloadUrl(UUID mediaId, Integer expiresInSeconds) {
+    @Transactional(readOnly = true)
+    public MediaPresignedUrlResponseDto getPresignedDownloadUrl(UUID mediaId, Integer expiresInSeconds) {
         MediaEntity media = mediaRepository.findById(mediaId)
-            .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
+                .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
 
         validateDownloadableMedia(media);
 
         int effectiveExpiry = expiresInSeconds == null || expiresInSeconds <= 0
-            ? DEFAULT_PRESIGNED_EXPIRY_SECONDS
-            : expiresInSeconds;
+                ? DEFAULT_PRESIGNED_EXPIRY_SECONDS
+                : expiresInSeconds;
 
         String url = minioService.generatePresignedDownloadUrl(media.getMinioPath(), effectiveExpiry);
         return MediaPresignedUrlResponseDto.builder()
-            .url(url)
-            .expiresInSeconds(effectiveExpiry)
-            .build();
-        }
+                .url(url)
+                .expiresInSeconds(effectiveExpiry)
+                .build();
+    }
 
     @Transactional
     public MediaResponseDto updateFolder(UUID mediaId, MediaUpdateFolderRequestDto requestDto) {
-        MediaEntity folder = mediaRepository.findById(mediaId).orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
+        MediaEntity folder = mediaRepository.findById(mediaId)
+                .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
 
-        if (!"FOLDER".equalsIgnoreCase(folder.getType())) {
+        if (!folder.isFolder()) {
             throw new AppException(ApiResponseStatus.MEDIA_FOLDER_ONLY_OPERATION);
         }
 
@@ -198,7 +211,7 @@ public class MediaService {
             MediaEntity parent = mediaRepository.findById(requestDto.getParentId())
                     .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_PARENT_NOT_EXISTS));
 
-            if (!"FOLDER".equalsIgnoreCase(parent.getType())) {
+            if (!parent.isFolder()) {
                 throw new AppException(ApiResponseStatus.MEDIA_PARENT_MUST_BE_FOLDER);
             }
             if (folder.getId().equals(parent.getId())) {
@@ -216,51 +229,55 @@ public class MediaService {
 
     @Transactional(readOnly = true)
     public Page<MediaResponseDto> getAll(MediaFilterDto filterDto) {
-        return mediaRepository.findAll(filterDto.createSpec(), filterDto.createPageable()).map(mediaMapper::entityToResponseDto);
+        return mediaRepository.findAll(filterDto.createSpec(), filterDto.createPageable())
+                .map(mediaMapper::entityToResponseDto);
     }
 
     @Transactional(noRollbackFor = AppException.class)
-    public MediaUploadResponseDto retryIngestion(UUID mediaId, MediaRetryIngestionRequestDto requestDto) {
+    public MediaResponseDto retryIngestion(UUID mediaId) {
         MediaEntity media = mediaRepository.findById(mediaId)
                 .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
 
-        if (!isIngestionTarget(media.getTarget())) {
+        // Chỉ cho phép retry ingestion với media có target là INGESTION và có trạng thái ingestion là FAILED, đồng thời phải có minioPath hợp lệ để có thể retry upload lại lên ingestion service, tránh trường hợp người dùng tạo một media mới có
+        if (media.getTarget() == null || !MediaUploadTarget.INGESTION.equals(media.getTarget())) {
             throw new AppException(ApiResponseStatus.MEDIA_INGESTION_RETRY_ONLY_INGESTION_TARGET);
         }
-        if (!"FAILED".equalsIgnoreCase(media.getIngestionStatus())) {
+
+        // Kiểm tra trạng thái ingestion của media, chỉ cho phép retry nếu trạng thái là FAILED, tránh trường hợp người dùng cố tình retry với media đang ở trạng thái PENDING hoặc thậm chí là SUCCESS
+        if (media.getIngestionStatus() == null || !IngestionStatus.FAILED.equals(media.getIngestionStatus())) {
             throw new AppException(ApiResponseStatus.MEDIA_INGESTION_RETRY_ONLY_FAILED);
         }
+
+        // Kiểm tra xem media này có minioPath hợp lệ hay không, nếu không có thì không thể retry được vì không biết đường dẫn nào để lấy file lên ingestion service
         if (media.getMinioPath() == null || media.getMinioPath().isBlank()) {
             throw new AppException(ApiResponseStatus.MEDIA_UPLOAD_FAILED);
         }
 
-        String visibilityValue = requestDto.getVisibility() != null && !requestDto.getVisibility().isBlank()
-                ? requestDto.getVisibility()
-                : media.getAccessLevel();
+        UserEntity owner = media.getOwner();
+        OrganizationEntity organization = media.getOrganization();
 
         try {
             MinioService.MinioObjectData objectData = minioService.download(media.getMinioPath());
             IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
                     objectData.getBytes(),
                     media.getName(),
-                    requestDto.getUsername(),
-                    requestDto.getUnit(),
-                    resolveVisibilityValue(visibilityValue)
-            );
+                    owner.getUserName(),
+                    organization.getName(),
+                    media.getAccessLevel().name());
 
             if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
-                media.setIngestionStatus("FAILED");
+                media.setIngestionStatus(IngestionStatus.FAILED);
                 mediaRepository.save(media);
                 throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
             }
 
             media.setJobId(ingestionResponse.getJobId());
-            media.setIngestionStatus("PENDING");
+            media.setIngestionStatus(IngestionStatus.PENDING);
             mediaRepository.save(media);
 
-            return mediaMapper.entityToUploadResponseDto(media);
+            return mediaMapper.entityToResponseDto(media);
         } catch (AppException exception) {
-            media.setIngestionStatus("FAILED");
+            media.setIngestionStatus(IngestionStatus.FAILED);
             mediaRepository.save(media);
             throw exception;
         }
@@ -274,7 +291,7 @@ public class MediaService {
         Optional<MediaEntity> mediaOptional = mediaRepository.findByJobId(jobId);
         if (mediaOptional.isPresent()) {
             MediaEntity media = mediaOptional.get();
-            media.setIngestionStatus(resolvedStatus);
+            media.setIngestionStatus(IngestionStatus.valueOf(resolvedStatus));
             mediaRepository.save(media);
 
             return MediaJobStatusResponseDto.builder()
@@ -304,25 +321,11 @@ public class MediaService {
     }
 
     private void validateDownloadableMedia(MediaEntity media) {
-        if (media.getType() != null && "FOLDER".equalsIgnoreCase(media.getType())) {
+        if (media.isFolder()) {
             throw new AppException(ApiResponseStatus.MEDIA_FOLDER_ONLY_OPERATION);
         }
         if (media.getMinioPath() == null || media.getMinioPath().isBlank()) {
             throw new AppException(ApiResponseStatus.MEDIA_DOWNLOAD_FAILED);
-        }
-    }
-
-    private void validateUploadRequest(MediaUploadRequestDto requestDto) {
-        if (requestDto.getFile().isEmpty()) {
-            throw new AppException(ApiResponseStatus.MEDIA_FILE_REQUIRED);
-        }
-        if (isIngestionTarget(requestDto.getTarget())) {
-            if (requestDto.getUnit() == null || requestDto.getUnit().isBlank()) {
-                throw new AppException(ApiResponseStatus.MEDIA_UNIT_REQUIRED);
-            }
-            if (requestDto.getUsername() == null || requestDto.getUsername().isBlank()) {
-                throw new AppException(ApiResponseStatus.MEDIA_USERNAME_REQUIRED);
-            }
         }
     }
 
@@ -335,21 +338,6 @@ public class MediaService {
             cursor = cursor.getParent();
         }
         return false;
-    }
-
-    private boolean isIngestionTarget(MediaUploadTarget target) {
-        return target == MediaUploadTarget.INGESTION || target == MediaUploadTarget.RAG;
-    }
-
-
-    private String resolveVisibilityValue(String visibility) {
-        if (visibility == null || visibility.isBlank()) {
-            return "private";
-        }
-        return visibility.trim().toLowerCase(Locale.ROOT);
-    }
-
-    public record MediaDownloadData(String fileName, String contentType, byte[] bytes) {
     }
 
     private String resolveFileType(String filename) {

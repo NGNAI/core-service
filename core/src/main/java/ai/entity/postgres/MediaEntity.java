@@ -22,12 +22,16 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Table(name = "media", indexes = {
         @jakarta.persistence.Index(name = "idx_media_folder", columnList = "folder"),
@@ -53,12 +57,12 @@ public class MediaEntity {
     boolean folder;
 
     // Loại file, ví dụ: "image/png", "application/pdf", v.v. Null nếu media này là folder
-    @Column(name = "type", length = 50)
-    String type;
+    @Column(name = "content_type", length = 50)
+    String contentType;
 
     // Kích thước của file, null nếu media này là folder
-    @Column(name = "size")
-    Long size;
+    @Column(name = "file_size")
+    Long fileSize;
 
     // Đường dẫn lưu file trong MinIO, có thể là đường dẫn tuyệt đối hoặc đường dẫn tương đối tùy theo cách triển khai MinIO
     @Column(name = "minio_path")
@@ -91,13 +95,14 @@ public class MediaEntity {
 
     // ID của ingestion job nếu media này được upload để ingest, null nếu media này không liên quan đến ingestion
     @Column(name = "job_id", nullable = true)
-    String jobId;
+    UUID jobId;
 
     // Trạng thái của ingestion job, null nếu media này không liên quan đến ingestion
     @Enumerated(EnumType.STRING)
     @Column(name = "ingestion_status", length = 20, nullable = true)
     IngestionStatus ingestionStatus;
 
+    @Builder.Default
     @Embedded
     AuditEmbed audit = new AuditEmbed();
 }
