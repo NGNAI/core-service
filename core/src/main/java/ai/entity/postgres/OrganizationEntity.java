@@ -29,6 +29,9 @@ public class OrganizationEntity {
     @Column(name = "description")
     String description;
 
+    @Column(name = "path", columnDefinition = "ltree")
+    String path;
+
     @Embedded
     AuditEmbed audit = new AuditEmbed();
 

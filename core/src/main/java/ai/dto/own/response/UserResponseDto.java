@@ -14,6 +14,8 @@ import lombok.experimental.FieldDefaults;
         "gender",
         "email",
         "phoneNumber",
+        "active",
+        "lastLogin",
         "source",
 })
 @Getter
@@ -27,7 +29,7 @@ public class UserResponseDto extends AuditResponseDto{
     int gender;
     String email;
     String phoneNumber;
-    String source;
     boolean active;
     String lastLogin;
+    String source;
 }
