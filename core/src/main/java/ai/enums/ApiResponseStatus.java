@@ -64,6 +64,29 @@ public enum ApiResponseStatus {
     REQUEST_METHOD_NOT_ALLOWED(1029, "Request method not allowed!", HttpStatus.METHOD_NOT_ALLOWED),
     INVALID_REQUEST_INFORMATION(1030, "Invalid request information!", HttpStatus.BAD_REQUEST),
 
+    MEDIA_JOB_ID_NOT_EXISTS(1101, "Media job id not exists",HttpStatus.BAD_REQUEST),
+    INGESTION_SERVICE_UNAVAILABLE(1102, "Ingestion service unavailable",HttpStatus.BAD_REQUEST),
+    MEDIA_PARENT_NOT_EXISTS(1103, "Media parent not exists",HttpStatus.BAD_REQUEST),
+    MEDIA_FILE_REQUIRED(1104, "Media file is required",HttpStatus.BAD_REQUEST),
+    MEDIA_ACCESS_LEVEL_INVALID(1105, "Media access level is invalid",HttpStatus.BAD_REQUEST),
+    MEDIA_TARGET_INVALID(1106, "Media target is invalid",HttpStatus.BAD_REQUEST),
+    MEDIA_ORG_ID_REQUIRED(1107, "Media org id is required",HttpStatus.BAD_REQUEST),
+    MEDIA_OWNER_ID_REQUIRED(1108, "Media owner id is required",HttpStatus.BAD_REQUEST),
+    MEDIA_UNIT_REQUIRED(1109, "Media unit is required",HttpStatus.BAD_REQUEST),
+    MEDIA_USERNAME_REQUIRED(1110, "Media username is required",HttpStatus.BAD_REQUEST),
+    MEDIA_UPLOAD_FAILED(1111, "Media upload failed",HttpStatus.BAD_REQUEST),
+    MEDIA_DOWNLOAD_FAILED(1121, "Media download failed",HttpStatus.BAD_REQUEST),
+    MEDIA_NOT_EXISTS(1112, "Media not exists",HttpStatus.BAD_REQUEST),
+    MEDIA_INGESTION_RETRY_ONLY_FAILED(1113, "Only failed media can retry ingestion",HttpStatus.BAD_REQUEST),
+    MEDIA_NAME_REQUIRED(1114, "Media name is required",HttpStatus.BAD_REQUEST),
+    MEDIA_INGESTION_RETRY_ONLY_INGESTION_TARGET(1115, "Only ingestion target media can retry",HttpStatus.BAD_REQUEST),
+    MEDIA_SORT_BY_INVALID(1116, "Media sort field is invalid",HttpStatus.BAD_REQUEST),
+    MEDIA_SORT_DIR_INVALID(1120, "Media sort direction is invalid",HttpStatus.BAD_REQUEST),
+    MEDIA_FOLDER_ONLY_OPERATION(1116, "This operation is only for folder",HttpStatus.BAD_REQUEST),
+    MEDIA_PARENT_MUST_BE_FOLDER(1117, "Media parent must be folder",HttpStatus.BAD_REQUEST),
+    MEDIA_MOVE_CYCLE_NOT_ALLOWED(1118, "Media move cycle is not allowed",HttpStatus.BAD_REQUEST),
+    MEDIA_FOLDER_UPDATE_REQUIRED(1119, "Media folder update payload is empty",HttpStatus.BAD_REQUEST),
+
     UNEXPECTED(9999, "An unexpected error occurred!",HttpStatus.INTERNAL_SERVER_ERROR);
 
     int code;

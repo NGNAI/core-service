@@ -14,6 +14,8 @@ public class AppProperties {
     Jwt jwt;
     Otp otp;
     Rag rag;
+    Ingestion ingestion;
+    Minio minio;
 
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -33,5 +35,20 @@ public class AppProperties {
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Rag {
         String url;
+    }
+    
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Ingestion {
+        String url;
+    }
+
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Minio {
+        String endpoint;
+        String accessKey;
+        String secretKey;
+        String bucket;
     }
 }

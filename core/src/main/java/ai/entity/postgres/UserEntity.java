@@ -63,4 +63,7 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     List<TopicEntity> topics;
+
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
+    List<MediaEntity> medias;
 }

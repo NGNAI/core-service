@@ -22,4 +22,11 @@ public class ApiClientConfig {
                 .baseUrl(appProperties.getRag().getUrl())
                 .build();
     }
+
+    @Bean
+    RestClient ingestionRestClient(AppProperties appProperties) {
+        return RestClient.builder()
+                .baseUrl(appProperties.getIngestion().getUrl())
+                .build();
+    }
 }
