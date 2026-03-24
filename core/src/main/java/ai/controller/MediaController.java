@@ -8,6 +8,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,32 +49,7 @@ import lombok.experimental.FieldDefaults;
 public class MediaController {
     MediaService mediaService;
 
-    // Lấy media theo id, trả về chi tiết thông tin media
     @Operation(summary = "Get media by id", description = "Get detail of a single media item")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Media detail returned successfully", content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "mediaDetailResponse", value = "{\n"
-                    +
-                    "  \"status\": 1000,\n" +
-                    "  \"message\": \"Get media successfully\",\n" +
-                    "  \"data\": {\n" +
-                    "    \"id\": \"11111111-1111-1111-1111-111111111111\",\n" +
-                    "    \"name\": \"policy.pdf\",\n" +
-                    "    \"type\": \"pdf\",\n" +
-                    "    \"size\": 20480,\n" +
-                    "    \"minioPath\": \"hr/2026/3/uuid-policy.pdf\",\n" +
-                    "    \"parentId\": null,\n" +
-                    "    \"ownerId\": \"22222222-2222-2222-2222-222222222222\",\n" +
-                    "    \"orgId\": \"33333333-3333-3333-3333-333333333333\",\n" +
-                    "    \"accessLevel\": \"PRIVATE\",\n" +
-                    "    \"jobId\": \"44444444-4444-4444-4444-444444444444\",\n" +
-                    "    \"ingestionStatus\": \"PENDING\",\n" +
-                    "    \"downloadCount\": 0,\n" +
-                    "    \"createdAt\": \"2026-03-18T08:10:00Z\",\n" +
-                    "    \"updatedAt\": \"2026-03-18T08:10:00Z\",\n" +
-                    "    \"target\": \"INGESTION\"\n" +
-                    "  }\n" +
-                    "}")))
-    })
     @GetMapping("/{mediaId}")
     ResponseEntity<ApiResponseModel<MediaResponseDto>> getById(@PathVariable UUID mediaId) {
         return ResponseEntity.ok(
@@ -113,32 +89,6 @@ public class MediaController {
     }
 
     @Operation(summary = "Upload media", description = "Upload media file to MinIO and optionally trigger ingestion")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Media uploaded successfully", content = @Content(mediaType = "application/json", examples = {
-                    @ExampleObject(name = "uploadIngestionResponse", value = "{\n" +
-                            "  \"status\": 1000,\n" +
-                            "  \"message\": \"Upload media successfully\",\n" +
-                            "  \"data\": {\n" +
-                            "    \"mediaId\": \"11111111-1111-1111-1111-111111111111\",\n" +
-                            "    \"minioPath\": \"hr/2026/3/uuid-policy.pdf\",\n" +
-                            "    \"target\": \"INGESTION\",\n" +
-                            "    \"ingestionStatus\": \"PENDING\",\n" +
-                            "    \"jobId\": \"44444444-4444-4444-4444-444444444444\"\n" +
-                            "  }\n" +
-                            "}"),
-                    @ExampleObject(name = "uploadAvatarResponse", value = "{\n" +
-                            "  \"status\": 1000,\n" +
-                            "  \"message\": \"Upload media successfully\",\n" +
-                            "  \"data\": {\n" +
-                            "    \"mediaId\": \"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\",\n" +
-                            "    \"minioPath\": \"avatar/2026/3/uuid-avatar.png\",\n" +
-                            "    \"target\": \"AVATAR\",\n" +
-                            "    \"ingestionStatus\": \"NONE\",\n" +
-                            "    \"jobId\": null\n" +
-                            "  }\n" +
-                            "}")
-            }))
-    })
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ResponseEntity<ApiResponseModel<MediaResponseDto>> upload(@Valid @ModelAttribute MediaUploadRequestDto requestDto) {
         return ResponseEntity.ok(
@@ -148,39 +98,7 @@ public class MediaController {
                         .build());
     }
 
-    @Operation(summary = "Create media folder", description = "Create folder node in media tree without file upload", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, description = "Folder payload", content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "createFolderRequest", value = "{\n"
-            +
-            "  \"name\": \"HR Documents\",\n" +
-            "  \"parentId\": null,\n" +
-            "  \"ownerId\": \"22222222-2222-2222-2222-222222222222\",\n" +
-            "  \"orgId\": \"33333333-3333-3333-3333-333333333333\",\n" +
-            "  \"visibility\": \"PRIVATE\",\n" +
-            "  \"target\": \"INGESTION\"\n" +
-            "}"))))
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Folder created successfully", content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "createFolderResponse", value = "{\n"
-                    +
-                    "  \"status\": 1000,\n" +
-                    "  \"message\": \"Create media folder successfully\",\n" +
-                    "  \"data\": {\n" +
-                    "    \"id\": \"55555555-5555-5555-5555-555555555555\",\n" +
-                    "    \"name\": \"HR Documents\",\n" +
-                    "    \"type\": \"FOLDER\",\n" +
-                    "    \"size\": 0,\n" +
-                    "    \"minioPath\": null,\n" +
-                    "    \"parentId\": null,\n" +
-                    "    \"ownerId\": \"22222222-2222-2222-2222-222222222222\",\n" +
-                    "    \"orgId\": \"33333333-3333-3333-3333-333333333333\",\n" +
-                    "    \"accessLevel\": \"PRIVATE\",\n" +
-                    "    \"jobId\": null,\n" +
-                    "    \"ingestionStatus\": \"NONE\",\n" +
-                    "    \"downloadCount\": 0,\n" +
-                    "    \"createdAt\": \"2026-03-18T08:15:00Z\",\n" +
-                    "    \"updatedAt\": \"2026-03-18T08:15:00Z\",\n" +
-                    "    \"target\": \"INGESTION\"\n" +
-                    "  }\n" +
-                    "}")))
-    })
+    @Operation(summary = "Create media folder", description = "Create folder node in media tree without file upload")
     @PostMapping("/folders")
     ResponseEntity<ApiResponseModel<MediaResponseDto>> createFolder(
             @Valid @RequestBody MediaCreateFolderRequestDto requestDto) {
@@ -192,42 +110,9 @@ public class MediaController {
     }
 
     @Operation(summary = "Get media list with paging", description = "Return media items with paging metadata: pageNumber, pageSize, totalPages, totalElements")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Media list returned successfully", content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "pagedMediaResponse", value = "{\n"
-                    +
-                    "  \"status\": 1000,\n" +
-                    "  \"message\": \"Get media list successfully\",\n" +
-                    "  \"data\": {\n" +
-                    "    \"items\": [\n" +
-                    "      {\n" +
-                    "        \"id\": \"11111111-1111-1111-1111-111111111111\",\n" +
-                    "        \"name\": \"policy.pdf\",\n" +
-                    "        \"type\": \"pdf\",\n" +
-                    "        \"size\": 20480,\n" +
-                    "        \"minioPath\": \"hr/2026/3/uuid-policy.pdf\",\n" +
-                    "        \"parentId\": null,\n" +
-                    "        \"ownerId\": \"22222222-2222-2222-2222-222222222222\",\n" +
-                    "        \"orgId\": \"33333333-3333-3333-3333-333333333333\",\n" +
-                    "        \"accessLevel\": \"PRIVATE\",\n" +
-                    "        \"jobId\": \"44444444-4444-4444-4444-444444444444\",\n" +
-                    "        \"ingestionStatus\": \"PENDING\",\n" +
-                    "        \"downloadCount\": 0,\n" +
-                    "        \"createdAt\": \"2026-03-18T08:10:00Z\",\n" +
-                    "        \"updatedAt\": \"2026-03-18T08:10:00Z\",\n" +
-                    "        \"target\": \"INGESTION\"\n" +
-                    "      }\n" +
-                    "    ],\n" +
-                    "    \"pageNumber\": 0,\n" +
-                    "    \"pageSize\": 10,\n" +
-                    "    \"totalPages\": 5,\n" +
-                    "    \"totalElements\": 42\n" +
-                    "  }\n" +
-                    "}")))
-    })
     @GetMapping
     ResponseEntity<ApiResponseModel<List<MediaResponseDto>>> list(@ModelAttribute MediaFilterDto filterDto) {
         Page<MediaResponseDto> page = mediaService.getAll(filterDto);
-
         return ResponseEntity.ok(
                 ApiResponseModel.<List<MediaResponseDto>>builder()
                         .message("Get media list successfully")
@@ -247,30 +132,6 @@ public class MediaController {
                     "  \"moveToRoot\": true\n" +
                     "}")
     })))
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Folder updated successfully", content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "updateFolderResponse", value = "{\n"
-                    +
-                    "  \"status\": 1000,\n" +
-                    "  \"message\": \"Update media folder successfully\",\n" +
-                    "  \"data\": {\n" +
-                    "    \"id\": \"55555555-5555-5555-5555-555555555555\",\n" +
-                    "    \"name\": \"Human Resource Documents\",\n" +
-                    "    \"type\": \"FOLDER\",\n" +
-                    "    \"size\": 0,\n" +
-                    "    \"minioPath\": null,\n" +
-                    "    \"parentId\": \"66666666-6666-6666-6666-666666666666\",\n" +
-                    "    \"ownerId\": \"22222222-2222-2222-2222-222222222222\",\n" +
-                    "    \"orgId\": \"33333333-3333-3333-3333-333333333333\",\n" +
-                    "    \"accessLevel\": \"PRIVATE\",\n" +
-                    "    \"jobId\": null,\n" +
-                    "    \"ingestionStatus\": \"NONE\",\n" +
-                    "    \"downloadCount\": 0,\n" +
-                    "    \"createdAt\": \"2026-03-18T08:15:00Z\",\n" +
-                    "    \"updatedAt\": \"2026-03-18T08:20:00Z\",\n" +
-                    "    \"target\": \"INGESTION\"\n" +
-                    "  }\n" +
-                    "}")))
-    })
     @PutMapping("/folders/{mediaId}")
     ResponseEntity<ApiResponseModel<MediaResponseDto>> updateFolder(
             @PathVariable UUID mediaId,
@@ -282,26 +143,7 @@ public class MediaController {
                         .build());
     }
 
-    @Operation(summary = "Retry ingestion", description = "Retry pushing failed ingestion media into ingestion pipeline", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, description = "Retry payload", content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "retryIngestionRequest", value = "{\n"
-            +
-            "  \"username\": \"admin.user\",\n" +
-            "  \"unit\": \"hr\",\n" +
-            "  \"visibility\": \"PRIVATE\"\n" +
-            "}"))))
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Retry submitted successfully", content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "retryIngestionResponse", value = "{\n"
-                    +
-                    "  \"status\": 1000,\n" +
-                    "  \"message\": \"Retry media ingestion successfully\",\n" +
-                    "  \"data\": {\n" +
-                    "    \"mediaId\": \"11111111-1111-1111-1111-111111111111\",\n" +
-                    "    \"minioPath\": \"hr/2026/3/uuid-policy.pdf\",\n" +
-                    "    \"target\": \"INGESTION\",\n" +
-                    "    \"ingestionStatus\": \"PENDING\",\n" +
-                    "    \"jobId\": \"77777777-7777-7777-7777-777777777777\"\n" +
-                    "  }\n" +
-                    "}")))
-    })
+    @Operation(summary = "Retry ingestion", description = "Retry pushing failed ingestion media into ingestion pipeline")
     @PostMapping("/{mediaId}/ingestion/retry")
     ResponseEntity<ApiResponseModel<MediaResponseDto>> retryIngestion(
             @PathVariable UUID mediaId) {
@@ -313,25 +155,22 @@ public class MediaController {
     }
 
     @Operation(summary = "Get ingestion job status", description = "Poll ingestion processing status by jobId")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Ingestion job status returned successfully", content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "ingestionJobStatusResponse", value = "{\n"
-                    +
-                    "  \"status\": 1000,\n" +
-                    "  \"message\": \"Get media ingestion status successfully\",\n" +
-                    "  \"data\": {\n" +
-                    "    \"mediaId\": \"11111111-1111-1111-1111-111111111111\",\n" +
-                    "    \"jobId\": \"77777777-7777-7777-7777-777777777777\",\n" +
-                    "    \"ingestionStatus\": \"COMPLETED\",\n" +
-                    "    \"message\": \"completed\"\n" +
-                    "  }\n" +
-                    "}")))
-    })
     @GetMapping("/jobs/{jobId}/ingestion-status")
     ResponseEntity<ApiResponseModel<MediaJobStatusResponseDto>> getIngestionJobStatus(@PathVariable UUID jobId) {
         return ResponseEntity.ok(
                 ApiResponseModel.<MediaJobStatusResponseDto>builder()
                         .message("Get media ingestion status successfully")
                         .data(mediaService.pollIngestionJobStatus(jobId))
+                        .build());
+    }
+
+    @Operation(summary = "Delete media by id", description = "Delete a single media item by its ID")
+    @DeleteMapping("/{mediaId}")
+    ResponseEntity<ApiResponseModel<Void>> deleteById(@PathVariable UUID mediaId) {
+        mediaService.deleteById(mediaId);
+        return ResponseEntity.ok(
+                ApiResponseModel.<Void>builder()
+                        .message("Delete media successfully")
                         .build());
     }
 }

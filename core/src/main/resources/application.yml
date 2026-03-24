@@ -26,6 +26,15 @@ spring:
       hibernate:
         format_sql: true
 
+  data:
+    redis:
+      password: "P@ssw0rd"
+      host: 192.168.30.74
+      port: 6379
+      timeout: 60000
+      lettuce:
+        shutdown-timeout: 100
+
 logging:
   level:
     org.springframework.jdbc.core: "DEBUG"
@@ -56,3 +65,4 @@ minio:
   access-key: "admin"
   secret-key: "password"
   bucket: "ingestions"
+
