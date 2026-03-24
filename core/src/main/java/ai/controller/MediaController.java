@@ -161,4 +161,14 @@ public class MediaController {
                         .message("Delete media successfully")
                         .build());
     }
+
+    @Operation(summary = "Delete folder by id", description = "Delete a single folder by its ID, and all its descendant media items will be deleted as well")
+    @DeleteMapping("/folders/{mediaId}")
+    ResponseEntity<ApiResponseModel<Void>> deleteFolder(@PathVariable UUID mediaId) {
+        mediaService.deleteFolderById(mediaId);
+        return ResponseEntity.ok(
+                ApiResponseModel.<Void>builder()
+                        .message("Delete media folder successfully")
+                        .build());
+    }
 }
