@@ -33,8 +33,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -51,7 +49,7 @@ public class MediaController {
 
     @Operation(summary = "Get media by id", description = "Get detail of a single media item")
     @GetMapping("/{mediaId}")
-    ResponseEntity<ApiResponseModel<MediaResponseDto>> getById(@PathVariable UUID mediaId) {
+    ResponseEntity<ApiResponseModel<MediaResponseDto>> get(@PathVariable UUID mediaId) {
         return ResponseEntity.ok(
                 ApiResponseModel.<MediaResponseDto>builder()
                         .message("Get media successfully")
@@ -166,7 +164,7 @@ public class MediaController {
 
     @Operation(summary = "Delete media by id", description = "Delete a single media item by its ID")
     @DeleteMapping("/{mediaId}")
-    ResponseEntity<ApiResponseModel<Void>> deleteById(@PathVariable UUID mediaId) {
+    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID mediaId) {
         mediaService.deleteById(mediaId);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
