@@ -5,6 +5,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Named;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Mapper(componentModel = "spring")
 public interface GeneralMapper {
@@ -12,7 +13,7 @@ public interface GeneralMapper {
         return audit!=null ? audit.getCreatedAt().toString() : null;
     }
 
-    default Integer createdByFromAudit(AuditEmbed audit){
+    default UUID createdByFromAudit(AuditEmbed audit){
         return audit!=null ? audit.getCreatedBy(): null;
     }
 
@@ -20,7 +21,7 @@ public interface GeneralMapper {
         return audit!=null ? audit.getUpdatedAt().toString(): null;
     }
 
-    default Integer updatedByFromAudit(AuditEmbed audit){
+    default UUID updatedByFromAudit(AuditEmbed audit){
         return audit!=null ? audit.getUpdatedBy(): null;
     }
 

@@ -13,6 +13,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @JsonPropertyOrder({
         "createdAt",
@@ -30,7 +31,7 @@ public class AuditEmbed {
 
     @CreatedBy
     @Column(name = "created_by", updatable = false)
-    Integer createdBy;
+    UUID createdBy;
 
     @LastModifiedDate
     @Column(name = "updated_at")
@@ -38,5 +39,5 @@ public class AuditEmbed {
 
     @LastModifiedBy
     @Column(name = "updated_by")
-    Integer updatedBy;
+    UUID updatedBy;
 }

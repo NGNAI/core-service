@@ -1,18 +1,18 @@
 package ai.entity.postgres;
 
 import ai.entity.postgres.embeddable.AuditEmbed;
+import ai.util.LTreeUtil;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.UuidGenerator;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
 @Builder
@@ -22,7 +22,8 @@ import java.util.UUID;
 @Entity
 public class OrganizationEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue
+    @UuidGenerator
     @Column(name = "id",updatable = false, nullable = false)
     UUID id;
 
@@ -32,7 +33,7 @@ public class OrganizationEntity {
     @Column(name = "description")
     String description;
 
-    @Column(name = "path", columnDefinition = "ltree")
+    @Column(name = "path")
     String path;
 
     @Builder.Default
@@ -51,4 +52,10 @@ public class OrganizationEntity {
 
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
     Set<MediaEntity> medias;
+
+    @PrePersist
+    public void prePersist() {
+        String parentPath = (parent != null) ? parent.getPath() : null;
+        this.path = LTreeUtil.buildPath(parentPath, this.id);
+    }
 }

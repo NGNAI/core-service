@@ -82,7 +82,7 @@ public class RagService {
 
         StringBuilder fullAnswer = new StringBuilder();
         return ragApiService.completions(ragCompletionRequestDto)
-                .startWith(String.format("{\"topicId\": \"%d\"}",topicId))
+                .startWith(String.format("{\"topicId\": \"%s\"}",topicId))
                 .doOnNext(raw -> {
                     try {
                         if(!raw.trim().equals("[DONE]")) {

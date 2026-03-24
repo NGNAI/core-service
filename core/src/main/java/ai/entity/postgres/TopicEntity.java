@@ -20,7 +20,7 @@ import java.util.UUID;
 public class TopicEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id",updatable = false, nullable = false)
+    @Column(name = "id", updatable = false, nullable = false)
     UUID id;
 
     @Column(name = "title", nullable = false)

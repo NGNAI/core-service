@@ -5,6 +5,8 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
+import java.util.UUID;
+
 @JsonPropertyOrder({
         "createdAt",
         "createdBy",
@@ -15,7 +17,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PROTECTED)
 public class AuditResponseDto {
     String createdAt;
-    Integer createdBy;
+    UUID createdBy;
     String updatedAt;
-    Integer updatedBy;
+    UUID updatedBy;
 }

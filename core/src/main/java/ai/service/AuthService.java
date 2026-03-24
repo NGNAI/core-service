@@ -187,7 +187,7 @@ public class AuthService {
                 .claim("type",type)
                 .claim("scope",buildJwtScope(userEntity))
                 .claim("user_id",userEntity.getId())
-                .claim("org_id",Objects.requireNonNullElse(orgId,-1))
+                .claim("org_id",Objects.requireNonNullElse(orgId,""))
                 .build();
 
         Payload payload = new Payload(jwtClaimsSet.toJSONObject());

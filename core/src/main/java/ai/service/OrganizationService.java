@@ -105,17 +105,12 @@ public class OrganizationService {
     }
 
     public OrganizationResponseDto create(OrganizationCreateRequestDto requestDto){
-        UUID orgId = UUID.randomUUID();
         OrganizationEntity org = orgMapper.createRequestDtoToEntity(requestDto);
-        org.setId(orgId);
 
-        String parentPath = null;
         if(requestDto.getParentId()!=null){
             OrganizationEntity orgParent = orgRepository.findById(requestDto.getParentId()).orElseThrow(() -> new AppException(ApiResponseStatus.PARENT_ORGANIZATION_NOT_EXISTS));
             org.setParent(orgParent);
-            parentPath = orgParent.getPath();
         }
-        org.setPath(LTreeUtil.buildPath(parentPath,orgId));
 
         return orgMapper.entityToResponseDto(orgRepository.save(org));
     }
