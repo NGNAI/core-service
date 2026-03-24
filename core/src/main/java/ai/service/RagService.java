@@ -20,6 +20,7 @@ import reactor.core.publisher.Flux;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,7 +34,7 @@ public class RagService {
 
     ObjectMapper objectMapper;
 
-    public Flux<String> chat(Integer topicId, ConversationRequestDto requestDto) throws JsonProcessingException {
+    public Flux<String> chat(UUID topicId, ConversationRequestDto requestDto) throws JsonProcessingException {
         //If topic not exists, create new topic
         if(topicId == null)
             topicId = topicService.create(TopicCreateRequestDto.builder()
@@ -41,7 +42,7 @@ public class RagService {
                             .type(TopicType.PRIVATE.getValue())
                     .build()).getId();
 
-        int finalTopicId = topicId;
+        UUID finalTopicId = topicId;
 
         topicService.validateTopicId(finalTopicId);
 
@@ -81,7 +82,7 @@ public class RagService {
 
         StringBuilder fullAnswer = new StringBuilder();
         return ragApiService.completions(ragCompletionRequestDto)
-                .startWith(String.format("{\"topicId:\": \"%d\"}",topicId))
+                .startWith(String.format("{\"topicId\": \"%d\"}",topicId))
                 .doOnNext(raw -> {
                     try {
                         if(!raw.trim().equals("[DONE]")) {

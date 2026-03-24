@@ -34,7 +34,7 @@ public class RoleService {
     PermissionRepository permissionRepository;
     RoleMapper roleMapper;
     
-    public RoleResponseDto getById(int roleId){
+    public RoleResponseDto getById(UUID roleId){
         RoleEntity role = roleRepository.findByIdWithPermissions(roleId).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
 
         RoleResponseDto responseDto = roleMapper.entityToResponseDto(role);
@@ -70,7 +70,7 @@ public class RoleService {
         return roleMapper.entityToResponseDto(roleRepository.save(newEntity));
     }
 
-    public RoleResponseDto update(int id, RoleUpdateRequestDto updateRequestDto){
+    public RoleResponseDto update(UUID id, RoleUpdateRequestDto updateRequestDto){
         RoleEntity entity = roleRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
         roleMapper.updateEntity(entity, updateRequestDto);
         entity.setName(StringUtil.toConstantCase(entity.getName()));
@@ -81,7 +81,7 @@ public class RoleService {
         return roleMapper.entityToResponseDto(roleRepository.save(entity));
     }
 
-    public RoleResponseDto assignPermissions(int roleId, RolePermissionUpdateRequestDto requestDto){
+    public RoleResponseDto assignPermissions(UUID roleId, RolePermissionUpdateRequestDto requestDto){
         List<PermissionEntity> permissions = permissionRepository.findAllById(requestDto.getPermissionIds());
         RoleEntity roleEntity = roleRepository.findById(roleId).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
 
@@ -97,8 +97,8 @@ public class RoleService {
         return responseDto;
     }
 
-    public Map<Integer, Set<String>> getPermissionListOfRole(RoleFilterDto roleFilter){
-        Map<Integer, Set<String>> mapPermissions = new HashMap<>();
+    public Map<UUID, Set<String>> getPermissionListOfRole(RoleFilterDto roleFilter){
+        Map<UUID, Set<String>> mapPermissions = new HashMap<>();
 
         getAll(roleFilter).getSecond().forEach(role->{
             mapPermissions.put(role.getId(),new HashSet<>(role.getPermissions().stream().map(PermissionResponseDto::getName).collect(Collectors.toSet())));
@@ -107,7 +107,7 @@ public class RoleService {
         return mapPermissions;
     }
 
-    public void delete(int id){
+    public void delete(UUID id){
         roleRepository.deleteById(id);
     }
 }

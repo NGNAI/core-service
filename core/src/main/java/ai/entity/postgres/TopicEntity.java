@@ -9,6 +9,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -18,9 +19,9 @@ import java.util.List;
 @Entity
 public class TopicEntity {
     @Id
-    @GeneratedValue
-    @Column(name = "id", nullable = false)
-    int id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id",updatable = false, nullable = false)
+    UUID id;
 
     @Column(name = "title", nullable = false)
     String title;

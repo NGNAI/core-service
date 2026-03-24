@@ -8,6 +8,8 @@ import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -16,9 +18,9 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Entity
 public class MessageEntity {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
-    int id;
+    UUID id;
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     String content;

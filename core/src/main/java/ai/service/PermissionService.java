@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -47,7 +48,7 @@ public class PermissionService {
         return permissionMapper.entityToResponseDto(permissionRepository.save(newEntity));
     }
 
-    public PermissionResponseDto update(int id, PermissionUpdateRequestDto updateRequestDto){
+    public PermissionResponseDto update(UUID id, PermissionUpdateRequestDto updateRequestDto){
         PermissionEntity entity = permissionRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.PERMISSION_ID_NOT_EXISTS));
         permissionMapper.updateEntity(entity, updateRequestDto);
         entity.setName(StringUtil.toConstantCase(entity.getName()));
@@ -55,7 +56,7 @@ public class PermissionService {
         return permissionMapper.entityToResponseDto(permissionRepository.save(entity));
     }
 
-    public void delete(int id){
+    public void delete(UUID id){
         permissionRepository.deleteById(id);
     }
 

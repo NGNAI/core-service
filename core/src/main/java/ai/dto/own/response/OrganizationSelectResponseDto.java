@@ -5,11 +5,8 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @JsonPropertyOrder({
-        "id",
-        "name",
-        "description",
-        "parentId",
-        "children"
+        "token",
+        "organization",
 })
 @AllArgsConstructor
 @NoArgsConstructor

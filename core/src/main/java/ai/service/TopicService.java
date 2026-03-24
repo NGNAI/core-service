@@ -30,17 +30,17 @@ public class TopicService {
 
     TopicMapper topicMapper;
 
-    public void validateTopicId(int topicId){
+    public void validateTopicId(UUID topicId){
         if(!topicRepository.existsById(topicId))
             throw new AppException(ApiResponseStatus.TOPIC_ID_NOT_EXISTS);
     }
 
-    public TopicEntity getEntityById(int topicId){
+    public TopicEntity getEntityById(UUID topicId){
         return topicRepository.findById(topicId).orElseThrow(() -> new AppException(ApiResponseStatus.TOPIC_ID_NOT_EXISTS));
     }
 
     public CustomPairModel<Long,List<TopicResponseDto>> getAll(TopicFilterDto filterDto){
-        int userId = JwtUtil.getUserId();
+        UUID userId = JwtUtil.getUserId();
         userService.validateUserId(userId);
         Specification<TopicEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("owner").get("id"), userId));
 
@@ -59,14 +59,14 @@ public class TopicService {
         return topicMapper.entityToResponseDto(topicRepository.save(newEntity));
     }
 
-    public TopicResponseDto renameTitle(int id, TopicRenameTitleRequestDto requestDto){
+    public TopicResponseDto renameTitle(UUID id, TopicRenameTitleRequestDto requestDto){
         TopicEntity entity = topicRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.TOPIC_ID_NOT_EXISTS));
         entity.setTitle(requestDto.getTitle());
 
         return topicMapper.entityToResponseDto(topicRepository.save(entity));
     }
 
-    public void delete(int id){
+    public void delete(UUID id){
         topicRepository.deleteById(id);
     }
 }

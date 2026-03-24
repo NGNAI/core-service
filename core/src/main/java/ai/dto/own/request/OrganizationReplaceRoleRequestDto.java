@@ -7,16 +7,17 @@ import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
 import java.util.Set;
+import java.util.UUID;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrganizationReplaceRoleRequestDto {
     @NotEmpty(message = "USER_IDS_CAN_NOT_BE_NULL_OR_EMPTY")
-    Set<Integer> userIds;
+    Set<UUID> userIds;
 
     @NotNull(message = "ROLE_ID_CAN_NOT_BE_NULL")
-    Integer oldRoleId;
+    UUID oldRoleId;
 
     @NotNull(message = "ROLE_ID_CAN_NOT_BE_NULL")
-    Integer newRoleId;
+    UUID newRoleId;
 }

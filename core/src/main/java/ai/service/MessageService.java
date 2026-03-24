@@ -16,6 +16,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -26,7 +27,7 @@ public class MessageService {
 
     MessageMapper messageMapper;
 
-    public CustomPairModel<Long,List<MessageResponseDto>> getAll(int topicId, MessageFilterDto filterDto){
+    public CustomPairModel<Long,List<MessageResponseDto>> getAll(UUID topicId, MessageFilterDto filterDto){
         topicService.validateTopicId(topicId);
 
         Specification<MessageEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("topic").get("id"),topicId));
@@ -50,7 +51,7 @@ public class MessageService {
         return messageMapper.entityToResponseDto(messageRepository.save(newEntity));
     }
 
-    public void delete(int id){
+    public void delete(UUID id){
         messageRepository.deleteById(id);
     }
 }

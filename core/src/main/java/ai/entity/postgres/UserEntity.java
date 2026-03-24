@@ -9,6 +9,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
@@ -20,9 +21,9 @@ import java.util.Set;
 @Entity
 public class UserEntity {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id",updatable = false, nullable = false)
-    int id;
+    UUID id;
 
     @Column(name = "user_name", nullable = false, unique = true, updatable = false)
     String userName;

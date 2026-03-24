@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public interface OrganizationUserRoleRepository extends JpaRepository<OrganizationUserRoleEntity, OrganizationUserRoleIdEmbed>, JpaSpecificationExecutor<OrganizationUserRoleEntity> {
@@ -19,18 +20,18 @@ public interface OrganizationUserRoleRepository extends JpaRepository<Organizati
         JOIN FETCH our.role
         WHERE our.organization.id = :organizationId
         """)
-    List<OrganizationUserRoleEntity> findUserRoleByOrgId(int organizationId);
+    List<OrganizationUserRoleEntity> findUserRoleByOrgId(UUID organizationId);
 
     @Query("""
         SELECT COUNT(our)
         FROM OrganizationUserRoleEntity our
         WHERE our.organization.id = :organizationId
         """)
-    int countUserRoleByOrgId(int organizationId);
+    int countUserRoleByOrgId(UUID organizationId);
 
-    List<OrganizationUserRoleEntity> findByOrganizationIdAndUserIdIn(int orgId, Collection<Integer> userIds);
+    List<OrganizationUserRoleEntity> findByOrganizationIdAndUserIdIn(UUID orgId, Collection<UUID> userIds);
 
-    List<OrganizationUserRoleEntity> findByOrganizationIdAndRoleId(int orgId, int roleId);
+    List<OrganizationUserRoleEntity> findByOrganizationIdAndRoleId(UUID orgId, UUID roleId);
 
     @Query("""
         SELECT our
@@ -41,7 +42,7 @@ public interface OrganizationUserRoleRepository extends JpaRepository<Organizati
         LEFT JOIN fetch rp.permission
         WHERE our.user.id = :userId
         """)
-    List<OrganizationUserRoleEntity> findByUserWithPermission(int userId);
+    List<OrganizationUserRoleEntity> findByUserWithPermission(UUID userId);
 
     @Query("""
         SELECT our
@@ -52,5 +53,5 @@ public interface OrganizationUserRoleRepository extends JpaRepository<Organizati
         LEFT JOIN fetch rp.permission
         WHERE our.user.id = :userId AND our.organization.id = :orgId
         """)
-    List<OrganizationUserRoleEntity> findByUserAndOrgWithPermission(int userId, int orgId);
+    List<OrganizationUserRoleEntity> findByUserAndOrgWithPermission(UUID userId, UUID orgId);
 }

@@ -19,6 +19,7 @@ import ai.repository.OrganizationRepository;
 import ai.repository.OrganizationUserRoleRepository;
 import ai.repository.RoleRepository;
 import ai.repository.UserRepository;
+import ai.util.LTreeUtil;
 import jakarta.persistence.criteria.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -45,17 +46,17 @@ public class OrganizationService {
     UserMapper userMapper;
     RoleMapper roleMapper;
 
-    public OrganizationEntity getEntityById(int id){
+    public OrganizationEntity getEntityById(UUID id){
         return orgRepository.findById(id)
                 .orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
     }
 
-    public void validateOrgId(int orgId){
+    public void validateOrgId(UUID orgId){
         if(!orgRepository.existsById(orgId))
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
     }
 
-    public OrganizationResponseDto getById(int id, Integer nestedChild){
+    public OrganizationResponseDto getById(UUID id, Integer nestedChild){
         OrganizationResponseDto responseDto = orgMapper.entityToResponseDto(
                 orgRepository.findById(id)
                         .orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS)));
@@ -86,7 +87,7 @@ public class OrganizationService {
         return new CustomPairModel<>(page.getTotalElements(),organizations);
     }
 
-    public CustomPairModel<Long,List<OrganizationResponseDto>> getChild(int parentId, Integer nestedChild, OrganizationFilterDto filterDto){
+    public CustomPairModel<Long,List<OrganizationResponseDto>> getChild(UUID parentId, Integer nestedChild, OrganizationFilterDto filterDto){
         if(!orgRepository.existsById(parentId))
             throw new AppException(ApiResponseStatus.PARENT_ORGANIZATION_NOT_EXISTS);
         Specification<OrganizationEntity> spec = filterDto.createSpec().and(((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("parent").get("id"),parentId)));
@@ -104,16 +105,22 @@ public class OrganizationService {
     }
 
     public OrganizationResponseDto create(OrganizationCreateRequestDto requestDto){
+        UUID orgId = UUID.randomUUID();
         OrganizationEntity org = orgMapper.createRequestDtoToEntity(requestDto);
+        org.setId(orgId);
 
-        if(requestDto.getParentId()!=null && requestDto.getParentId()>0){
+        String parentPath = null;
+        if(requestDto.getParentId()!=null){
             OrganizationEntity orgParent = orgRepository.findById(requestDto.getParentId()).orElseThrow(() -> new AppException(ApiResponseStatus.PARENT_ORGANIZATION_NOT_EXISTS));
             org.setParent(orgParent);
+            parentPath = orgParent.getPath();
         }
+        org.setPath(LTreeUtil.buildPath(parentPath,orgId));
+
         return orgMapper.entityToResponseDto(orgRepository.save(org));
     }
 
-    public OrganizationResponseDto update(int id, OrganizationUpdateRequestDto requestDto){
+    public OrganizationResponseDto update(UUID id, OrganizationUpdateRequestDto requestDto){
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
         orgMapper.updateEntity(org,requestDto);
@@ -132,7 +139,7 @@ public class OrganizationService {
         return orgMapper.entityToResponseDto(orgRepository.save(org));
     }
 
-    public void delete(int id) {
+    public void delete(UUID id) {
         if(orgRepository.countByParentId(id)>0)
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EMPTY);
 
@@ -142,11 +149,11 @@ public class OrganizationService {
         orgRepository.deleteById(id);
     }
 
-    public CustomPairModel<Long,List<UserWithRoleInOrgResponseDto>> getUsersByOrgId(int orgId, UserFilterDto userFilterDto){
+    public CustomPairModel<Long,List<UserWithRoleInOrgResponseDto>> getUsersByOrgId(UUID orgId, UserFilterDto userFilterDto){
         if(!orgRepository.existsById(orgId))
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
 
-        Map<Integer, UserWithRoleInOrgResponseDto> mapResult = new HashMap<>();
+        Map<UUID, UserWithRoleInOrgResponseDto> mapResult = new HashMap<>();
 
         Specification<OrganizationUserRoleEntity> spec = (root, query, criteriaBuilder) -> {
             Join<?,?> user = root.join("user");
@@ -161,10 +168,10 @@ public class OrganizationService {
             RoleFilterDto roleFilter = new RoleFilterDto();
             roleFilter.setPageSize(20);
 
-            Map<Integer,Set<String>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
+            Map<UUID,Set<String>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
 
             users.forEach(our->{
-                int userId = our.getUser().getId();
+                UUID userId = our.getUser().getId();
                 RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(our.getRole());
                 role.setPermissions(mapRolePermission.getOrDefault(role.getId(),Set.of()));
                 if(!mapResult.containsKey(userId)) {
@@ -180,7 +187,7 @@ public class OrganizationService {
         return new CustomPairModel<>(users.getTotalElements(),mapResult.values().stream().toList());
     }
 
-    public CustomPairModel<Long,List<UserResponseDto>> getUsersNotInOrg(int orgId, UserFilterDto userFilterDto){
+    public CustomPairModel<Long,List<UserResponseDto>> getUsersNotInOrg(UUID orgId, UserFilterDto userFilterDto){
         if(!orgRepository.existsById(orgId))
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
         Specification<UserEntity> spec = (root, query, criteriaBuilder) -> {
@@ -203,7 +210,7 @@ public class OrganizationService {
         return new CustomPairModel<>(page.getTotalElements(), page.stream().map(userMapper::entityToResponseDto).toList());
     }
 
-    public void assignUsers(int id, OrganizationAssignUserRequestDto requestDto){
+    public void assignUsers(UUID id, OrganizationAssignUserRequestDto requestDto){
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
         List<UserEntity> users = userRepository.findAllById(requestDto.getUserIds());
@@ -227,7 +234,7 @@ public class OrganizationService {
         ourRepository.saveAll(users.stream().map(user-> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
     }
 
-    public void assignRole(int id, OrganizationAssignRoleRequestDto requestDto){
+    public void assignRole(UUID id, OrganizationAssignRoleRequestDto requestDto){
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
         List<UserEntity> users = userRepository.findAllById(requestDto.getUserIds());
@@ -252,7 +259,7 @@ public class OrganizationService {
         ourRepository.saveAll(users.stream().map(user-> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
     }
 
-    public void removeUsers(int id, OrganizationRemoveUserRequestDto requestDto){
+    public void removeUsers(UUID id, OrganizationRemoveUserRequestDto requestDto){
         if(!orgRepository.existsById(id))
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
 
@@ -270,7 +277,7 @@ public class OrganizationService {
         ourRepository.deleteAll(ourList);
     }
 
-    public void removeRole(int id, OrganizationRemoveRoleRequestDto requestDto){
+    public void removeRole(UUID id, OrganizationRemoveRoleRequestDto requestDto){
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
         List<UserEntity> users = userRepository.findAllById(requestDto.getUserIds());
@@ -293,7 +300,7 @@ public class OrganizationService {
         ourRepository.deleteAll(users.stream().map(user-> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
     }
 
-    public void replaceRole(int orgId, OrganizationReplaceRoleRequestDto requestDto){
+    public void replaceRole(UUID orgId, OrganizationReplaceRoleRequestDto requestDto){
         OrganizationEntity org = orgRepository.findById(orgId).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
         List<UserEntity> users = userRepository.findAllById(requestDto.getUserIds());
@@ -323,7 +330,7 @@ public class OrganizationService {
         ourRepository.saveAll(users.stream().map(user-> new OrganizationUserRoleEntity(org, user, newRole)).collect(Collectors.toSet()));
     }
 
-    public void resetRole(int id, OrganizationResetRoleRequestDto requestDto) {
+    public void resetRole(UUID id, OrganizationResetRoleRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
         List<UserEntity> users = userRepository.findAllById(requestDto.getUserIds());

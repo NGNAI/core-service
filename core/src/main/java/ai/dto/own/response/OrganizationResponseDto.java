@@ -8,6 +8,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 @JsonPropertyOrder({
         "id",
@@ -20,7 +21,7 @@ import java.util.Set;
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrganizationResponseDto {
-    int id;
+    UUID id;
     String name;
     String description;
     Integer parentId;

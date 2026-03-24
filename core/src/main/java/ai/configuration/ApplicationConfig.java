@@ -14,6 +14,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @EnableJpaAuditing(auditorAwareRef = "auditorAware") // Enable audit for entity
 @Configuration
@@ -31,7 +32,7 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public AuditorAware<Integer> auditorAware() {
+    public AuditorAware<UUID> auditorAware() {
         return () -> {
             Authentication authentication =
                     SecurityContextHolder.getContext().getAuthentication();
@@ -43,7 +44,7 @@ public class ApplicationConfig {
             if (authentication instanceof JwtAuthenticationToken jwtAuth) {
                 Jwt jwt = jwtAuth.getToken();
 
-                Integer userId = Integer.valueOf(jwt.getClaimAsString("user_id"));
+                UUID userId = UUID.fromString(jwt.getClaimAsString("user_id"));
                 return Optional.of(userId);
             }
 

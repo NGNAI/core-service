@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
+import java.util.UUID;
+
 @JsonPropertyOrder({
         "id",
         "topicId",
@@ -16,8 +18,8 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class MessageResponseDto extends AuditResponseDto {
-    int id;
-    int topicId;
+    UUID id;
+    UUID topicId;
     String content;
     String type;
 }

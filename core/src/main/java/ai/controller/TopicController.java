@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -50,7 +51,7 @@ public class TopicController {
     }
 
     @PatchMapping("/{topicId}")
-    ResponseEntity<ApiResponseModel<TopicResponseDto>> renameTitle(@PathVariable int topicId,@Valid @RequestBody TopicRenameTitleRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<TopicResponseDto>> renameTitle(@PathVariable UUID topicId, @Valid @RequestBody TopicRenameTitleRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<TopicResponseDto>builder()
                         .message("Rename topic title successfully")
@@ -60,7 +61,7 @@ public class TopicController {
     }
 
     @DeleteMapping("/{topicId}")
-    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable int topicId){
+    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID topicId){
         topicService.delete(topicId);
 
         return ResponseEntity.ok(
@@ -71,7 +72,7 @@ public class TopicController {
     }
 
     @GetMapping("/{topicId}/messages")
-    ResponseEntity<ApiResponseModel<List<MessageResponseDto>>> getMessageByTopicId(@PathVariable int topicId, @ModelAttribute MessageFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<MessageResponseDto>>> getMessageByTopicId(@PathVariable UUID topicId, @ModelAttribute MessageFilterDto filterDto){
         CustomPairModel<Long, List<MessageResponseDto>> result = messageService.getAll(topicId, filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<MessageResponseDto>>builder()

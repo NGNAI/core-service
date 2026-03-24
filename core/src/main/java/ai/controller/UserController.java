@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -24,7 +25,7 @@ public class UserController {
     UserService userService;
 
     @GetMapping("/{userId}")
-    ResponseEntity<ApiResponseModel<UserResponseDto>> getById(@PathVariable int userId){
+    ResponseEntity<ApiResponseModel<UserResponseDto>> getById(@PathVariable UUID userId){
         return ResponseEntity.ok(
                 ApiResponseModel.<UserResponseDto>builder()
                         .message("Get user successfully")
@@ -56,7 +57,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}")
-    ResponseEntity<ApiResponseModel<UserResponseDto>> update(@PathVariable int userId,@Valid @RequestBody UserUpdateRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<UserResponseDto>> update(@PathVariable UUID userId,@Valid @RequestBody UserUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<UserResponseDto>builder()
                         .message("Update user successfully")
@@ -67,7 +68,7 @@ public class UserController {
 
 
     @DeleteMapping("/{userId}")
-    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable int userId){
+    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID userId){
         userService.delete(userId);
 
         return ResponseEntity.ok(

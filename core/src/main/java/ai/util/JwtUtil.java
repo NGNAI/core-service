@@ -5,6 +5,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.util.UUID;
+
 @UtilityClass
 public class JwtUtil {
     public Jwt getJwt() {
@@ -17,13 +19,13 @@ public class JwtUtil {
         return jwt;
     }
 
-    public int getUserId() {
+    public UUID getUserId() {
         Jwt jwt = getJwt();
-        return jwt != null ? Integer.parseInt(jwt.getClaimAsString("user_id")) : -1;
+        return jwt != null ? UUID.fromString(jwt.getClaimAsString("user_id")) : null;
     }
 
-    public int getOrgId() {
+    public UUID getOrgId() {
         Jwt jwt = getJwt();
-        return jwt != null ? Integer.parseInt(jwt.getClaimAsString("org_id")) : -1;
+        return jwt != null ? UUID.fromString(jwt.getClaimAsString("org_id")) : null;
     }
 }

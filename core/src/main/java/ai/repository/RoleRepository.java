@@ -11,11 +11,11 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface RoleRepository extends JpaRepository<RoleEntity, Integer> {
+public interface RoleRepository extends JpaRepository<RoleEntity, UUID> {
     boolean existsByName(String name);
 
     @Modifying
@@ -36,17 +36,9 @@ public interface RoleRepository extends JpaRepository<RoleEntity, Integer> {
        FROM RoleEntity r
        LEFT JOIN FETCH r.rolePermissions rp
        LEFT JOIN FETCH rp.permission
-       """)
-    List<RoleEntity> findAllWithPermissions();
-
-    @Query("""
-       SELECT r
-       FROM RoleEntity r
-       LEFT JOIN FETCH r.rolePermissions rp
-       LEFT JOIN FETCH rp.permission
        WHERE r.id = :roleId
        """)
-    Optional<RoleEntity> findByIdWithPermissions(int roleId);
+    Optional<RoleEntity> findByIdWithPermissions(UUID roleId);
 
     @Query("""
         SELECT r

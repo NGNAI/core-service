@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.util.UUID;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -15,11 +17,11 @@ import lombok.experimental.FieldDefaults;
 @Embeddable
 public class OrganizationUserRoleIdEmbed {
     @Column(name = "organization_id", nullable = false)
-    int organizationId;
+    UUID organizationId;
 
     @Column(name = "user_id", nullable = false)
-    int userId;
+    UUID userId;
 
     @Column(name = "role_id", nullable = false)
-    int roleId;
+    UUID roleId;
 }

@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -24,7 +25,7 @@ public class OrganizationController {
     OrganizationService organizationService;
 
     @GetMapping("/{organizationId}")
-    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getById(@PathVariable int organizationId
+    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getById(@PathVariable UUID organizationId
             , @Valid @Min(value = 0, message = "NESTED_CHILD_VALUE_INVALID") @RequestParam(required = false) Integer nestedChild){
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationResponseDto>builder()
@@ -59,7 +60,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/{organizationId}/children")
-    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getChild(@PathVariable int organizationId, @RequestParam(required = false) Integer nestedChild,@ModelAttribute OrganizationFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getChild(@PathVariable UUID organizationId, @RequestParam(required = false) Integer nestedChild,@ModelAttribute OrganizationFilterDto filterDto){
         CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getChild(organizationId, nestedChild, filterDto);
 
         return ResponseEntity.ok(
@@ -82,7 +83,7 @@ public class OrganizationController {
     }
 
     @PutMapping("/{organizationId}")
-    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> update(@PathVariable int organizationId,@Valid @RequestBody OrganizationUpdateRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> update(@PathVariable UUID organizationId,@Valid @RequestBody OrganizationUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationResponseDto>builder()
                         .message("Update organization successfully")
@@ -92,7 +93,7 @@ public class OrganizationController {
     }
 
     @DeleteMapping("/{organizationId}")
-    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable int organizationId){
+    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID organizationId){
         organizationService.delete(organizationId);
 
         return ResponseEntity.ok(

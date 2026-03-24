@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -48,7 +49,7 @@ public class RoleController {
     }
 
     @PutMapping("/{roleId}")
-    ResponseEntity<ApiResponseModel<RoleResponseDto>> update(@Valid @PathVariable int roleId, @RequestBody RoleUpdateRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<RoleResponseDto>> update(@Valid @PathVariable UUID roleId, @RequestBody RoleUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<RoleResponseDto>builder()
                         .message("Update role successfully")
@@ -58,7 +59,7 @@ public class RoleController {
     }
 
     @PostMapping("/{roleId}/permissions")
-    ResponseEntity<ApiResponseModel<RoleResponseDto>> assignPermission(@PathVariable int roleId,@Valid @RequestBody RolePermissionUpdateRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<RoleResponseDto>> assignPermission(@PathVariable UUID roleId,@Valid @RequestBody RolePermissionUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<RoleResponseDto>builder()
                         .message("Assign permissions to successfully")
@@ -68,7 +69,7 @@ public class RoleController {
     }
 
     @DeleteMapping("/{roleId}")
-    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable int roleId){
+    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID roleId){
         roleService.delete(roleId);
 
         return ResponseEntity.ok(

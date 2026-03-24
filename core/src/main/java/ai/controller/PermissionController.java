@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -48,7 +49,7 @@ public class PermissionController {
     }
 
     @PutMapping("/{permissionId}")
-    ResponseEntity<ApiResponseModel<PermissionResponseDto>> update(@PathVariable int permissionId,@Valid @RequestBody PermissionUpdateRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<PermissionResponseDto>> update(@PathVariable UUID permissionId, @Valid @RequestBody PermissionUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<PermissionResponseDto>builder()
                         .message("Update permission successfully")
@@ -58,7 +59,7 @@ public class PermissionController {
     }
 
     @DeleteMapping("/{permissionId}")
-    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable int permissionId){
+    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID permissionId){
         permissionService.delete(permissionId);
 
         return ResponseEntity.ok(

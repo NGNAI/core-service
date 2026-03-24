@@ -19,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -28,16 +29,16 @@ public class UserService {
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
 
-    public UserResponseDto getById(int id){
+    public UserResponseDto getById(UUID id){
         return userMapper.entityToResponseDto(getEntityById(id));
     }
 
-    public UserEntity getEntityById(int id){
+    public UserEntity getEntityById(UUID id){
         return userRepository.findById(id)
                 .orElseThrow(() -> new AppException(ApiResponseStatus.USER_NOT_EXISTS));
     }
 
-    public void validateUserId(int topicId){
+    public void validateUserId(UUID topicId){
         if(!userRepository.existsById(topicId))
             throw new AppException(ApiResponseStatus.USER_NOT_EXISTS);
     }
@@ -59,14 +60,14 @@ public class UserService {
         return userMapper.entityToResponseDto(userRepository.save(newEntity));
     }
 
-    public UserResponseDto update(int id, UserUpdateRequestDto updateRequestDto){
+    public UserResponseDto update(UUID id, UserUpdateRequestDto updateRequestDto){
         UserEntity entity = userRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.USER_NOT_EXISTS));
         userMapper.updateEntity(entity, updateRequestDto);
 
         return userMapper.entityToResponseDto(userRepository.save(entity));
     }
 
-    public void delete(int id){
+    public void delete(UUID id){
         userRepository.deleteById(id);
     }
 }

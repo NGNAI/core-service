@@ -105,14 +105,14 @@ public class AuthService {
 
         UserWithOrgResponseDto userResponse = userMapper.entityToWithOrgResponseDto(userEntity);
 
-        Map<Integer, OrganizationWithUserRoleDto> mapResult = new HashMap<>();
+        Map<UUID, OrganizationWithUserRoleDto> mapResult = new HashMap<>();
         RoleFilterDto roleFilter = new RoleFilterDto();
         roleFilter.setPageSize(20);
 
-        Map<Integer,Set<String>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
+        Map<UUID,Set<String>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
 
         ourRepository.findByUserWithPermission(userResponse.getId()).forEach(our->{
-            int orgId = our.getOrganization().getId();
+            UUID orgId = our.getOrganization().getId();
             RoleEntity roleEntity = our.getRole();
             RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(roleEntity);
             role.setPermissions(mapRolePermission.getOrDefault(role.getId(),Set.of()));
@@ -143,8 +143,8 @@ public class AuthService {
     }
 
     public OrganizationSelectResponseDto selectOrg(OrganizationSelectRequestDto requestDto) throws JOSEException {
-        int orgId = requestDto.getOrgId();
-        int userId = JwtUtil.getUserId();
+        UUID orgId = requestDto.getOrgId();
+        UUID userId = JwtUtil.getUserId();
         UserEntity userEntity = userService.getEntityById(userId);
         organizationService.validateOrgId(orgId);
         List<OrganizationUserRoleEntity> ours = ourRepository.findByUserAndOrgWithPermission(userId, orgId);
@@ -156,7 +156,7 @@ public class AuthService {
         RoleFilterDto roleFilter = new RoleFilterDto();
         roleFilter.setPageSize(20);
 
-        Map<Integer,Set<String>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
+        Map<UUID,Set<String>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
         ours.forEach(our->{
             RoleEntity roleEntity = our.getRole();
             RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(roleEntity);
@@ -176,7 +176,7 @@ public class AuthService {
         return signedJWT.verify(jwsVerifier) && !signedJWT.getJWTClaimsSet().getExpirationTime().before(new Date());
     }
 
-    private String generateToken(UserEntity userEntity, TokenType type, Integer orgId) throws JOSEException {
+    private String generateToken(UserEntity userEntity, TokenType type, UUID orgId) throws JOSEException {
         JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
                 .subject(userEntity.getUserName())
