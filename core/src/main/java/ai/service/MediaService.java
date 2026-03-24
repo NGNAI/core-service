@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,17 +35,41 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = false)
 @Service
 public class MediaService {
-    static int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
+    final static int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
+    
+    boolean ingestionServiceAvailable = true;
 
-    MediaRepository mediaRepository;
-    IngestionService ingestionService;
-    MinioService minioService;
-    MediaMapper mediaMapper;
-    UserService userService;
-    OrganizationService organizationService;
+    final MediaRepository mediaRepository;
+    final IngestionService ingestionService;
+    final MinioService minioService;
+    final MediaMapper mediaMapper;
+    final UserService userService;
+    final OrganizationService organizationService;
+
+    @Scheduled(cron = "0 0/1 * * * ?") // Mỗi 1 phút chạy một lần
+    public void syncIngestionStatuses() {
+        if (!ingestionServiceAvailable) {
+            return;
+        }
+        ingestionServiceAvailable = false; // Đánh dấu đang trong quá trình đồng bộ để tránh trường hợp có nhiều instance của media service cùng đồng bộ một lúc, dẫn đến tình trạng thừa thãi và có thể gây ra xung đột
+        System.out.println("Start syncing ingestion statuses for pending media items...");
+        // Lấy tất cả media có target là INGESTION và trạng thái ingestion là PENDING để đồng bộ trạng thái mới nhất từ ingestion service, tránh trường hợp người dùng có thể thấy trạng thái đã xử lý xong ở ingestion service nhưng vẫn thấy media này ở trạng thái PENDING trong hệ thống của mình
+        mediaRepository.findByTargetAndIngestionStatus(MediaUploadTarget.INGESTION, IngestionStatus.PENDING)
+                .forEach(media -> {
+                    try {
+                        pollIngestionJobStatus(media.getId());
+                    } catch (Exception exception) {
+                        // Log lỗi và tiếp tục đồng bộ các media còn lại, tránh trường hợp một lỗi ở ingestion service làm gián đoạn toàn bộ quá trình đồng bộ
+                        System.err.println("Error syncing ingestion status for media with ID: " + media.getId());
+                        exception.printStackTrace();
+                    }
+                });
+        ingestionServiceAvailable = true; // Đồng bộ xong thì đánh dấu là đã sẵn sàng để đồng bộ lần tiếp theo
+        System.out.println("Finished syncing ingestion statuses for pending media items.");
+    }
 
     @Transactional(noRollbackFor = AppException.class)
     public MediaResponseDto uploadMedia(MediaUploadRequestDto requestDto) {
@@ -205,10 +230,12 @@ public class MediaService {
             throw new AppException(ApiResponseStatus.MEDIA_FOLDER_UPDATE_REQUIRED);
         }
 
+        // Đổi tên
         if (hasName) {
             folder.setName(requestDto.getName().trim());
         }
 
+        // Di chuyển thư mục
         if (moveToRoot) {
             folder.setParent(null);
         } else if (hasParent) {
@@ -288,36 +315,34 @@ public class MediaService {
     }
 
     @Transactional
-    public MediaJobStatusResponseDto pollIngestionJobStatus(UUID jobId) {
+    public MediaJobStatusResponseDto pollIngestionJobStatus(UUID mediaId) {
+        Optional<MediaEntity> mediaOptional = mediaRepository.findById(mediaId);
+        if (mediaOptional.isEmpty()) {
+            throw new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS);
+        }
+        
+        if(mediaOptional.get().getJobId() == null) {
+            throw new AppException(ApiResponseStatus.MEDIA_JOB_ID_NOT_EXISTS);
+        }
+
         // Lấy trạng thái ingestion mới nhất từ ingestion service
-        IngestionStatusResponseDto ingestionStatusResponse = ingestionService.getJobStatus(jobId);
+        IngestionStatusResponseDto ingestionStatusResponse = ingestionService.getJobStatus(mediaOptional.get().getJobId());
         String resolvedStatus = ingestionStatusResponse.getStatus();
         if (resolvedStatus == null || resolvedStatus.isBlank()) {
-            resolvedStatus = "PENDING";
+            resolvedStatus = IngestionStatus.PENDING.name();
         } else {
             resolvedStatus = resolvedStatus.trim().toUpperCase(Locale.ROOT);
         }
 
-        Optional<MediaEntity> mediaOptional = mediaRepository.findByJobId(jobId);
-        if (mediaOptional.isPresent()) {
-            MediaEntity media = mediaOptional.get();
+        MediaEntity media = mediaOptional.get();
+        if(media.getIngestionStatus() == null || !media.getIngestionStatus().name().equals(resolvedStatus)) {
             media.setIngestionStatus(IngestionStatus.valueOf(resolvedStatus));
             mediaRepository.save(media);
-
-            return MediaJobStatusResponseDto.builder()
-                    .mediaId(media.getId())
-                    .jobId(jobId)
-                    .ingestionStatus(resolvedStatus)
-                    .message(ingestionStatusResponse.getMessage())
-                    .build();
-        }
-
-        if (ingestionStatusResponse.getJobId() == null) {
-            throw new AppException(ApiResponseStatus.MEDIA_JOB_ID_NOT_EXISTS);
         }
 
         return MediaJobStatusResponseDto.builder()
-                .jobId(jobId)
+                .mediaId(media.getId())
+                .jobId(media.getJobId())
                 .ingestionStatus(resolvedStatus)
                 .message(ingestionStatusResponse.getMessage())
                 .build();
