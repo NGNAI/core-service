@@ -21,8 +21,8 @@ public class MediaResponseDto extends AuditResponseDto implements Serializable {
     Long fileSize;
     String minioPath;
     UUID parentId;
-    Integer ownerId;
-    Integer orgId;
+    UUID ownerId;
+    UUID orgId;
     DataScope accessLevel;
     UUID jobId;
     String ingestionStatus;
