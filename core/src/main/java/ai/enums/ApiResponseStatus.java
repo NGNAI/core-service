@@ -86,6 +86,7 @@ public enum ApiResponseStatus {
     MEDIA_PARENT_MUST_BE_FOLDER(1117, "Media parent must be folder",HttpStatus.BAD_REQUEST),
     MEDIA_MOVE_CYCLE_NOT_ALLOWED(1118, "Media move cycle is not allowed",HttpStatus.BAD_REQUEST),
     MEDIA_FOLDER_UPDATE_REQUIRED(1119, "Media folder update payload is empty",HttpStatus.BAD_REQUEST),
+    MEDIA_DELETE_FAILED(1122, "Media delete failed",HttpStatus.BAD_REQUEST),
 
     UNEXPECTED(9999, "An unexpected error occurred!",HttpStatus.INTERNAL_SERVER_ERROR);
 

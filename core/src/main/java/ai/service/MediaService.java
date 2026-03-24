@@ -4,6 +4,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +37,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class MediaService {
-    private static final int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
+    static int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
 
     MediaRepository mediaRepository;
     IngestionService ingestionService;
@@ -60,7 +61,7 @@ public class MediaService {
         media.setFolder(false);
         media.setMinioPath(minioPath);
         media.setFileSize(requestDto.getFile().getSize());
-        media.setContentType(resolveFileType(requestDto.getFile().getOriginalFilename()));
+        media.setContentType(requestDto.getFile().getContentType());
         media.setAccessLevel(requestDto.getAccessLevel());
         media.setOwner(user);
         media.setOrganization(organization);
@@ -97,7 +98,8 @@ public class MediaService {
             if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
                 media.setIngestionStatus(IngestionStatus.FAILED);
                 mediaRepository.save(media);
-                throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+
+                return mediaMapper.entityToResponseDto(media);
             }
 
             // Cập nhật jobId và trạng thái ingestion của media sau khi đã đẩy sang
@@ -111,7 +113,7 @@ public class MediaService {
         } catch (AppException exception) {
             media.setIngestionStatus(IngestionStatus.FAILED);
             mediaRepository.save(media);
-            throw exception;
+            return mediaMapper.entityToResponseDto(media);
         }
     }
 
@@ -123,12 +125,12 @@ public class MediaService {
         MediaEntity media = new MediaEntity();
         media.setName(requestDto.getName().trim());
         media.setFolder(true);
-        media.setContentType("folder");
+        media.setContentType(null);
         media.setFileSize(0L);
-        media.setAccessLevel(requestDto.getAccessLevel());
+        media.setAccessLevel(null);
         media.setOwner(user);
         media.setOrganization(organization);
-        media.setTarget(requestDto.getTarget());
+        media.setTarget(null);
         media.setJobId(null);
         media.setIngestionStatus(null);
 
@@ -140,10 +142,12 @@ public class MediaService {
             }
             media.setParent(parent);
         }
+        media = mediaRepository.save(media);
 
-        return mediaMapper.entityToResponseDto(mediaRepository.save(media));
+        return mediaMapper.entityToResponseDto(media);
     }
 
+    @Cacheable(value = "mediaById", key = "#mediaId", unless = "#result == null", condition = "#mediaId != null")
     @Transactional(readOnly = true)
     public MediaResponseDto getById(UUID mediaId) {
         MediaEntity media = mediaRepository.findById(mediaId)
@@ -285,9 +289,15 @@ public class MediaService {
 
     @Transactional
     public MediaJobStatusResponseDto pollIngestionJobStatus(UUID jobId) {
+        // Lấy trạng thái ingestion mới nhất từ ingestion service
         IngestionStatusResponseDto ingestionStatusResponse = ingestionService.getJobStatus(jobId);
+        String resolvedStatus = ingestionStatusResponse.getStatus();
+        if (resolvedStatus == null || resolvedStatus.isBlank()) {
+            resolvedStatus = "PENDING";
+        } else {
+            resolvedStatus = resolvedStatus.trim().toUpperCase(Locale.ROOT);
+        }
 
-        String resolvedStatus = resolveStatus(ingestionStatusResponse);
         Optional<MediaEntity> mediaOptional = mediaRepository.findByJobId(jobId);
         if (mediaOptional.isPresent()) {
             MediaEntity media = mediaOptional.get();
@@ -313,12 +323,31 @@ public class MediaService {
                 .build();
     }
 
-    private String resolveStatus(IngestionStatusResponseDto responseDto) {
-        if (responseDto == null || responseDto.getStatus() == null || responseDto.getStatus().isBlank()) {
-            return "PENDING";
+
+    @Transactional
+    public void deleteById(UUID mediaId) {
+        MediaEntity media = mediaRepository.findById(mediaId).orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
+
+        // Nếu media có phải là folder thì không cho phép xóa để tránh trường hợp xóa nhầm cả một cây media con bên dưới, bắt buộc phải xóa hết media con trước rồi mới xóa được folder
+        if (media.isFolder()) {
+            throw new AppException(ApiResponseStatus.MEDIA_FOLDER_ONLY_OPERATION);
         }
-        return responseDto.getStatus().trim().toUpperCase(Locale.ROOT);
+
+        // Xóa bên minio trước để tránh trường hợp đã xóa media trong database nhưng xóa file trên minio thất bại, dẫn đến rác file trên minio
+        if (media.getMinioPath() != null && !media.getMinioPath().isBlank()) {
+            minioService.delete(media.getMinioPath());
+        }
+
+        // Nếu là ingestion media thì không chỉ xóa file trên minio mà còn phải xóa cả record ingestion job liên quan để tránh trường hợp media này bị treo ở trạng thái đã xóa trên database nhưng vẫn còn job ở
+        // ingestion service, dẫn đến việc người dùng không thể upload lại một media mới được vì jobId của media mới bị trùng với jobId của media cũ đã bị xóa nhưng vẫn còn ở ingestion service
+        if (MediaUploadTarget.INGESTION.equals(media.getTarget()) && media.getJobId() != null) {
+            //ingestionService.deleteJob(media.getJobId());
+        }
+
+        // Sau khi đã xóa file trên minio thành công (hoặc nếu media này không có file trên minio) thì mới xóa record media trong database để tránh trường hợp media bị treo ở trạng thái đã xóa trên database nhưng file vẫn còn
+        mediaRepository.delete(media);
     }
+
 
     private void validateDownloadableMedia(MediaEntity media) {
         if (media.isFolder()) {
@@ -338,16 +367,5 @@ public class MediaService {
             cursor = cursor.getParent();
         }
         return false;
-    }
-
-    private String resolveFileType(String filename) {
-        if (filename == null || filename.isBlank()) {
-            return "bin";
-        }
-        int lastDotIndex = filename.lastIndexOf('.');
-        if (lastDotIndex < 0 || lastDotIndex == filename.length() - 1) {
-            return "bin";
-        }
-        return filename.substring(lastDotIndex + 1).toLowerCase(Locale.ROOT);
     }
 }

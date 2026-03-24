@@ -9,6 +9,7 @@ import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import io.minio.StatObjectArgs;
 import io.minio.http.Method;
 import lombok.AccessLevel;
@@ -97,6 +98,26 @@ public class MinioService {
             }
         } catch (Exception exception) {
             throw new AppException(ApiResponseStatus.MEDIA_DOWNLOAD_FAILED);
+        }
+    }
+
+
+    public void delete(String objectPath) {
+        try {
+            AppProperties.Minio minio = appProperties.getMinio();
+            MinioClient client = MinioClient.builder()
+                    .endpoint(minio.getEndpoint())
+                    .credentials(minio.getAccessKey(), minio.getSecretKey())
+                    .build();
+
+            client.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(minio.getBucket())
+                            .object(objectPath)
+                            .build()
+            );
+        } catch (Exception exception) {
+            throw new AppException(ApiResponseStatus.MEDIA_DELETE_FAILED);
         }
     }
 
