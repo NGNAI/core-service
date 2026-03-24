@@ -119,17 +119,7 @@ public class MediaController {
                         .build());
     }
 
-    @Operation(summary = "Rename or move folder", description = "Update folder name and/or move folder to another parent", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, description = "Folder update payload", content = @Content(mediaType = "application/json", examples = {
-            @ExampleObject(name = "renameFolderRequest", value = "{\n" +
-                    "  \"name\": \"Human Resource Documents\"\n" +
-                    "}"),
-            @ExampleObject(name = "moveFolderRequest", value = "{\n" +
-                    "  \"parentId\": \"66666666-6666-6666-6666-666666666666\"\n" +
-                    "}"),
-            @ExampleObject(name = "moveFolderToRootRequest", value = "{\n" +
-                    "  \"moveToRoot\": true\n" +
-                    "}")
-    })))
+    @Operation(summary = "Rename or move folder", description = "Update folder name and/or move folder to another parent")
     @PutMapping("/folders/{mediaId}")
     ResponseEntity<ApiResponseModel<MediaResponseDto>> updateFolder(
             @PathVariable UUID mediaId,
@@ -153,12 +143,12 @@ public class MediaController {
     }
 
     @Operation(summary = "Get ingestion job status", description = "Poll ingestion processing status by jobId")
-    @GetMapping("/jobs/{jobId}/ingestion-status")
-    ResponseEntity<ApiResponseModel<MediaJobStatusResponseDto>> getIngestionJobStatus(@PathVariable UUID jobId) {
+    @GetMapping("/{mediaId}/ingestion/job-status")
+    ResponseEntity<ApiResponseModel<MediaJobStatusResponseDto>> ingestionJobStatus(@PathVariable UUID mediaId) {
         return ResponseEntity.ok(
                 ApiResponseModel.<MediaJobStatusResponseDto>builder()
                         .message("Get media ingestion status successfully")
-                        .data(mediaService.pollIngestionJobStatus(jobId))
+                        .data(mediaService.pollIngestionJobStatus(mediaId))
                         .build());
     }
 
