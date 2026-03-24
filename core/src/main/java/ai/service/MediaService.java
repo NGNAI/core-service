@@ -373,6 +373,15 @@ public class MediaService {
         mediaRepository.delete(media);
     }
 
+    @Transactional
+    public void deleteFolderById(UUID mediaId) {
+        MediaEntity media = mediaRepository.findById(mediaId).orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
+        if (!media.isFolder()) {
+            throw new AppException(ApiResponseStatus.MEDIA_FOLDER_ONLY_OPERATION);
+        }
+        
+        mediaRepository.delete(media);
+    }
 
     private void validateDownloadableMedia(MediaEntity media) {
         if (media.isFolder()) {
