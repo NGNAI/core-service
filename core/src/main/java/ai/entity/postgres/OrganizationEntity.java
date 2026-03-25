@@ -1,7 +1,7 @@
 package ai.entity.postgres;
 
 import ai.entity.postgres.embeddable.AuditEmbed;
-import ai.util.LTreeUtil;
+import ai.util.PathUtil;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -56,6 +56,6 @@ public class OrganizationEntity {
     @PrePersist
     public void prePersist() {
         String parentPath = (parent != null) ? parent.getPath() : null;
-        this.path = LTreeUtil.buildPath(parentPath, this.id);
+        this.path = PathUtil.buildPath(parentPath, this.id);
     }
 }

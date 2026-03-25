@@ -19,7 +19,6 @@ import ai.repository.OrganizationRepository;
 import ai.repository.OrganizationUserRoleRepository;
 import ai.repository.RoleRepository;
 import ai.repository.UserRepository;
-import ai.util.LTreeUtil;
 import jakarta.persistence.criteria.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

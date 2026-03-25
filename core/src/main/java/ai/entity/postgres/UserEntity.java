@@ -50,8 +50,9 @@ public class UserEntity {
     @Embedded
     AuditEmbed audit = new AuditEmbed();
 
+    @Builder.Default
     @Column(name = "active")
-    boolean active;
+    boolean active = true;
 
     @Column(name = "last_login")
     Instant lastLogin;
