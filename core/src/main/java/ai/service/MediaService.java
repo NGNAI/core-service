@@ -4,6 +4,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,6 +25,7 @@ import ai.entity.postgres.MediaEntity;
 import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.CacheNames;
 import ai.enums.IngestionStatus;
 import ai.enums.MediaUploadTarget;
 import ai.exeption.AppException;
@@ -172,7 +174,7 @@ public class MediaService {
         return mediaMapper.entityToResponseDto(media);
     }
 
-    @Cacheable(value = "mediaById", key = "#mediaId", unless = "#result == null", condition = "#mediaId != null")
+    @Cacheable(value = CacheNames.MEDIA_DTO_DETAILS, key = "#mediaId", unless = "#result == null", condition = "#mediaId != null")
     @Transactional(readOnly = true)
     public MediaResponseDto getById(UUID mediaId) {
         MediaEntity media = mediaRepository.findById(mediaId)
@@ -214,6 +216,7 @@ public class MediaService {
                 .build();
     }
 
+    @CacheEvict(value = CacheNames.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
     @Transactional
     public MediaResponseDto updateFolder(UUID mediaId, MediaUpdateFolderRequestDto requestDto) {
         MediaEntity folder = mediaRepository.findById(mediaId)
@@ -349,6 +352,7 @@ public class MediaService {
     }
 
 
+    @CacheEvict(value = CacheNames.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
     @Transactional
     public void deleteById(UUID mediaId) {
         MediaEntity media = mediaRepository.findById(mediaId).orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
@@ -373,6 +377,7 @@ public class MediaService {
         mediaRepository.delete(media);
     }
 
+    @CacheEvict(value = CacheNames.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
     @Transactional
     public void deleteFolderById(UUID mediaId) {
         MediaEntity media = mediaRepository.findById(mediaId).orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));

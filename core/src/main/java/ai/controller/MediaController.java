@@ -86,6 +86,7 @@ public class MediaController {
                         .build());
     }
 
+    
     @Operation(summary = "Upload media", description = "Upload media file to MinIO and optionally trigger ingestion")
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ResponseEntity<ApiResponseModel<MediaResponseDto>> upload(@Valid @ModelAttribute MediaUploadRequestDto requestDto) {
