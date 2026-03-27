@@ -7,6 +7,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import ai.entity.postgres.embeddable.AuditEmbed;
 import ai.enums.DataScope;
 import ai.enums.IngestionStatus;
+import ai.enums.MediaDeleteStatus;
 import ai.enums.MediaUploadTarget;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
@@ -38,7 +39,8 @@ import lombok.experimental.FieldDefaults;
         @jakarta.persistence.Index(name = "idx_media_org_id", columnList = "org_id"),
         @jakarta.persistence.Index(name = "idx_media_owner_id", columnList = "owner_id"),
         @jakarta.persistence.Index(name = "idx_media_parent_id", columnList = "parent_id"),
-        @jakarta.persistence.Index(name = "idx_media_target", columnList = "target")
+    @jakarta.persistence.Index(name = "idx_media_target", columnList = "target"),
+    @jakarta.persistence.Index(name = "idx_media_delete_status", columnList = "delete_status")
 })
 @EntityListeners(AuditingEntityListener.class)
 @Entity
@@ -101,6 +103,11 @@ public class MediaEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "ingestion_status", length = 20, nullable = true)
     IngestionStatus ingestionStatus;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delete_status", length = 20, nullable = false)
+    MediaDeleteStatus deleteStatus = MediaDeleteStatus.ACTIVE;
 
     @Builder.Default
     @Embedded

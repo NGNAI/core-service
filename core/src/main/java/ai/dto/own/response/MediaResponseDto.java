@@ -1,6 +1,5 @@
 package ai.dto.own.response;
 
-import java.io.Serializable;
 import java.util.UUID;
 
 import ai.enums.DataScope;
@@ -13,7 +12,7 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class MediaResponseDto extends AuditResponseDto implements Serializable {
+public class MediaResponseDto extends AuditResponseDto {
     UUID id;
     String name;
     boolean folder;
@@ -26,5 +25,6 @@ public class MediaResponseDto extends AuditResponseDto implements Serializable {
     DataScope accessLevel;
     UUID jobId;
     String ingestionStatus;
+    String deleteStatus;
     MediaUploadTarget target;
 }

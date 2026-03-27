@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 @JsonPropertyOrder({
@@ -15,7 +16,7 @@ import java.util.UUID;
 })
 @Data
 @FieldDefaults(level = AccessLevel.PROTECTED)
-public class AuditResponseDto {
+public class AuditResponseDto implements Serializable {
     String createdAt;
     UUID createdBy;
     String updatedAt;
