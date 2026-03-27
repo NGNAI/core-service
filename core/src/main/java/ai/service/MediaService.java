@@ -115,9 +115,11 @@ public class MediaService {
         try {
             IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
                     requestDto.getFile(),
+                    media.getId().toString(),
                     user.getUserName(),
+                    organization.getId().toString(),
                     organization.getName(),
-                    "public");
+                    media.getAccessLevel());
 
             // Nếu response từ ingestion service không hợp lệ thì đánh dấu media này là
             // failed để tránh trường hợp media bị treo ở trạng thái pending mãi mãi, đồng
@@ -295,9 +297,11 @@ public class MediaService {
             IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
                     objectData.getBytes(),
                     media.getName(),
+                    media.getId().toString(),
                     owner.getUserName(),
+                    organization.getId().toString(),
                     organization.getName(),
-                    media.getAccessLevel().name());
+                    media.getAccessLevel());
 
             if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
                 media.setIngestionStatus(IngestionStatus.FAILED);
@@ -354,7 +358,7 @@ public class MediaService {
 
     @CacheEvict(value = CacheNames.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
     @Transactional
-    public void deleteById(UUID mediaId) {
+    public void deleteFileById(UUID mediaId) {
         MediaEntity media = mediaRepository.findById(mediaId).orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
 
         // Nếu media có phải là folder thì không cho phép xóa để tránh trường hợp xóa nhầm cả một cây media con bên dưới, bắt buộc phải xóa hết media con trước rồi mới xóa được folder
@@ -370,7 +374,7 @@ public class MediaService {
         // Nếu là ingestion media thì không chỉ xóa file trên minio mà còn phải xóa cả record ingestion job liên quan để tránh trường hợp media này bị treo ở trạng thái đã xóa trên database nhưng vẫn còn job ở
         // ingestion service, dẫn đến việc người dùng không thể upload lại một media mới được vì jobId của media mới bị trùng với jobId của media cũ đã bị xóa nhưng vẫn còn ở ingestion service
         if (MediaUploadTarget.INGESTION.equals(media.getTarget()) && media.getJobId() != null) {
-            //ingestionService.deleteJob(media.getJobId());
+            ingestionService.deleteFile(media.getId().toString());
         }
 
         // Sau khi đã xóa file trên minio thành công (hoặc nếu media này không có file trên minio) thì mới xóa record media trong database để tránh trường hợp media bị treo ở trạng thái đã xóa trên database nhưng file vẫn còn
