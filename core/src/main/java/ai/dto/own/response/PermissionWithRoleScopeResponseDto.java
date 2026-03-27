@@ -2,22 +2,24 @@ package ai.dto.own.response;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.AccessLevel;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 @JsonPropertyOrder({
         "id",
         "name",
-        "permissions",
+        "description",
+        "code",
+        "resource",
+        "action",
+        "scope"
 })
-@Data
+@Getter
+@Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class RoleSimplifyResponseDto {
-    UUID id;
-    String name;
-    Map<String,Map<String,String>> permissions;
+public class PermissionWithRoleScopeResponseDto extends PermissionResponseDto {
+    String scope;
 }

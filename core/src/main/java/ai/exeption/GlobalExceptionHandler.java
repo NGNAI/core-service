@@ -5,8 +5,7 @@ import ai.model.ApiResponseModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.security.authentication.AuthenticationServiceException;
-import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -52,6 +51,12 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ApiResponseModel<Void>> handlingAppException(AppException appException){
         log.warn(appException.getMessage(),appException);
         return buildResponse(appException.getApiResponseStatus());
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    private ResponseEntity<ApiResponseModel<Void>> handlingAuthorizationDeniedException(AuthorizationDeniedException exception){
+        log.error("Permission denied!",exception);
+        return buildResponse(ApiResponseStatus.PERMISSION_DENIED);
     }
 
     private <T> ResponseEntity<ApiResponseModel<T>> buildResponse(ApiResponseStatus apiResponseEnum){

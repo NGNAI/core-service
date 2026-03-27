@@ -34,6 +34,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.text.ParseException;
 import java.time.Instant;
@@ -109,13 +110,13 @@ public class AuthService {
         RoleFilterDto roleFilter = new RoleFilterDto();
         roleFilter.setPageSize(20);
 
-        Map<UUID,Set<String>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
+        Map<UUID, Map<String, Map<String, String>>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
 
         ourRepository.findByUserWithPermission(userResponse.getId()).forEach(our->{
             UUID orgId = our.getOrganization().getId();
             RoleEntity roleEntity = our.getRole();
             RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(roleEntity);
-            role.setPermissions(mapRolePermission.getOrDefault(role.getId(),Set.of()));
+            role.setPermissions(mapRolePermission.getOrDefault(role.getId(),Map.of()));
 
             if(!mapResult.containsKey(orgId)) {
                 OrganizationWithUserRoleDto orgWithRole = organizationMapper.entityToWithUserRoleResponseDto(our.getOrganization());
@@ -156,11 +157,11 @@ public class AuthService {
         RoleFilterDto roleFilter = new RoleFilterDto();
         roleFilter.setPageSize(20);
 
-        Map<UUID,Set<String>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
+        Map<UUID, Map<String, Map<String, String>>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
         ours.forEach(our->{
             RoleEntity roleEntity = our.getRole();
             RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(roleEntity);
-            role.setPermissions(mapRolePermission.getOrDefault(role.getId(),Set.of()));
+            role.setPermissions(mapRolePermission.getOrDefault(role.getId(),Map.of()));
 
             organizationWithUserRoleDto.getRoles().add(role);
         });
@@ -185,7 +186,7 @@ public class AuthService {
                 .expirationTime(new Date(Instant.now().plus(appProperties.getJwt().getExpiryDuration(), ChronoUnit.SECONDS).toEpochMilli()))
                 .jwtID(UUID.randomUUID().toString())
                 .claim("type",type)
-                .claim("scope",buildJwtScope(userEntity))
+                .claim("scope",buildJwtScope(userEntity, orgId))
                 .claim("user_id",userEntity.getId())
                 .claim("org_id",Objects.requireNonNullElse(orgId,""))
                 .build();
@@ -199,11 +200,11 @@ public class AuthService {
         return jwsObject.serialize();
     }
 
-    private String buildJwtScope(UserEntity userEntity){
+    private String buildJwtScope(UserEntity userEntity, UUID orgId){
         /*FIXME build user scope*/
         StringJoiner stringJoiner = new StringJoiner(" ");
 
-//        if(!CollectionUtils.isEmpty(userEntity.getRoles())){
+//        if(!CollectionUtils.isEmpty(userEntity.g())){
 //            userEntity.getRoles().forEach(role ->{
 //                stringJoiner.add(role.getName());
 //

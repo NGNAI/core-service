@@ -9,4 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface TopicRepository extends JpaRepository<TopicEntity, UUID>, JpaSpecificationExecutor<TopicEntity> {
+    boolean existsByIdAndOwnerId(UUID id, UUID ownerId);
 }

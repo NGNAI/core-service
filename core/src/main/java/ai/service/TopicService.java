@@ -30,6 +30,11 @@ public class TopicService {
 
     TopicMapper topicMapper;
 
+    public void validateTopicOfUser(UUID topicId, UUID userId){
+        if(!topicRepository.existsByIdAndOwnerId(topicId,userId))
+            throw new AppException(ApiResponseStatus.PERMISSION_DENIED);
+    }
+
     public void validateTopicId(UUID topicId){
         if(!topicRepository.existsById(topicId))
             throw new AppException(ApiResponseStatus.TOPIC_ID_NOT_EXISTS);
@@ -60,6 +65,7 @@ public class TopicService {
     }
 
     public TopicResponseDto renameTitle(UUID id, TopicRenameTitleRequestDto requestDto){
+        validateTopicOfUser(id,JwtUtil.getUserId());
         TopicEntity entity = topicRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.TOPIC_ID_NOT_EXISTS));
         entity.setTitle(requestDto.getTitle());
 
@@ -67,6 +73,7 @@ public class TopicService {
     }
 
     public void delete(UUID id){
+        validateTopicOfUser(id,JwtUtil.getUserId());
         topicRepository.deleteById(id);
     }
 }

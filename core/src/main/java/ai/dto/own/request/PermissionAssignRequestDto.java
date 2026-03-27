@@ -5,12 +5,13 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
-import java.util.Set;
 import java.util.UUID;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class RolePermissionUpdateRequestDto {
-    @NotNull(message = "ROLE_PERMISSION_CAN_NOT_BE_NULL")
-    Set<PermissionAssignRequestDto> permissions;
+public class PermissionAssignRequestDto {
+    @NotNull(message = "ASSIGN_PERMISSION_ID_CAN_NOT_BE_NULL")
+    UUID id;
+    @NotNull(message = "ASSIGN_PERMISSION_SCOPE_CAN_NOT_BE_NULL")
+    String scope;
 }

@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -55,6 +56,7 @@ public class OrganizationService {
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
     }
 
+    @PreAuthorize("@perm.canAccess(#id, 'ORG', 'READ',null)")
     public OrganizationResponseDto getById(UUID id, Integer nestedChild){
         OrganizationResponseDto responseDto = orgMapper.entityToResponseDto(
                 orgRepository.findById(id)
@@ -66,12 +68,14 @@ public class OrganizationService {
         return responseDto;
     }
 
+    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
     public CustomPairModel<Long,List<OrganizationResponseDto>> getAll(OrganizationFilterDto filterDto){
         Page<OrganizationEntity> page = orgRepository.findAll(filterDto.createSpec(),filterDto.createPageable());
         List<OrganizationResponseDto> organizations = page.getContent().stream().map(orgMapper::entityToResponseDto).toList();
         return new CustomPairModel<>(page.getTotalElements(),organizations);
     }
 
+//    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
     public CustomPairModel<Long,List<OrganizationResponseDto>> getRoot(Integer nestedChild, OrganizationFilterDto filterDto){
         Specification<OrganizationEntity> spec = filterDto.createSpec().and(((root, query, criteriaBuilder) -> criteriaBuilder.isNull(root.get("parent"))));
         Page<OrganizationEntity> page = orgRepository.findAll(spec,filterDto.createPageable());
@@ -86,6 +90,7 @@ public class OrganizationService {
         return new CustomPairModel<>(page.getTotalElements(),organizations);
     }
 
+    @PreAuthorize("@perm.canAccess(#parentId, 'ORG', 'READ',null)")
     public CustomPairModel<Long,List<OrganizationResponseDto>> getChild(UUID parentId, Integer nestedChild, OrganizationFilterDto filterDto){
         if(!orgRepository.existsById(parentId))
             throw new AppException(ApiResponseStatus.PARENT_ORGANIZATION_NOT_EXISTS);
@@ -103,6 +108,7 @@ public class OrganizationService {
         return new CustomPairModel<>(page.getTotalElements(),organizations);
     }
 
+    @PreAuthorize("@perm.canAccess(#requestDto.parentId, 'ORG', 'CREATE',null)")
     public OrganizationResponseDto create(OrganizationCreateRequestDto requestDto){
         OrganizationEntity org = orgMapper.createRequestDtoToEntity(requestDto);
 
@@ -114,25 +120,27 @@ public class OrganizationService {
         return orgMapper.entityToResponseDto(orgRepository.save(org));
     }
 
+    @PreAuthorize("@perm.canAccess(#id, 'ORG', 'UPDATE',null)")
     public OrganizationResponseDto update(UUID id, OrganizationUpdateRequestDto requestDto){
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
         orgMapper.updateEntity(org,requestDto);
-        if(
-                (org.getParent()==null && requestDto.getParentId()!=null) ||
-                        (org.getParent()!=null && requestDto.getParentId()==null) ||
-                        (org.getParent()!=null && org.getParent().getId()!=requestDto.getParentId())
-        ){
-            if(requestDto.getParentId()!=null){
-                OrganizationEntity orgParent = orgRepository.findById(requestDto.getParentId()).orElseThrow(() -> new AppException(ApiResponseStatus.PARENT_ORGANIZATION_NOT_EXISTS));
-                org.setParent(orgParent);
-            } else
-                org.setParent(null);
-        }
+//        if(
+//                (org.getParent()==null && requestDto.getParentId()!=null) ||
+//                        (org.getParent()!=null && requestDto.getParentId()==null) ||
+//                        (org.getParent()!=null && org.getParent().getId()!=requestDto.getParentId())
+//        ){
+//            if(requestDto.getParentId()!=null){
+//                OrganizationEntity orgParent = orgRepository.findById(requestDto.getParentId()).orElseThrow(() -> new AppException(ApiResponseStatus.PARENT_ORGANIZATION_NOT_EXISTS));
+//                org.setParent(orgParent);
+//            } else
+//                org.setParent(null);
+//        }
 
         return orgMapper.entityToResponseDto(orgRepository.save(org));
     }
 
+    @PreAuthorize("@perm.canAccess(#id, 'ORG', 'DELETE',null)")
     public void delete(UUID id) {
         if(orgRepository.countByParentId(id)>0)
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EMPTY);
@@ -143,6 +151,7 @@ public class OrganizationService {
         orgRepository.deleteById(id);
     }
 
+    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'READ',null)")
     public CustomPairModel<Long,List<UserWithRoleInOrgResponseDto>> getUsersByOrgId(UUID orgId, UserFilterDto userFilterDto){
         if(!orgRepository.existsById(orgId))
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
@@ -162,12 +171,12 @@ public class OrganizationService {
             RoleFilterDto roleFilter = new RoleFilterDto();
             roleFilter.setPageSize(20);
 
-            Map<UUID,Set<String>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
+            Map<UUID, Map<String, Map<String, String>>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
 
             users.forEach(our->{
                 UUID userId = our.getUser().getId();
                 RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(our.getRole());
-                role.setPermissions(mapRolePermission.getOrDefault(role.getId(),Set.of()));
+                role.setPermissions(mapRolePermission.getOrDefault(role.getId(),Map.of()));
                 if(!mapResult.containsKey(userId)) {
                     UserWithRoleInOrgResponseDto userResponseDto = userMapper.entityToWithRoleResponseDto(our.getUser());
                     userResponseDto.getRoles().add(role);
@@ -181,6 +190,7 @@ public class OrganizationService {
         return new CustomPairModel<>(users.getTotalElements(),mapResult.values().stream().toList());
     }
 
+    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'READ',null)")
     public CustomPairModel<Long,List<UserResponseDto>> getUsersNotInOrg(UUID orgId, UserFilterDto userFilterDto){
         if(!orgRepository.existsById(orgId))
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
@@ -204,6 +214,7 @@ public class OrganizationService {
         return new CustomPairModel<>(page.getTotalElements(), page.stream().map(userMapper::entityToResponseDto).toList());
     }
 
+    @PreAuthorize("@perm.canAccess(#id, 'ORG', 'ASSIGN', 'USER')")
     public void assignUsers(UUID id, OrganizationAssignUserRequestDto requestDto){
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -228,6 +239,7 @@ public class OrganizationService {
         ourRepository.saveAll(users.stream().map(user-> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
     }
 
+    @PreAuthorize("@perm.canAccess(#id, 'ORG', 'ASSIGN', 'ROLE')")
     public void assignRole(UUID id, OrganizationAssignRoleRequestDto requestDto){
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -253,6 +265,7 @@ public class OrganizationService {
         ourRepository.saveAll(users.stream().map(user-> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
     }
 
+    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'REMOVE', 'USER')")
     public void removeUsers(UUID id, OrganizationRemoveUserRequestDto requestDto){
         if(!orgRepository.existsById(id))
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
@@ -271,6 +284,7 @@ public class OrganizationService {
         ourRepository.deleteAll(ourList);
     }
 
+    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'REMOVE', 'ROLE')")
     public void removeRole(UUID id, OrganizationRemoveRoleRequestDto requestDto){
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -294,6 +308,7 @@ public class OrganizationService {
         ourRepository.deleteAll(users.stream().map(user-> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
     }
 
+    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'ASSIGN', 'ROLE')")
     public void replaceRole(UUID orgId, OrganizationReplaceRoleRequestDto requestDto){
         OrganizationEntity org = orgRepository.findById(orgId).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -324,6 +339,7 @@ public class OrganizationService {
         ourRepository.saveAll(users.stream().map(user-> new OrganizationUserRoleEntity(org, user, newRole)).collect(Collectors.toSet()));
     }
 
+    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'ASSIGN', 'ROLE')")
     public void resetRole(UUID id, OrganizationResetRoleRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -343,6 +359,17 @@ public class OrganizationService {
 
         ourRepository.deleteAll(ourList);
         ourRepository.saveAll(users.stream().map(user-> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
+    }
+
+    public boolean isDescendant(UUID parentId, UUID childId){
+        if(parentId==null || childId==null)
+            return false;
+        Map<UUID,String> map = orgRepository.findAllById(List.of(parentId,childId)).stream().collect(Collectors.toMap(OrganizationEntity::getId,OrganizationEntity::getPath));
+
+        if(map.size()<2)
+            return false;
+
+        return map.get(childId).startsWith(map.get(parentId));
     }
 
     private void appendChild(int currentNestedLevel, int nestedLevel, OrganizationResponseDto parentOrg){

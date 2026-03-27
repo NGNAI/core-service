@@ -32,8 +32,13 @@ public enum ApiResponseStatus {
     ROLE_ID_CAN_NOT_BE_NULL(1016, "Role ID cannot be null", HttpStatus.BAD_REQUEST),
 
     PERMISSION_NAME_CAN_NOT_BE_NULL_OR_EMPTY(1017, "Permission name cannot be null or empty", HttpStatus.BAD_REQUEST),
+    PERMISSION_RESOURCE_CAN_NOT_BE_NULL_OR_EMPTY(1017, "Permission resource cannot be null or empty", HttpStatus.BAD_REQUEST),
+    PERMISSION_ACTION_CAN_NOT_BE_NULL_OR_EMPTY(1017, "Permission action cannot be null or empty", HttpStatus.BAD_REQUEST),
     PERMISSION_NAME_EXISTED(1018, "Permission name already exists", HttpStatus.CONFLICT),
     PERMISSION_ID_NOT_EXISTS(1019, "Permission ID does not exist", HttpStatus.NOT_FOUND),
+
+    ASSIGN_PERMISSION_ID_CAN_NOT_BE_NULL(1017, "Assign permission id cannot be null or empty", HttpStatus.BAD_REQUEST),
+    ASSIGN_PERMISSION_SCOPE_CAN_NOT_BE_NULL(1017, "Assign permission scope cannot be null or empty", HttpStatus.BAD_REQUEST),
 
     USER_EXISTED_IN_ORGANIZATION(1020, "User already exists in organization", HttpStatus.CONFLICT),
     USER_WITH_ROLE_EXISTED_IN_ORGANIZATION(1021, "User with role already exists in organization", HttpStatus.CONFLICT),

@@ -8,6 +8,7 @@ import ai.dto.own.request.filter.MessageFilterDto;
 import ai.enums.MessageType;
 import ai.enums.TopicType;
 import ai.service.api.RagApiService;
+import ai.util.JwtUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,6 +42,8 @@ public class RagService {
                             .title(requestDto.getMessage())
                             .type(TopicType.PRIVATE.getValue())
                     .build()).getId();
+        else
+            topicService.validateTopicOfUser(topicId, JwtUtil.getUserId());
 
         UUID finalTopicId = topicId;
 

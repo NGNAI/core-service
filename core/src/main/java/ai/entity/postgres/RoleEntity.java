@@ -42,8 +42,8 @@ public class RoleEntity {
     @OneToMany(mappedBy = "role")
     Set<OrganizationUserRoleEntity> orgUsersRole;
 
-    public void addPermission(PermissionEntity permissionEntity){
-        RolePermissionEntity rolePermissionEntity = new RolePermissionEntity(this,permissionEntity);
+    public void addPermission(PermissionEntity permissionEntity, String scope){
+        RolePermissionEntity rolePermissionEntity = new RolePermissionEntity(this,permissionEntity, scope);
 
         rolePermissions.add(rolePermissionEntity);
     }

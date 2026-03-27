@@ -24,10 +24,14 @@ public class RolePermissionEntity {
     @MapsId("permissionId")
     PermissionEntity permission;
 
-    public RolePermissionEntity(RoleEntity roleEntity, PermissionEntity permissionEntity){
+    @Column(name = "scope")
+    String scope;
+
+    public RolePermissionEntity(RoleEntity roleEntity, PermissionEntity permissionEntity, String scope){
         id = new RolePermissionIdEmbed(roleEntity.getId(), permissionEntity.getId());
 
         role = roleEntity;
         permission = permissionEntity;
+        this.scope = scope;
     }
 }

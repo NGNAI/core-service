@@ -4,18 +4,20 @@ import ai.dto.own.request.PermissionCreateRequestDto;
 import ai.dto.own.request.PermissionUpdateRequestDto;
 import ai.dto.own.request.filter.PermissionFilterDto;
 import ai.dto.own.response.PermissionResponseDto;
+import ai.dto.own.response.PermissionWithRoleScopeResponseDto;
 import ai.entity.postgres.PermissionEntity;
 import ai.entity.postgres.RolePermissionEntity;
 import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
 import ai.mapper.PermissionMapper;
 import ai.model.CustomPairModel;
+import ai.model.PermissionGrantModel;
 import ai.repository.PermissionRepository;
-import ai.util.StringUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -30,6 +32,7 @@ public class PermissionService {
     PermissionRepository permissionRepository;
     PermissionMapper permissionMapper;
 
+    @PreAuthorize("@perm.canAccess(null, 'PERMISSION', 'READ', null)")
     public CustomPairModel<Long,List<PermissionResponseDto>> getAll(PermissionFilterDto filterDto){
         Page<PermissionEntity> page = permissionRepository.findAll(
                 filterDto.createSpec(),
@@ -39,30 +42,36 @@ public class PermissionService {
         return new CustomPairModel<>(page.getTotalElements(),page.getContent().stream().map(permissionMapper::entityToResponseDto).toList());
     }
 
+    @PreAuthorize("@perm.canAccess(null, 'PERMISSION', 'CREATE', null)")
     public PermissionResponseDto create(PermissionCreateRequestDto createRequestDto){
         if(permissionRepository.existsByName(createRequestDto.getName()))
             throw new AppException(ApiResponseStatus.PERMISSION_NAME_EXISTED);
         PermissionEntity newEntity = permissionMapper.createRequestDtoToEntity(createRequestDto);
-        newEntity.setName(StringUtil.toConstantCase(newEntity.getName()));
 
         return permissionMapper.entityToResponseDto(permissionRepository.save(newEntity));
     }
 
+    @PreAuthorize("@perm.canAccess(null, 'PERMISSION', 'UPDATE', null)")
     public PermissionResponseDto update(UUID id, PermissionUpdateRequestDto updateRequestDto){
         PermissionEntity entity = permissionRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.PERMISSION_ID_NOT_EXISTS));
         permissionMapper.updateEntity(entity, updateRequestDto);
-        entity.setName(StringUtil.toConstantCase(entity.getName()));
 
         return permissionMapper.entityToResponseDto(permissionRepository.save(entity));
     }
 
+    @PreAuthorize("@perm.canAccess(null, 'PERMISSION', 'DELETE', null)")
     public void delete(UUID id){
         permissionRepository.deleteById(id);
     }
 
-    public Set<PermissionResponseDto> rolePermissionsToPermissionDto(Set<RolePermissionEntity> rpEntities) {
+    public Set<PermissionWithRoleScopeResponseDto> rolePermissionsToPermissionDto(Set<RolePermissionEntity> rpEntities) {
         if(rpEntities==null || rpEntities.isEmpty())
             return Set.of();
-        return rpEntities.stream().map(rpEntity->permissionMapper.entityToResponseDto(rpEntity.getPermission())).collect(Collectors.toSet());
+        return rpEntities.stream().map(rpEntity->{
+            PermissionWithRoleScopeResponseDto responseWithScope = permissionMapper.entityToScopeResponseDto(rpEntity.getPermission());
+            responseWithScope.setScope(rpEntity.getScope());
+
+            return responseWithScope;
+        }).collect(Collectors.toSet());
     }
 }

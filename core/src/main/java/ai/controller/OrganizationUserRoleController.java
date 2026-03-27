@@ -29,6 +29,7 @@ import java.util.UUID;
 public class OrganizationUserRoleController {
     OrganizationService organizationService;
 
+    @GetMapping()
     ResponseEntity<ApiResponseModel<List<UserWithRoleInOrgResponseDto>>> getUserByOrgId(@PathVariable UUID organizationId, @ModelAttribute UserFilterDto userFilterDto){
         CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> result = organizationService.getUsersByOrgId(organizationId, userFilterDto);
 

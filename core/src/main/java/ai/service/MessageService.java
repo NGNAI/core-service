@@ -5,9 +5,12 @@ import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.entity.postgres.MessageEntity;
 import ai.entity.postgres.TopicEntity;
+import ai.enums.ApiResponseStatus;
+import ai.exeption.AppException;
 import ai.mapper.MessageMapper;
 import ai.model.CustomPairModel;
 import ai.repository.MessageRepository;
+import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -28,7 +31,7 @@ public class MessageService {
     MessageMapper messageMapper;
 
     public CustomPairModel<Long,List<MessageResponseDto>> getAll(UUID topicId, MessageFilterDto filterDto){
-        topicService.validateTopicId(topicId);
+        topicService.validateTopicOfUser(topicId, JwtUtil.getUserId());
 
         Specification<MessageEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("topic").get("id"),topicId));
 
@@ -44,6 +47,7 @@ public class MessageService {
     }
 
     public MessageResponseDto create(MessageCreateRequestDto createRequestDto){
+        topicService.validateTopicOfUser(createRequestDto.getTopicId(), JwtUtil.getUserId());
         TopicEntity topicEntity = topicService.getEntityById(createRequestDto.getTopicId());
         MessageEntity newEntity = messageMapper.createRequestDtoToEntity(createRequestDto);
         newEntity.setTopic(topicEntity);
@@ -51,7 +55,7 @@ public class MessageService {
         return messageMapper.entityToResponseDto(messageRepository.save(newEntity));
     }
 
-    public void delete(UUID id){
-        messageRepository.deleteById(id);
-    }
+//    public void delete(UUID id){
+//        messageRepository.deleteById(id);
+//    }
 }

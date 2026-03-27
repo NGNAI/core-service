@@ -1,14 +1,14 @@
 package ai.dto.own.request;
 
 import jakarta.validation.constraints.NotEmpty;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.util.Set;
 import java.util.UUID;
 
+@AllArgsConstructor
+@NoArgsConstructor
 @Builder
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)

@@ -24,5 +24,5 @@ public class RoleResponseDto extends AuditResponseDto {
     String description;
     boolean defaultAssign;
 
-    Set<PermissionResponseDto> permissions;
+    Set<PermissionWithRoleScopeResponseDto> permissions;
 }

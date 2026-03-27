@@ -1,10 +1,11 @@
 package ai.service;
 
+import ai.dto.own.request.PermissionAssignRequestDto;
 import ai.dto.own.request.RoleCreateRequestDto;
 import ai.dto.own.request.RolePermissionUpdateRequestDto;
 import ai.dto.own.request.RoleUpdateRequestDto;
 import ai.dto.own.request.filter.RoleFilterDto;
-import ai.dto.own.response.PermissionResponseDto;
+import ai.dto.own.response.PermissionWithRoleScopeResponseDto;
 import ai.dto.own.response.RoleResponseDto;
 import ai.entity.postgres.PermissionEntity;
 import ai.entity.postgres.RoleEntity;
@@ -19,6 +20,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -33,7 +35,8 @@ public class RoleService {
     RoleRepository roleRepository;
     PermissionRepository permissionRepository;
     RoleMapper roleMapper;
-    
+
+    @PreAuthorize("@perm.canAccess(#id, 'ROLE', 'READ',null)")
     public RoleResponseDto getById(UUID roleId){
         RoleEntity role = roleRepository.findByIdWithPermissions(roleId).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
 
@@ -43,6 +46,7 @@ public class RoleService {
         return responseDto;
     }
 
+    @PreAuthorize("@perm.canAccess(#id, 'ROLE', 'READ',null)")
     public CustomPairModel<Long,List<RoleResponseDto>> getAll(RoleFilterDto filterDto){
         Page<RoleEntity> page = roleRepository.findAll(
                 filterDto.createSpec(),
@@ -58,6 +62,7 @@ public class RoleService {
         return new CustomPairModel<>(page.getTotalElements(),roles);
     }
 
+    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'CREATE', null)")
     public RoleResponseDto create(RoleCreateRequestDto createRequestDto){
         if(roleRepository.existsByName(createRequestDto.getName()))
             throw new AppException(ApiResponseStatus.ROLE_NAME_EXISTED);
@@ -70,6 +75,7 @@ public class RoleService {
         return roleMapper.entityToResponseDto(roleRepository.save(newEntity));
     }
 
+    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'UPDATE', null)")
     public RoleResponseDto update(UUID id, RoleUpdateRequestDto updateRequestDto){
         RoleEntity entity = roleRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
         roleMapper.updateEntity(entity, updateRequestDto);
@@ -81,32 +87,42 @@ public class RoleService {
         return roleMapper.entityToResponseDto(roleRepository.save(entity));
     }
 
+    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'ASSIGN', PERMISSION)")
     public RoleResponseDto assignPermissions(UUID roleId, RolePermissionUpdateRequestDto requestDto){
-        List<PermissionEntity> permissions = permissionRepository.findAllById(requestDto.getPermissionIds());
+        List<PermissionEntity> permissions = permissionRepository.findAllById(requestDto.getPermissions().stream().map(PermissionAssignRequestDto::getId).collect(Collectors.toSet()));
         RoleEntity roleEntity = roleRepository.findById(roleId).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
 
-        if(permissions.size() < requestDto.getPermissionIds().size())
+        if(permissions.size() < requestDto.getPermissions().size())
             throw new AppException(ApiResponseStatus.PERMISSION_ID_NOT_EXISTS);
 
         roleEntity.getRolePermissions().clear();
 
-        permissions.forEach(roleEntity::addPermission);
+        Map<UUID, String> mapPermissionScope = requestDto.getPermissions().stream().collect(Collectors.toMap(PermissionAssignRequestDto::getId,PermissionAssignRequestDto::getScope));
+
+        permissions.forEach(permission->{roleEntity.addPermission(permission,mapPermissionScope.get(permission.getId()));});
 
         RoleResponseDto responseDto = roleMapper.entityToResponseDto(roleRepository.save(roleEntity));
         responseDto.setPermissions(permissionService.rolePermissionsToPermissionDto(roleEntity.getRolePermissions()));
         return responseDto;
     }
 
-    public Map<UUID, Set<String>> getPermissionListOfRole(RoleFilterDto roleFilter){
-        Map<UUID, Set<String>> mapPermissions = new HashMap<>();
-
-        getAll(roleFilter).getSecond().forEach(role->{
-            mapPermissions.put(role.getId(),new HashSet<>(role.getPermissions().stream().map(PermissionResponseDto::getName).collect(Collectors.toSet())));
-        });
-
-        return mapPermissions;
+    public Map<UUID, Map<String,Map<String,String>>> getPermissionListOfRole(RoleFilterDto roleFilter){
+        return getAll(roleFilter).getSecond().stream()
+                .collect(Collectors.toMap(
+                        RoleResponseDto::getId,
+                        role -> role.getPermissions().stream()
+                                .collect(Collectors.groupingBy(
+                                        PermissionWithRoleScopeResponseDto::getResource,
+                                        Collectors.toMap(
+                                                PermissionWithRoleScopeResponseDto::getAction,
+                                                PermissionWithRoleScopeResponseDto::getScope,
+                                                (oldVal, newVal) -> newVal
+                                        )
+                                ))
+                ));
     }
 
+    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'DELETE', null)")
     public void delete(UUID id){
         roleRepository.deleteById(id);
     }

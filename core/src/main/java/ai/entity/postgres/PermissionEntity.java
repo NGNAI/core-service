@@ -32,9 +32,27 @@ public class PermissionEntity {
     @Column(name = "description")
     String description;
 
+    @Column(name = "code", nullable = false)
+    String code;
+
+    @Column(name = "resource", nullable = false)
+    String resource;
+
+    @Column(name = "action", nullable = false)
+    String action;
+
+    @Column(name = "target_resource")
+    String targetResource;
+
     @Embedded
     AuditEmbed audit = new AuditEmbed();
 
     @OneToMany(mappedBy = "permission", cascade = CascadeType.ALL, orphanRemoval = true)
     Set<RolePermissionEntity> rolePermissions = new HashSet<>();
+
+    @PrePersist
+    public void prePersist(){
+        if(resource!=null && action!=null)
+            code = String.format("%s:%s",resource,action);
+    }
 }

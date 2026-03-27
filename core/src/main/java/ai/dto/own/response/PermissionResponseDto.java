@@ -13,6 +13,9 @@ import java.util.UUID;
         "id",
         "name",
         "description",
+        "code",
+        "resource",
+        "action"
 })
 @Getter
 @Setter
@@ -21,4 +24,7 @@ public class PermissionResponseDto extends AuditResponseDto {
     UUID id;
     String name;
     String description;
+    String code;
+    String resource;
+    String action;
 }
