@@ -86,7 +86,7 @@ public class MediaController {
                         .build());
     }
 
-    
+
     @Operation(summary = "Upload media", description = "Upload media file to MinIO and optionally trigger ingestion")
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ResponseEntity<ApiResponseModel<MediaResponseDto>> upload(@Valid @ModelAttribute MediaUploadRequestDto requestDto) {
@@ -108,7 +108,7 @@ public class MediaController {
                         .build());
     }
 
-    @Operation(summary = "Get media list with paging", description = "Return media items with paging metadata: pageNumber, pageSize, totalPages, totalElements")
+    @Operation(summary = "Get media list", description = "Get paginated list of media items with optional filters")
     @GetMapping
     ResponseEntity<ApiResponseModel<List<MediaResponseDto>>> list(@ModelAttribute MediaFilterDto filterDto) {
         Page<MediaResponseDto> page = mediaService.getAll(filterDto);
@@ -143,7 +143,7 @@ public class MediaController {
                         .build());
     }
 
-    @Operation(summary = "Get ingestion job status", description = "Poll ingestion processing status by jobId")
+    @Operation(summary = "Get ingestion job status", description = "Poll ingestion processing status for a media item")
     @GetMapping("/{mediaId}/ingestion/job-status")
     ResponseEntity<ApiResponseModel<MediaJobStatusResponseDto>> ingestionJobStatus(@PathVariable UUID mediaId) {
         return ResponseEntity.ok(
@@ -153,7 +153,7 @@ public class MediaController {
                         .build());
     }
 
-    @Operation(summary = "Delete media by id", description = "Delete a single media item by its ID")
+    @Operation(summary = "Delete media", description = "Delete a single media item by its ID")
     @DeleteMapping("/{mediaId}")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID mediaId) {
         mediaService.deleteById(mediaId);
@@ -163,7 +163,7 @@ public class MediaController {
                         .build());
     }
 
-    @Operation(summary = "Delete folder by id", description = "Delete a single folder by its ID, and all its descendant media items will be deleted as well")
+    @Operation(summary = "Delete folder", description = "Delete a single folder by its ID, and all its descendant media items will be deleted as well")
     @DeleteMapping("/folders/{mediaId}")
     ResponseEntity<ApiResponseModel<Void>> deleteFolder(@PathVariable UUID mediaId) {
         mediaService.deleteFolderById(mediaId);

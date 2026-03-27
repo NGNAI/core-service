@@ -16,10 +16,14 @@ import lombok.experimental.FieldDefaults;
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthRequestDto {
+    @Schema(description = "Username for authentication, e.g., email or unique username", example = "admin")
     @NotBlank(message = "USERNAME_CAN_NOT_BE_NULL_OR_EMPTY")
     String username;
+
+    @Schema(description = "Password for authentication. For social login (e.g., Google, GitHub), this can be a dummy value or the token received from the social provider", example = "admin")
     @NotBlank(message = "PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY")
     String password;
+
     @NotBlank(message = "SOURCE_CAN_NOT_BE_NULL_OR_EMPTY")
     @Schema(description = "Source of authentication, e.g., 'LOCAL', 'GOOGLE', 'GITHUB'", example = "local")
     String source;
