@@ -25,5 +25,6 @@ public class MediaResponseDto extends AuditResponseDto {
     DataScope accessLevel;
     UUID jobId;
     String ingestionStatus;
+    String deleteStatus;
     MediaUploadTarget target;
 }

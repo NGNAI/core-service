@@ -27,6 +27,7 @@ import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.CacheNames;
 import ai.enums.IngestionStatus;
+import ai.enums.MediaDeleteStatus;
 import ai.enums.MediaUploadTarget;
 import ai.exeption.AppException;
 import ai.mapper.MediaMapper;
@@ -43,6 +44,7 @@ public class MediaService {
     final static int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
     
     boolean ingestionServiceAvailable = true;
+    boolean mediaDeleteWorkerAvailable = true;
 
     final MediaRepository mediaRepository;
     final IngestionService ingestionService;
@@ -73,6 +75,31 @@ public class MediaService {
         System.out.println("Finished syncing ingestion statuses for pending media items.");
     }
 
+    @Scheduled(cron = "0 0/1 * * * ?") // Mỗi 1 phút chạy một lần
+    public void processPendingMediaDeletes() {
+        if (!mediaDeleteWorkerAvailable) {
+            return;
+        }
+
+        mediaDeleteWorkerAvailable = false;
+        System.out.println("Start processing pending media deletions...");
+        try {
+            mediaRepository.findByDeleteStatus(MediaDeleteStatus.PENDING_DELETE)
+                    .forEach(media -> {
+                        try {
+                            executeDelete(media);
+                        } catch (Exception exception) {
+                            // Log lỗi và tiếp tục xử lý các media còn lại
+                            System.err.println("Error processing delete for media with ID: " + media.getId());
+                            exception.printStackTrace();
+                        }
+                    });
+        } finally {
+            mediaDeleteWorkerAvailable = true;
+            System.out.println("Finished processing pending media deletions.");
+        }
+    }
+
     @Transactional(noRollbackFor = AppException.class)
     public MediaResponseDto uploadMedia(MediaUploadRequestDto requestDto) {
         UserEntity user = userService.getEntityById(JwtUtil.getUserId());
@@ -94,6 +121,7 @@ public class MediaService {
         media.setOrganization(organization);
         media.setTarget(requestDto.getTarget());
         media.setIngestionStatus(IngestionStatus.PENDING);
+        media.setDeleteStatus(MediaDeleteStatus.ACTIVE);
 
         if (requestDto.getFolderId() != null) {
             MediaEntity parent = mediaRepository.findById(requestDto.getFolderId())
@@ -140,6 +168,7 @@ public class MediaService {
             return mediaMapper.entityToResponseDto(media);
 
         } catch (AppException exception) {
+            exception.printStackTrace();
             media.setIngestionStatus(IngestionStatus.FAILED);
             mediaRepository.save(media);
             return mediaMapper.entityToResponseDto(media);
@@ -162,6 +191,7 @@ public class MediaService {
         media.setTarget(null);
         media.setJobId(null);
         media.setIngestionStatus(null);
+        media.setDeleteStatus(MediaDeleteStatus.ACTIVE);
 
         if (requestDto.getParentId() != null) {
             MediaEntity parent = mediaRepository.findById(requestDto.getParentId())
@@ -274,6 +304,16 @@ public class MediaService {
         MediaEntity media = mediaRepository.findById(mediaId)
                 .orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
 
+        // Không cho phép nếu là folder
+        if (media.isFolder()) {
+            throw new AppException(ApiResponseStatus.MEDIA_FOLDER_ONLY_OPERATION);
+        }
+
+        // Không cho phép retry ingestion với media đang ở trạng thái pending delete để tránh trường hợp người dùng cố tình retry ingestion với một media đang chờ xóa, dẫn đến việc media này bị treo ở trạng thái pending mãi mãi mà không thể xóa được
+        if (MediaDeleteStatus.PENDING_DELETE.equals(resolveDeleteStatus(media))) {
+            throw new AppException(ApiResponseStatus.MEDIA_DELETE_IN_PROGRESS);
+        }
+
         // Chỉ cho phép retry ingestion với media có target là INGESTION và có trạng thái ingestion là FAILED, đồng thời phải có minioPath hợp lệ để có thể retry upload lại lên ingestion service, tránh trường hợp người dùng tạo một media mới có
         if (media.getTarget() == null || !MediaUploadTarget.INGESTION.equals(media.getTarget())) {
             throw new AppException(ApiResponseStatus.MEDIA_INGESTION_RETRY_ONLY_INGESTION_TARGET);
@@ -302,6 +342,9 @@ public class MediaService {
                     organization.getId().toString(),
                     organization.getName(),
                     media.getAccessLevel());
+            System.out.println("Ingestion response after retrying ingestion for media with ID " + mediaId + ": " + ingestionResponse);
+
+             // Nếu response từ ingestion service không hợp lệ thì đánh dấu media này là failed để tránh trường hợp media bị treo ở trạng thái pending mãi mãi, đồng thời trả về lỗi cho client để client có thể hiển thị thông báo lỗi chính xác
 
             if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
                 media.setIngestionStatus(IngestionStatus.FAILED);
@@ -315,6 +358,7 @@ public class MediaService {
 
             return mediaMapper.entityToResponseDto(media);
         } catch (AppException exception) {
+            exception.printStackTrace();
             media.setIngestionStatus(IngestionStatus.FAILED);
             mediaRepository.save(media);
             throw exception;
@@ -326,6 +370,10 @@ public class MediaService {
         Optional<MediaEntity> mediaOptional = mediaRepository.findById(mediaId);
         if (mediaOptional.isEmpty()) {
             throw new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS);
+        }
+
+        if (MediaDeleteStatus.PENDING_DELETE.equals(resolveDeleteStatus(mediaOptional.get()))) {
+            throw new AppException(ApiResponseStatus.MEDIA_DELETE_IN_PROGRESS);
         }
         
         if(mediaOptional.get().getJobId() == null) {
@@ -358,7 +406,7 @@ public class MediaService {
 
     @CacheEvict(value = CacheNames.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
     @Transactional
-    public void deleteFileById(UUID mediaId) {
+    public MediaResponseDto deleteFileById(UUID mediaId) {
         MediaEntity media = mediaRepository.findById(mediaId).orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
 
         // Nếu media có phải là folder thì không cho phép xóa để tránh trường hợp xóa nhầm cả một cây media con bên dưới, bắt buộc phải xóa hết media con trước rồi mới xóa được folder
@@ -366,19 +414,44 @@ public class MediaService {
             throw new AppException(ApiResponseStatus.MEDIA_FOLDER_ONLY_OPERATION);
         }
 
-        // Xóa bên minio trước để tránh trường hợp đã xóa media trong database nhưng xóa file trên minio thất bại, dẫn đến rác file trên minio
-        if (media.getMinioPath() != null && !media.getMinioPath().isBlank()) {
-            minioService.delete(media.getMinioPath());
+        if (MediaDeleteStatus.PENDING_DELETE.equals(resolveDeleteStatus(media))) {
+            return mediaMapper.entityToResponseDto(media);
         }
 
-        // Nếu là ingestion media thì không chỉ xóa file trên minio mà còn phải xóa cả record ingestion job liên quan để tránh trường hợp media này bị treo ở trạng thái đã xóa trên database nhưng vẫn còn job ở
-        // ingestion service, dẫn đến việc người dùng không thể upload lại một media mới được vì jobId của media mới bị trùng với jobId của media cũ đã bị xóa nhưng vẫn còn ở ingestion service
-        if (MediaUploadTarget.INGESTION.equals(media.getTarget()) && media.getJobId() != null) {
-            ingestionService.deleteFile(media.getId().toString());
-        }
+        media.setDeleteStatus(MediaDeleteStatus.PENDING_DELETE);
+        media = mediaRepository.save(media);
 
-        // Sau khi đã xóa file trên minio thành công (hoặc nếu media này không có file trên minio) thì mới xóa record media trong database để tránh trường hợp media bị treo ở trạng thái đã xóa trên database nhưng file vẫn còn
-        mediaRepository.delete(media);
+        return mediaMapper.entityToResponseDto(media);
+    }
+
+    @CacheEvict(value = CacheNames.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
+    @Transactional
+    public MediaResponseDto deleteById(UUID mediaId) {
+        return deleteFileById(mediaId);
+    }
+
+    private void executeDelete(MediaEntity media) {
+        try {
+            // Xóa bên minio trước để tránh trường hợp đã xóa media trong database nhưng xóa file trên minio thất bại, dẫn đến rác file trên minio
+            if (media.getMinioPath() != null && !media.getMinioPath().isBlank()) {
+                minioService.delete(media.getMinioPath());
+            }
+
+            // Nếu là ingestion media thì không chỉ xóa file trên minio mà còn phải xóa cả record ingestion job liên quan để tránh trường hợp media này bị treo ở trạng thái đã xóa trên database nhưng vẫn còn job ở
+            // ingestion service, dẫn đến việc người dùng không thể upload lại một media mới được vì jobId của media mới bị trùng với jobId của media cũ đã bị xóa nhưng vẫn còn ở ingestion service
+            if (MediaUploadTarget.INGESTION.equals(media.getTarget()) && media.getJobId() != null) {
+                ingestionService.deleteFile(media.getId().toString());
+            }
+
+            // Sau khi đã xóa file trên minio thành công (hoặc nếu media này không có file trên minio) thì mới xóa record media trong database để tránh trường hợp media bị treo ở trạng thái đã xóa trên database nhưng file vẫn còn
+            mediaRepository.delete(media);
+        } catch (Exception exception) {
+            mediaRepository.findById(media.getId()).ifPresent(entity -> {
+                entity.setDeleteStatus(MediaDeleteStatus.DELETE_FAILED);
+                mediaRepository.save(entity);
+            });
+            throw exception;
+        }
     }
 
     @CacheEvict(value = CacheNames.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
@@ -396,9 +469,16 @@ public class MediaService {
         if (media.isFolder()) {
             throw new AppException(ApiResponseStatus.MEDIA_FOLDER_ONLY_OPERATION);
         }
+        if (MediaDeleteStatus.PENDING_DELETE.equals(resolveDeleteStatus(media))) {
+            throw new AppException(ApiResponseStatus.MEDIA_DELETE_IN_PROGRESS);
+        }
         if (media.getMinioPath() == null || media.getMinioPath().isBlank()) {
             throw new AppException(ApiResponseStatus.MEDIA_DOWNLOAD_FAILED);
         }
+    }
+
+    private MediaDeleteStatus resolveDeleteStatus(MediaEntity media) {
+        return media.getDeleteStatus() == null ? MediaDeleteStatus.ACTIVE : media.getDeleteStatus();
     }
 
     private boolean isDescendantOf(MediaEntity candidateParent, MediaEntity node) {

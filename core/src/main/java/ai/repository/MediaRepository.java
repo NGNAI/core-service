@@ -2,6 +2,7 @@ package ai.repository;
 
 import ai.entity.postgres.MediaEntity;
 import ai.enums.IngestionStatus;
+import ai.enums.MediaDeleteStatus;
 import ai.enums.MediaUploadTarget;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,4 +17,6 @@ public interface MediaRepository extends JpaRepository<MediaEntity, UUID>, JpaSp
     Optional<MediaEntity> findByJobId(UUID jobId);
 
     Iterable<MediaEntity> findByTargetAndIngestionStatus(MediaUploadTarget target, IngestionStatus ingestionStatus);
+
+    Iterable<MediaEntity> findByDeleteStatus(MediaDeleteStatus deleteStatus);
 }

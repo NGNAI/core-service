@@ -155,11 +155,11 @@ public class MediaController {
 
     @Operation(summary = "Delete media", description = "Delete a single media item by its ID")
     @DeleteMapping("/{mediaId}")
-    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID mediaId) {
-        mediaService.deleteById(mediaId);
+    ResponseEntity<ApiResponseModel<MediaResponseDto>> delete(@PathVariable UUID mediaId) {
         return ResponseEntity.ok(
-                ApiResponseModel.<Void>builder()
-                        .message("Delete media successfully")
+                ApiResponseModel.<MediaResponseDto>builder()
+                        .message("Delete media accepted")
+                        .data(mediaService.deleteById(mediaId))
                         .build());
     }
 

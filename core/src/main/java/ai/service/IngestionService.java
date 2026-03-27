@@ -59,6 +59,7 @@ public class IngestionService {
                     .retrieve()
                     .body(IngestionUploadResponseDto.class);
         } catch (RestClientException exception) {
+            exception.printStackTrace();
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
         }
     }
@@ -98,6 +99,7 @@ public class IngestionService {
                     .retrieve()
                     .body(IngestionUploadResponseDto.class);
         } catch (RestClientException exception) {
+            exception.printStackTrace();
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
         }
     }
@@ -114,6 +116,7 @@ public class IngestionService {
                     .retrieve()
                     .body(IngestionStatusResponseDto.class);
         } catch (RestClientException exception) {
+            exception.printStackTrace();
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
         }
     }
