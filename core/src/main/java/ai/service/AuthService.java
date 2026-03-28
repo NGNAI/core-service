@@ -6,7 +6,6 @@ import ai.dto.outer.otp.response.OtpAuthResponseDto;
 import ai.dto.own.request.AuthRequestDto;
 import ai.dto.own.request.IntrospectRequestDto;
 import ai.dto.own.request.OrganizationSelectRequestDto;
-import ai.dto.own.request.filter.RoleFilterDto;
 import ai.dto.own.response.*;
 import ai.entity.postgres.OrganizationUserRoleEntity;
 import ai.entity.postgres.RoleEntity;
@@ -34,7 +33,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
 import java.text.ParseException;
 import java.time.Instant;
@@ -68,7 +66,6 @@ public class AuthService {
             isValid = verifyToken(introspectRequestDto.getToken());
         } catch (JOSEException | ParseException ex) {
             log.info("Token {} is invalid", introspectRequestDto.getToken(), ex);
-            ex.printStackTrace();
         }
         return IntrospectResponseDto.builder().valid(isValid).build();
     }
@@ -107,10 +104,7 @@ public class AuthService {
         UserWithOrgResponseDto userResponse = userMapper.entityToWithOrgResponseDto(userEntity);
 
         Map<UUID, OrganizationWithUserRoleDto> mapResult = new HashMap<>();
-        RoleFilterDto roleFilter = new RoleFilterDto();
-        roleFilter.setPageSize(20);
-
-        Map<UUID, Map<String, Map<String, String>>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
+        Map<UUID, Map<String, Map<String, Map<String, String>>>> mapRolePermission = roleService.getPermissionListOfRole();
 
         ourRepository.findByUserWithPermission(userResponse.getId()).forEach(our->{
             UUID orgId = our.getOrganization().getId();
@@ -154,10 +148,8 @@ public class AuthService {
             throw new AppException(ApiResponseStatus.USER_NOT_EXIST_IN_ORGANIZATION);
 
         OrganizationWithUserRoleDto organizationWithUserRoleDto = new OrganizationWithUserRoleDto();
-        RoleFilterDto roleFilter = new RoleFilterDto();
-        roleFilter.setPageSize(20);
 
-        Map<UUID, Map<String, Map<String, String>>> mapRolePermission = roleService.getPermissionListOfRole(roleFilter);
+        Map<UUID, Map<String, Map<String, Map<String, String>>>> mapRolePermission = roleService.getPermissionListOfRole();
         ours.forEach(our->{
             RoleEntity roleEntity = our.getRole();
             RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(roleEntity);

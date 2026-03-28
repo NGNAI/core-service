@@ -53,6 +53,9 @@ public class PermissionEntity {
     @PrePersist
     public void prePersist(){
         if(resource!=null && action!=null)
-            code = String.format("%s:%s",resource,action);
+            if(targetResource==null)
+                code = String.format("%s:%s",resource,action);
+            else
+                code =  String.format("%s:%s:%s",resource,action,targetResource);
     }
 }

@@ -17,4 +17,5 @@ public class PermissionCreateRequestDto {
     String resource;
     @NotBlank(message = "PERMISSION_ACTION_CAN_NOT_BE_NULL_OR_EMPTY")
     String action;
+    String targetResource;
 }

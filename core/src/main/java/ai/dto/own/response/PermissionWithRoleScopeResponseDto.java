@@ -21,5 +21,6 @@ import java.util.UUID;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PermissionWithRoleScopeResponseDto extends PermissionResponseDto {
+    String targetResource;
     String scope;
 }

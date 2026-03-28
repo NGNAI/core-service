@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 @JsonPropertyOrder({
@@ -19,5 +18,5 @@ import java.util.UUID;
 public class RoleSimplifyResponseDto {
     UUID id;
     String name;
-    Map<String,Map<String,String>> permissions;
+    Map<String, Map<String, Map<String, String>>> permissions;
 }

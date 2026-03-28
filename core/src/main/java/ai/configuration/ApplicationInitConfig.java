@@ -9,6 +9,7 @@ import ai.dto.own.response.OrganizationResponseDto;
 import ai.dto.own.response.RoleResponseDto;
 import ai.dto.own.response.UserResponseDto;
 import ai.service.OrganizationService;
+import ai.service.OrganizationUserRoleService;
 import ai.service.RoleService;
 import ai.service.UserService;
 import lombok.AccessLevel;
@@ -27,7 +28,7 @@ import java.util.Set;
 @Configuration
 public class ApplicationInitConfig {
     @Bean
-    ApplicationRunner applicationRunner(OrganizationService organizationService, UserService userService, RoleService roleService){
+    ApplicationRunner applicationRunner(OrganizationService organizationService, UserService userService, RoleService roleService, OrganizationUserRoleService ourService){
         log.info("Init application...");
         return args -> {
             if(organizationService.getRoot(null, new OrganizationFilterDto()).getFirst()==0){
@@ -56,7 +57,7 @@ public class ApplicationInitConfig {
 
                 log.info("Init admin role");
 
-                organizationService.assignUsers(org.getId(), OrganizationAssignUserRequestDto.builder()
+                ourService.assignUsers(org.getId(), OrganizationAssignUserRequestDto.builder()
                                 .userIds(Set.of(user.getId()))
                                 .roleId(role.getId())
                         .build());

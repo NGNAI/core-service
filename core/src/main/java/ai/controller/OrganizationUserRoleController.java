@@ -1,21 +1,17 @@
 package ai.controller;
 
 import ai.dto.own.request.*;
-import ai.dto.own.request.filter.OrganizationFilterDto;
 import ai.dto.own.request.filter.UserFilterDto;
-import ai.dto.own.response.OrganizationResponseDto;
 import ai.dto.own.response.UserResponseDto;
 import ai.dto.own.response.UserWithRoleInOrgResponseDto;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
-import ai.service.OrganizationService;
+import ai.service.OrganizationUserRoleService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-import org.springframework.data.util.Pair;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,11 +23,11 @@ import java.util.UUID;
 @RequestMapping("/admin/organizations/{organizationId}/users")
 @RestController
 public class OrganizationUserRoleController {
-    OrganizationService organizationService;
+    OrganizationUserRoleService ourService;
 
     @GetMapping()
     ResponseEntity<ApiResponseModel<List<UserWithRoleInOrgResponseDto>>> getUserByOrgId(@PathVariable UUID organizationId, @ModelAttribute UserFilterDto userFilterDto){
-        CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> result = organizationService.getUsersByOrgId(organizationId, userFilterDto);
+        CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> result = ourService.getUsersByOrgId(organizationId, userFilterDto);
 
         return ResponseEntity.ok(
                 ApiResponseModel.<List<UserWithRoleInOrgResponseDto>>builder()
@@ -44,7 +40,7 @@ public class OrganizationUserRoleController {
 
     @GetMapping("/unassigned")
     ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getUserNotInOrg(@PathVariable UUID organizationId, @ModelAttribute UserFilterDto userFilterDto){
-        CustomPairModel<Long, List<UserResponseDto>> result = organizationService.getUsersNotInOrg(organizationId,userFilterDto);
+        CustomPairModel<Long, List<UserResponseDto>> result = ourService.getUsersNotInOrg(organizationId,userFilterDto);
 
         
         return ResponseEntity.ok(
@@ -58,7 +54,7 @@ public class OrganizationUserRoleController {
 
     @PostMapping()
     ResponseEntity<ApiResponseModel<Void>> assignUsers(@PathVariable UUID organizationId, @Valid @RequestBody OrganizationAssignUserRequestDto requestDto){
-        organizationService.assignUsers(organizationId, requestDto);
+        ourService.assignUsers(organizationId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Assign users into organization successfully")
@@ -68,7 +64,7 @@ public class OrganizationUserRoleController {
 
     @PostMapping("/remove")
     ResponseEntity<ApiResponseModel<Void>> removeUsers(@PathVariable UUID organizationId,@Valid @RequestBody OrganizationRemoveUserRequestDto requestDto){
-        organizationService.removeUsers(organizationId, requestDto);
+        ourService.removeUsers(organizationId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Remove users from organization successfully")
@@ -78,7 +74,7 @@ public class OrganizationUserRoleController {
 
     @PostMapping("roles/assign")
     ResponseEntity<ApiResponseModel<Void>> assignRole(@PathVariable UUID organizationId,@Valid @RequestBody OrganizationAssignRoleRequestDto requestDto){
-        organizationService.assignRole(organizationId, requestDto);
+        ourService.assignRole(organizationId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Assign users to role from organization successfully")
@@ -88,7 +84,7 @@ public class OrganizationUserRoleController {
 
     @PostMapping("/roles/remove")
     ResponseEntity<ApiResponseModel<Void>> removeRole(@PathVariable UUID organizationId,@Valid @RequestBody OrganizationRemoveRoleRequestDto requestDto){
-        organizationService.removeRole(organizationId, requestDto);
+        ourService.removeRole(organizationId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Remove users from role from organization successfully")
@@ -98,7 +94,7 @@ public class OrganizationUserRoleController {
 
     @PostMapping("/roles/replace")
     ResponseEntity<ApiResponseModel<Void>> replaceRole(@PathVariable UUID organizationId,@Valid @RequestBody OrganizationReplaceRoleRequestDto requestDto){
-        organizationService.replaceRole(organizationId, requestDto);
+        ourService.replaceRole(organizationId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Replace users role in organization successfully")
@@ -108,7 +104,7 @@ public class OrganizationUserRoleController {
 
     @PostMapping("/roles/reset")
     ResponseEntity<ApiResponseModel<Void>> resetRole(@PathVariable UUID organizationId,@Valid @RequestBody OrganizationResetRoleRequestDto requestDto){
-        organizationService.resetRole(organizationId, requestDto);
+        ourService.resetRole(organizationId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Reset users role in organization successfully")

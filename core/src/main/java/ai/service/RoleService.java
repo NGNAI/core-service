@@ -1,5 +1,6 @@
 package ai.service;
 
+import ai.constant.CacheName;
 import ai.dto.own.request.PermissionAssignRequestDto;
 import ai.dto.own.request.RoleCreateRequestDto;
 import ai.dto.own.request.RolePermissionUpdateRequestDto;
@@ -19,6 +20,7 @@ import ai.util.StringUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -106,17 +108,25 @@ public class RoleService {
         return responseDto;
     }
 
-    public Map<UUID, Map<String,Map<String,String>>> getPermissionListOfRole(RoleFilterDto roleFilter){
+//    @Cacheable(cacheNames = CacheName.ROLE_AND_PERMISSION)
+    public Map<UUID, Map<String, Map<String, Map<String, String>>>> getPermissionListOfRole() {
+        System.out.println("getting permission of role");
+        RoleFilterDto roleFilter = new RoleFilterDto();
+        roleFilter.setPageSize(50);
+
         return getAll(roleFilter).getSecond().stream()
                 .collect(Collectors.toMap(
                         RoleResponseDto::getId,
                         role -> role.getPermissions().stream()
                                 .collect(Collectors.groupingBy(
                                         PermissionWithRoleScopeResponseDto::getResource,
-                                        Collectors.toMap(
+                                        Collectors.groupingBy(
                                                 PermissionWithRoleScopeResponseDto::getAction,
-                                                PermissionWithRoleScopeResponseDto::getScope,
-                                                (oldVal, newVal) -> newVal
+                                                Collectors.toMap(
+                                                        p -> p.getTargetResource() == null ? "_self" : p.getTargetResource(),
+                                                        PermissionWithRoleScopeResponseDto::getScope,
+                                                        (oldVal, newVal) -> newVal
+                                                )
                                         )
                                 ))
                 ));

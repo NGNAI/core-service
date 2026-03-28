@@ -25,7 +25,7 @@ import ai.entity.postgres.MediaEntity;
 import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
-import ai.enums.CacheNames;
+import ai.constant.CacheName;
 import ai.enums.IngestionStatus;
 import ai.enums.MediaDeleteStatus;
 import ai.enums.MediaUploadTarget;
@@ -206,7 +206,7 @@ public class MediaService {
         return mediaMapper.entityToResponseDto(media);
     }
 
-    @Cacheable(value = CacheNames.MEDIA_DTO_DETAILS, key = "#mediaId", unless = "#result == null", condition = "#mediaId != null")
+    @Cacheable(value = CacheName.MEDIA_DTO_DETAILS, key = "#mediaId", unless = "#result == null", condition = "#mediaId != null")
     @Transactional(readOnly = true)
     public MediaResponseDto getById(UUID mediaId) {
         MediaEntity media = mediaRepository.findById(mediaId)
@@ -248,7 +248,7 @@ public class MediaService {
                 .build();
     }
 
-    @CacheEvict(value = CacheNames.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
+    @CacheEvict(value = CacheName.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
     @Transactional
     public MediaResponseDto updateFolder(UUID mediaId, MediaUpdateFolderRequestDto requestDto) {
         MediaEntity folder = mediaRepository.findById(mediaId)
@@ -404,7 +404,7 @@ public class MediaService {
     }
 
 
-    @CacheEvict(value = CacheNames.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
+    @CacheEvict(value = CacheName.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
     @Transactional
     public MediaResponseDto deleteFileById(UUID mediaId) {
         MediaEntity media = mediaRepository.findById(mediaId).orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));
@@ -424,7 +424,7 @@ public class MediaService {
         return mediaMapper.entityToResponseDto(media);
     }
 
-    @CacheEvict(value = CacheNames.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
+    @CacheEvict(value = CacheName.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
     @Transactional
     public MediaResponseDto deleteById(UUID mediaId) {
         return deleteFileById(mediaId);
@@ -454,7 +454,7 @@ public class MediaService {
         }
     }
 
-    @CacheEvict(value = CacheNames.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
+    @CacheEvict(value = CacheName.MEDIA_DTO_DETAILS, key = "#mediaId", condition = "#mediaId != null")
     @Transactional
     public void deleteFolderById(UUID mediaId) {
         MediaEntity media = mediaRepository.findById(mediaId).orElseThrow(() -> new AppException(ApiResponseStatus.MEDIA_NOT_EXISTS));

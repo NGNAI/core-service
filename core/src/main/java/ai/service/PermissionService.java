@@ -11,7 +11,6 @@ import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
 import ai.mapper.PermissionMapper;
 import ai.model.CustomPairModel;
-import ai.model.PermissionGrantModel;
 import ai.repository.PermissionRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
