@@ -1,6 +1,7 @@
 package ai.service;
 
 import ai.dto.own.request.MessageCreateRequestDto;
+import ai.dto.own.request.MessageUpdateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.entity.postgres.MessageEntity;
@@ -53,6 +54,12 @@ public class MessageService {
         newEntity.setTopic(topicEntity);
 
         return messageMapper.entityToResponseDto(messageRepository.save(newEntity));
+    }
+
+    public MessageResponseDto update(UUID messageId, MessageUpdateRequestDto updateRequestDto){
+        MessageEntity entity = messageRepository.findById(messageId).orElseThrow(()-> new AppException(ApiResponseStatus.MESSAGE_ID_NOT_EXISTS));
+        messageMapper.updateEntity(entity,updateRequestDto);
+        return messageMapper.entityToResponseDto(messageRepository.save(entity));
     }
 
 //    public void delete(UUID id){

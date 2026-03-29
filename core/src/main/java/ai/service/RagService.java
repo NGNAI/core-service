@@ -3,8 +3,10 @@ package ai.service;
 import ai.dto.outer.rag.request.RagCompletionRequestDto;
 import ai.dto.own.request.ConversationRequestDto;
 import ai.dto.own.request.MessageCreateRequestDto;
+import ai.dto.own.request.MessageUpdateRequestDto;
 import ai.dto.own.request.TopicCreateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
+import ai.dto.own.response.MessageResponseDto;
 import ai.enums.MessageType;
 import ai.enums.TopicType;
 import ai.service.api.RagApiService;
@@ -49,31 +51,6 @@ public class RagService {
 
         topicService.validateTopicId(finalTopicId);
 
-        MessageFilterDto messageFilterDto = new MessageFilterDto();
-        messageFilterDto.setPageNumber(0);
-        messageFilterDto.setPageSize(10);
-        messageFilterDto.setSortBy("id");
-        messageFilterDto.setSortDir("desc");
-
-        //Query history
-        List<RagCompletionRequestDto.Message> historyConversations = messageService.getAll(finalTopicId, messageFilterDto).getSecond()
-                .stream().map(messageResponseDto -> RagCompletionRequestDto.Message.builder()
-                .role(messageResponseDto.getContent())
-                .content(messageResponseDto.getType()).build()).collect(Collectors.toList());
-
-        Collections.reverse(historyConversations);
-
-        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
-                .model("")
-                .messages(List.of(RagCompletionRequestDto.Message.builder()
-                                .role(MessageType.USER.getValue())
-                                .content(requestDto.getMessage())
-                        .build()))
-                .history(historyConversations)
-                .topK(10)
-                .stream(true)
-                .build();
-
         //Insert user question
         messageService.create(
                 MessageCreateRequestDto.builder()
@@ -83,8 +60,44 @@ public class RagService {
                         .build()
         );
 
+        //Insert assistant question
+        MessageResponseDto assistantMessage = messageService.create(
+                MessageCreateRequestDto.builder()
+                        .content("Answering")
+                        .type(MessageType.ASSISTANT.getValue())
+                        .topicId(finalTopicId)
+                        .build()
+        );
+
+        MessageFilterDto messageFilterDto = new MessageFilterDto();
+        messageFilterDto.setPageNumber(0);
+        messageFilterDto.setPageSize(10);
+        messageFilterDto.setSortBy("id");
+        messageFilterDto.setSortDir("desc");
+
+        //Query history
+        List<RagCompletionRequestDto.Message> historyConversations = messageService.getAll(finalTopicId, messageFilterDto).getSecond()
+                .stream().map(messageResponseDto -> RagCompletionRequestDto.Message.builder()
+                        .role(messageResponseDto.getContent())
+                        .content(messageResponseDto.getType()).build()).collect(Collectors.toList());
+
+        Collections.reverse(historyConversations);
+
+        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
+                .model("")
+                .messages(List.of(RagCompletionRequestDto.Message.builder()
+                        .role(MessageType.USER.getValue())
+                        .content(requestDto.getMessage())
+                        .build()))
+                .history(historyConversations)
+                .topK(10)
+                .stream(true)
+                .build();
+
         StringBuilder fullAnswer = new StringBuilder();
+        StringBuilder source = new StringBuilder();
         return ragApiService.completions(ragCompletionRequestDto)
+                .startWith(String.format("{\"messageId\": \"%s\"}",assistantMessage.getId()))
                 .startWith(String.format("{\"topicId\": \"%s\"}",topicId))
                 .doOnNext(raw -> {
                     try {
@@ -94,20 +107,20 @@ public class RagService {
                             if (node.has("token")) {
                                 fullAnswer.append(node.get("token").asText());
                             }
+                            if (node.has("sources")) {
+                                source.append(node.get("sources"));
+                            }
                         }
                     } catch (Exception e) {
                         log.error("Fail to parse stream token", e);
                     }
                 })
                 .doOnComplete(()->{
-                    String finalAnswer = fullAnswer.toString();
-                    messageService.create(
-                            MessageCreateRequestDto.builder()
-                                    .content(finalAnswer)
-                                    .type(MessageType.ASSISTANT.getValue())
+                    messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
+                                    .content(fullAnswer.toString())
+                                    .source(source.toString())
                                     .topicId(finalTopicId)
-                            .build()
-                    );
+                            .build());
                 });
     }
 }

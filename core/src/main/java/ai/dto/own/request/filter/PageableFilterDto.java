@@ -9,6 +9,9 @@ import org.springframework.data.domain.Sort;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.util.Arrays;
+import java.util.List;
+
 @Data
 @FieldDefaults(level = AccessLevel.PROTECTED)
 public class PageableFilterDto {
@@ -22,6 +25,8 @@ public class PageableFilterDto {
     String sortDir;
 
     public Pageable createPageable(){
+//        if(List.of("createdBy","createdAt","updatedBy","updatedAt").contains(sortBy))
+//            sortBy = String.format("audit.%s",sortBy);
         Pageable pageable;
         if(sortBy!=null)
             pageable = PageRequest.of(pageNumber, pageSize, sortDir!=null ? Sort.by(Sort.Direction.valueOf(sortDir.toUpperCase()),sortBy) : Sort.by(sortBy));

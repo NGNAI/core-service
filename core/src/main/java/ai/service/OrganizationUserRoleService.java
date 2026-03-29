@@ -1,8 +1,6 @@
 package ai.service;
 
-import ai.constant.CacheName;
 import ai.dto.own.request.*;
-import ai.dto.own.request.filter.RoleFilterDto;
 import ai.dto.own.request.filter.UserFilterDto;
 import ai.dto.own.response.RoleSimplifyResponseDto;
 import ai.dto.own.response.UserResponseDto;
@@ -31,7 +29,6 @@ import jakarta.persistence.criteria.Subquery;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;

@@ -14,6 +14,7 @@ public interface OrganizationMapper {
     OrganizationEntity createRequestDtoToEntity(OrganizationCreateRequestDto entity);
 
     @Mapping(target = "children", ignore = true)
+    @Mapping(target = "parentId", source = "parent.id")
     OrganizationResponseDto entityToResponseDto(OrganizationEntity entity);
 
     @Mapping(target = "children", ignore = true)

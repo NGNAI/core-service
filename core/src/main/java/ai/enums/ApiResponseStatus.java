@@ -59,6 +59,7 @@ public enum ApiResponseStatus {
     TOPIC_TITLE_CAN_NOT_BE_NULL_OR_EMPTY(1033, "Topic title cannot be null or empty", HttpStatus.BAD_REQUEST),
     TOPIC_TYPE_CAN_NOT_BE_NULL_OR_EMPTY(1034, "Topic type cannot be null or empty", HttpStatus.BAD_REQUEST),
 
+    MESSAGE_ID_NOT_EXISTS(1032, "Topic ID does not exist", HttpStatus.NOT_FOUND),
     MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1035, "Message cannot be null or empty", HttpStatus.BAD_REQUEST),
 
     UNAUTHENTICATED(1036, "Unauthenticated", HttpStatus.UNAUTHORIZED),

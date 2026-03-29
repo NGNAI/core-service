@@ -59,9 +59,9 @@ public class SecurityConfig {
     @Order(2)
     public SecurityFilterChain accessFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
-                .securityMatcher("/admin/**","/user/**")
+                .securityMatcher("/admin/**","/user/**","/category/**")
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/admin/**", "/user/**").authenticated()
+                        .requestMatchers("/admin/**", "/user/**", "/category/**").authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->
                         oauth2.jwt(jwt ->

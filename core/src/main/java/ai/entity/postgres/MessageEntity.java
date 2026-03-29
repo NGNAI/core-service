@@ -28,6 +28,9 @@ public class MessageEntity {
     @Column(name = "type", nullable = false)
     String type;
 
+    @Column(name = "source", columnDefinition = "TEXT")
+    String source;
+
     @Embedded
     AuditEmbed audit= new AuditEmbed();
 

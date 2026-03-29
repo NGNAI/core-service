@@ -1,6 +1,5 @@
 package ai.service;
 
-import ai.constant.CacheName;
 import ai.dto.own.request.PermissionAssignRequestDto;
 import ai.dto.own.request.RoleCreateRequestDto;
 import ai.dto.own.request.RolePermissionUpdateRequestDto;
@@ -20,7 +19,6 @@ import ai.util.StringUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -70,7 +68,7 @@ public class RoleService {
             throw new AppException(ApiResponseStatus.ROLE_NAME_EXISTED);
         RoleEntity newEntity = roleMapper.createRequestDtoToEntity(createRequestDto);
 
-        if(newEntity.isDefaultAssign())
+        if(createRequestDto.isDefaultAssign())
             roleRepository.deActiveAllDefaultAssign();
         newEntity.setName(StringUtil.toConstantCase(newEntity.getName()));
 
@@ -79,12 +77,12 @@ public class RoleService {
 
     @PreAuthorize("@perm.canAccess(null, 'ROLE', 'UPDATE', null)")
     public RoleResponseDto update(UUID id, RoleUpdateRequestDto updateRequestDto){
+        if(updateRequestDto.isDefaultAssign())
+            roleRepository.deActiveAllDefaultAssign();
+
         RoleEntity entity = roleRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
         roleMapper.updateEntity(entity, updateRequestDto);
         entity.setName(StringUtil.toConstantCase(entity.getName()));
-
-        if(entity.isDefaultAssign())
-            roleRepository.deActiveAllDefaultAssign();
 
         return roleMapper.entityToResponseDto(roleRepository.save(entity));
     }

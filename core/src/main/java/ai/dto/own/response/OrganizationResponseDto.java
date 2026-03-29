@@ -24,6 +24,6 @@ public class OrganizationResponseDto {
     UUID id;
     String name;
     String description;
-    Integer parentId;
+    UUID parentId;
     Set<OrganizationResponseDto> children;
 }
