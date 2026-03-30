@@ -49,9 +49,11 @@ public enum ApiResponseStatus {
     USER_NAME_CAN_NOT_BE_NULL_OR_EMPTY(1025, "User name cannot be null or empty", HttpStatus.BAD_REQUEST),
     USER_FIRST_NAME_CAN_NOT_BE_NULL_OR_EMPTY(1026, "User first name cannot be null or empty", HttpStatus.BAD_REQUEST),
     USER_PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY(1027, "User password cannot be null or empty", HttpStatus.BAD_REQUEST),
+    USER_PASSWORD_INCORRECT(1027, "User password incorrect", HttpStatus.BAD_REQUEST),
     USER_GENDER_VALUE_INVALID(1028, "User gender must be 0 (male) or 1 (female)", HttpStatus.BAD_REQUEST),
     USER_EMAIL_VALUE_INVALID(1029, "User email is invalid", HttpStatus.BAD_REQUEST),
     USER_EMAIL_CAN_NOT_BE_NULL_OR_EMPTY(1030, "Email cannot be null or empty", HttpStatus.BAD_REQUEST),
+    ONLY_LOCAL_USER_CAN_UPDATE_INFO(1025, "Only local user can update", HttpStatus.BAD_REQUEST),
 
     USER_IDS_CAN_NOT_BE_NULL_OR_EMPTY(1031, "User IDs cannot be null or empty", HttpStatus.BAD_REQUEST),
 

@@ -7,6 +7,7 @@ import ai.dto.own.request.AuthRequestDto;
 import ai.dto.own.request.IntrospectRequestDto;
 import ai.dto.own.request.OrganizationSelectRequestDto;
 import ai.dto.own.response.*;
+import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.OrganizationUserRoleEntity;
 import ai.entity.postgres.RoleEntity;
 import ai.entity.postgres.UserEntity;
@@ -148,6 +149,9 @@ public class AuthService {
             throw new AppException(ApiResponseStatus.USER_NOT_EXIST_IN_ORGANIZATION);
 
         OrganizationWithUserRoleDto organizationWithUserRoleDto = new OrganizationWithUserRoleDto();
+        OrganizationEntity organizationEntity = ours.getFirst().getOrganization();
+        organizationWithUserRoleDto.setName(organizationEntity.getName());
+        organizationWithUserRoleDto.setDescription(organizationEntity.getDescription());
 
         Map<UUID, Map<String, Map<String, Map<String, String>>>> mapRolePermission = roleService.getPermissionListOfRole();
         ours.forEach(our->{

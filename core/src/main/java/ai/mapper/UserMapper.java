@@ -1,7 +1,9 @@
 package ai.mapper;
 
 import ai.dto.own.request.UserCreateRequestDto;
+import ai.dto.own.request.UserProfileUpdateRequestDto;
 import ai.dto.own.request.UserUpdateRequestDto;
+import ai.dto.own.response.UserProfileResponseDto;
 import ai.dto.own.response.UserResponseDto;
 import ai.dto.own.response.UserWithOrgResponseDto;
 import ai.dto.own.response.UserWithRoleInOrgResponseDto;
@@ -22,6 +24,8 @@ public interface UserMapper extends GeneralMapper{
     @Mapping(source = "lastLogin", target = "lastLogin", qualifiedByName = "instantToString")
     UserResponseDto entityToResponseDto(UserEntity entity);
 
+    UserProfileResponseDto entityToProfileResponseDto(UserEntity entity);
+
     UserWithOrgResponseDto entityToWithOrgResponseDto(UserEntity entity);
 
     @Mapping(target = "createdAt", expression = "java(createdAtFromAudit(entity.getAudit()))")
@@ -31,4 +35,5 @@ public interface UserMapper extends GeneralMapper{
     UserWithRoleInOrgResponseDto entityToWithRoleResponseDto(UserEntity entity);
 
     void updateEntity(@MappingTarget UserEntity entity, UserUpdateRequestDto requestDTO);
+    void updateEntity(@MappingTarget UserEntity entity, UserProfileUpdateRequestDto requestDTO);
 }

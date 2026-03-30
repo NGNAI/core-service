@@ -9,11 +9,11 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum PermissionResource {
-    ALL("ALL", "All resources"),
-    ORG("ORG", "Organization"),
-    USER("USER", "User"),
-    ROLE("ROLE", "Role"),
-    PERMISSION("PERMISSION", "Permission");
+    ALL("ALL", "Tất cả"),
+    ORG("ORG", "Đơn vị"),
+    USER("USER", "Người dùng"),
+    ROLE("ROLE", "Vai trò"),
+    PERMISSION("PERMISSION", "Quyền");
 
     String key;
     String name;

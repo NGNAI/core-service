@@ -9,13 +9,13 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum PermissionAction {
-    ALL("ALL", "All actions"),
-    READ("READ", "Read"),
-    CREATE("CREATE", "Create"),
-    UPDATE("UPDATE", "Update"),
-    DELETE("DELETE", "Delete"),
-    ASSIGN("ASSIGN", "Assign"),
-    REMOVE("REMOVE", "Remove");
+    ALL("ALL", "Tất cả"),
+    READ("READ", "Xem"),
+    CREATE("CREATE", "Tạo"),
+    UPDATE("UPDATE", "Sửa"),
+    DELETE("DELETE", "Xoá"),
+    ASSIGN("ASSIGN", "Phân bổ"),
+    REMOVE("REMOVE", "Gỡ");
 
     String key;
     String name;

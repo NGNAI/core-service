@@ -9,9 +9,9 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum PermissionScope {
-    ALL("ALL", "All scope"),
-    OWN("OWN", "Own resource"),
-    DESCENDANT("DESCENDANT", "Descendant resources");
+    ALL("ALL", "Tất cả"),
+    OWN("OWN", "Cá nhân"),
+    DESCENDANT("DESCENDANT", "Cấp dưới");
 
     String key;
     String name;
