@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ import ai.exeption.AppException;
 import ai.mapper.DataIngestionMapper;
 import ai.repository.DataIngestionRepository;
 import ai.util.JwtUtil;
+import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -177,7 +179,7 @@ public class DataIngestionService {
         dataIngestion.setFolder(true);
         dataIngestion.setContentType(null);
         dataIngestion.setFileSize(0L);
-        dataIngestion.setAccessLevel(null);
+        dataIngestion.setAccessLevel(requestDto.getAccessLevel());
         dataIngestion.setOwner(user);
         dataIngestion.setOrganization(organization);
         dataIngestion.setJobId(null);
@@ -286,7 +288,16 @@ public class DataIngestionService {
 
     @Transactional(readOnly = true)
     public Page<DataIngestionResponseDto> getAll(DataIngestionFilterDto filterDto) {
-        return dataIngestionRepository.findAll(filterDto.createSpec(), filterDto.createPageable())
+
+        UUID userId = JwtUtil.getUserId();
+        UUID orgId = JwtUtil.getOrgId();
+
+        Specification<DataIngestionEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> {
+            Predicate orgIdPredicate = criteriaBuilder.equal(root.get("organization").get("id"), orgId);
+            Predicate ownerPredicate = criteriaBuilder.equal(root.get("owner").get("id"), userId);
+            return criteriaBuilder.and(orgIdPredicate, ownerPredicate);
+        });
+        return dataIngestionRepository.findAll(spec, filterDto.createPageable())
                 .map(dataIngestionMapper::entityToResponseDto);
     }
 

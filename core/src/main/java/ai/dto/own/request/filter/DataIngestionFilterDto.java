@@ -11,6 +11,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 import ai.entity.postgres.DataIngestionEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.DataScope;
 import ai.exeption.AppException;
 import ai.specification.DataIngestionEntitySpecification;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -30,27 +31,22 @@ public class DataIngestionFilterDto extends PageableFilterDto {
             "size",
             "createdAt",
             "updatedAt",
-            "downloadCount",
             "ingestionStatus",
             "accessLevel"
     );
 
-    @Schema(description = "Organization ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
-    UUID orgId;
-
-    @Schema(description = "Owner ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
-    UUID ownerId;
-
     @Schema(description = "Parent ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
     UUID parentId;
 
+    @Schema(description = "Data scope to filter data ingestion", exampleClasses = DataScope.class)
+    DataScope accessLevel;
+
     public Specification<DataIngestionEntity> createSpec() {
         return (root, query, criteriaBuilder) -> {
-            Predicate orgIdPredicate = DataIngestionEntitySpecification.buildOrgId(root, criteriaBuilder, orgId);
-            Predicate ownerPredicate = DataIngestionEntitySpecification.buildOwnerId(root, criteriaBuilder, ownerId);
             Predicate parentPredicate = DataIngestionEntitySpecification.buildParent(root, criteriaBuilder, parentId);
+            Predicate accessLevelPredicate = DataIngestionEntitySpecification.buildAccessLevel(root, criteriaBuilder, accessLevel);
 
-            return criteriaBuilder.and(orgIdPredicate, ownerPredicate, parentPredicate);
+            return criteriaBuilder.and(parentPredicate, accessLevelPredicate);
         };
     }
 

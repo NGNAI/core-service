@@ -27,5 +27,12 @@ public class DataIngestionEntitySpecification {
         }
         return criteriaBuilder.equal(root.get("parent").get("id"), parentId);
     }
+
+    public static Predicate buildAccessLevel(Path<?> root, CriteriaBuilder criteriaBuilder, Object accessLevel) {
+        if (accessLevel == null) {
+            return criteriaBuilder.conjunction();
+        }
+        return criteriaBuilder.equal(root.get("accessLevel"), accessLevel);
+    }
    
 }

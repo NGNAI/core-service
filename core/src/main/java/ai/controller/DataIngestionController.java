@@ -47,6 +47,7 @@ import lombok.experimental.FieldDefaults;
 public class DataIngestionController {
         DataIngestionService dataIngestionService;
 
+        @Operation(summary = "Get list of available data ingestion access levels", description = "Get list of available data ingestion access levels")
         @GetMapping("/level")
         ResponseEntity<ApiResponseModel<List<DataScope>>> accessLevel() {
                 return ResponseEntity.ok(
@@ -56,7 +57,7 @@ public class DataIngestionController {
                                                 .build());
         }
 
-        @Operation(summary = "Get data ingestion by id", description = "Get detail of a single data ingestion item")
+        @Operation(summary = "Get details info by id (folder or file)", description = "Get detail of a single data ingestion item")
         @GetMapping("/{dataIngestionId}")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> get(@PathVariable UUID dataIngestionId) {
                 return ResponseEntity.ok(
@@ -83,7 +84,7 @@ public class DataIngestionController {
                                 .body(fileData.bytes());
         }
 
-        @Operation(summary = "Get data ingestion download URL", description = "Get MinIO presigned URL for data ingestion file download")
+        @Operation(summary = "Get data ingestion download URL with file", description = "Get MinIO presigned URL for data ingestion file download")
         @GetMapping("/{dataIngestionId}/download-url")
         ResponseEntity<ApiResponseModel<DataIngestionPresignedUrlResponseDto>> getDownloadUrl(
                         @PathVariable UUID dataIngestionId,
@@ -96,7 +97,7 @@ public class DataIngestionController {
                                                 .build());
         }
 
-        @Operation(summary = "Upload data ingestion", description = "Upload a data ingestion file to MinIO and optionally trigger ingestion")
+        @Operation(summary = "Upload data ingestion file", description = "Upload a data ingestion file to MinIO and optionally trigger ingestion")
         @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> upload(
                         @Valid @ModelAttribute DataIngestionUploadRequestDto requestDto) {
@@ -118,7 +119,7 @@ public class DataIngestionController {
                                                 .build());
         }
 
-        @Operation(summary = "Get data ingestion list", description = "Get paginated list of data ingestion items with optional filters")
+        @Operation(summary = "Get data ingestion list (folders and files)", description = "Get paginated list of data ingestion items with optional filters")
         @GetMapping
         ResponseEntity<ApiResponseModel<List<DataIngestionResponseDto>>> list(
                         @ModelAttribute DataIngestionFilterDto filterDto) {
@@ -143,13 +144,13 @@ public class DataIngestionController {
                                                 .build());
         }
 
-        @Operation(summary = "Retry ingestion", description = "Retry pushing failed data ingestion into ingestion pipeline")
+        @Operation(summary = "Retry ingestion with failed data file", description = "Retry pushing failed data ingestion into ingestion pipeline")
         @PostMapping("/{dataIngestionId}/ingestion/retry")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> retryIngestion(
                         @PathVariable UUID dataIngestionId) {
                 return ResponseEntity.ok(
                                 ApiResponseModel.<DataIngestionResponseDto>builder()
-                                                .message("Retry data ingestion successfully")
+                                                .message("Retry data ingestion with failed data file successfully")
                                                 .data(dataIngestionService.retryIngestion(dataIngestionId))
                                                 .build());
         }
@@ -160,7 +161,7 @@ public class DataIngestionController {
                         @PathVariable UUID dataIngestionId) {
                 return ResponseEntity.ok(
                                 ApiResponseModel.<DataIngestionJobStatusResponseDto>builder()
-                                                .message("Get data ingestion status successfully")
+                                                .message("Get data ingestion job status successfully")
                                                 .data(dataIngestionService.pollIngestionJobStatus(dataIngestionId))
                                                 .build());
         }
@@ -170,7 +171,7 @@ public class DataIngestionController {
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> delete(@PathVariable UUID dataIngestionId) {
                 return ResponseEntity.ok(
                                 ApiResponseModel.<DataIngestionResponseDto>builder()
-                                                .message("Delete data ingestion accepted")
+                                                .message("Delete data ingestion successfully")
                                                 .data(dataIngestionService.deleteById(dataIngestionId))
                                                 .build());
         }
