@@ -51,7 +51,7 @@ public class OrganizationEntity {
     Set<OrganizationUserRoleEntity> orgUsersRole;
 
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
-    Set<MediaEntity> medias;
+    Set<DataIngestionEntity> dataIngestions;
 
     @PrePersist
     public void prePersist() {

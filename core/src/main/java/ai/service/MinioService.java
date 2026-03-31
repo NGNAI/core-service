@@ -59,7 +59,7 @@ public class MinioService {
 
             return objectPath;
         } catch (Exception exception) {
-            throw new AppException(ApiResponseStatus.MEDIA_UPLOAD_FAILED);
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);
         }
     }
 
@@ -97,7 +97,7 @@ public class MinioService {
                 );
             }
         } catch (Exception exception) {
-            throw new AppException(ApiResponseStatus.MEDIA_DOWNLOAD_FAILED);
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_DOWNLOAD_FAILED);
         }
     }
 
@@ -117,7 +117,7 @@ public class MinioService {
                             .build()
             );
         } catch (Exception exception) {
-            throw new AppException(ApiResponseStatus.MEDIA_DELETE_FAILED);
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_DELETE_FAILED);
         }
     }
 
@@ -141,7 +141,7 @@ public class MinioService {
                             .build()
             );
         } catch (Exception exception) {
-            throw new AppException(ApiResponseStatus.MEDIA_DOWNLOAD_FAILED);
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_DOWNLOAD_FAILED);
         }
     }
 

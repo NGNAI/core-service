@@ -9,11 +9,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
-import ai.entity.postgres.MediaEntity;
+import ai.entity.postgres.DataIngestionEntity;
 import ai.enums.ApiResponseStatus;
-import ai.enums.MediaUploadTarget;
 import ai.exeption.AppException;
-import ai.specification.MediaEntitySpecification;
+import ai.specification.DataIngestionEntitySpecification;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
@@ -24,7 +23,7 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class MediaFilterDto extends PageableFilterDto {
+public class DataIngestionFilterDto extends PageableFilterDto {
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
             "name",
             "type",
@@ -36,26 +35,22 @@ public class MediaFilterDto extends PageableFilterDto {
             "accessLevel"
     );
 
-    @Schema(description = "Organization ID to filter media", example = "123e4567-e89b-12d3-a456-426614174000")
+    @Schema(description = "Organization ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
     UUID orgId;
 
-    @Schema(description = "Owner ID to filter media", example = "123e4567-e89b-12d3-a456-426614174000")
+    @Schema(description = "Owner ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
     UUID ownerId;
 
-    @Schema(description = "Parent ID to filter media", example = "123e4567-e89b-12d3-a456-426614174000")
+    @Schema(description = "Parent ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
     UUID parentId;
 
-    @Schema(description = "Target to filter media", example = "UPLOAD")
-    MediaUploadTarget target;
-
-    public Specification<MediaEntity> createSpec() {
+    public Specification<DataIngestionEntity> createSpec() {
         return (root, query, criteriaBuilder) -> {
-            Predicate orgIdPredicate = MediaEntitySpecification.buildOrgId(root, criteriaBuilder, orgId);
-            Predicate ownerPredicate = MediaEntitySpecification.buildOwnerId(root, criteriaBuilder, ownerId);
-            Predicate parentPredicate = MediaEntitySpecification.buildParent(root, criteriaBuilder, parentId);
-            Predicate targetPredicate = MediaEntitySpecification.buildTarget(root, criteriaBuilder, target);
+            Predicate orgIdPredicate = DataIngestionEntitySpecification.buildOrgId(root, criteriaBuilder, orgId);
+            Predicate ownerPredicate = DataIngestionEntitySpecification.buildOwnerId(root, criteriaBuilder, ownerId);
+            Predicate parentPredicate = DataIngestionEntitySpecification.buildParent(root, criteriaBuilder, parentId);
 
-            return criteriaBuilder.and(orgIdPredicate, ownerPredicate, parentPredicate, targetPredicate);
+            return criteriaBuilder.and(orgIdPredicate, ownerPredicate, parentPredicate);
         };
     }
 
@@ -66,7 +61,7 @@ public class MediaFilterDto extends PageableFilterDto {
 
         String normalizedSortDir = sortDir == null ? "ASC" : sortDir.trim().toUpperCase(Locale.ROOT);
         if (!"ASC".equals(normalizedSortDir) && !"DESC".equals(normalizedSortDir)) {
-            throw new AppException(ApiResponseStatus.MEDIA_SORT_DIR_INVALID);
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_SORT_DIR_INVALID);
         }
 
         if (sortBy == null || sortBy.isBlank()) {
@@ -74,7 +69,7 @@ public class MediaFilterDto extends PageableFilterDto {
         }
 
         if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
-            throw new AppException(ApiResponseStatus.MEDIA_SORT_BY_INVALID);
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_SORT_BY_INVALID);
         }
 
         Sort.Direction direction = "DESC".equals(normalizedSortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;

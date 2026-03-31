@@ -60,6 +60,7 @@ public class OrganizationService {
         return new CustomPairModel<>(page.getTotalElements(),organizations);
     }
 
+    
 //    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
     public CustomPairModel<Long,List<OrganizationResponseDto>> getRoot(Integer nestedChild, OrganizationFilterDto filterDto){
         Specification<OrganizationEntity> spec = filterDto.createSpec().and(((root, query, criteriaBuilder) -> criteriaBuilder.isNull(root.get("parent"))));

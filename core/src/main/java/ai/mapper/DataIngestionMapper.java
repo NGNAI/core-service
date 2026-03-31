@@ -3,11 +3,11 @@ package ai.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-import ai.dto.own.response.MediaResponseDto;
-import ai.entity.postgres.MediaEntity;
+import ai.dto.own.response.DataIngestionResponseDto;
+import ai.entity.postgres.DataIngestionEntity;
 
 @Mapper(componentModel = "spring")
-public interface MediaMapper extends GeneralMapper {
+public interface DataIngestionMapper extends GeneralMapper {
     @Mapping(target = "createdAt", expression = "java(createdAtFromAudit(entity.getAudit()))")
     @Mapping(target = "createdBy", expression = "java(createdByFromAudit(entity.getAudit()))")
     @Mapping(target = "updatedAt", expression = "java(updatedAtFromAudit(entity.getAudit()))")
@@ -15,5 +15,5 @@ public interface MediaMapper extends GeneralMapper {
     @Mapping(source = "parent.id", target = "parentId")
     @Mapping(source = "organization.id", target = "orgId")
     @Mapping(source = "owner.id", target = "ownerId")
-    MediaResponseDto entityToResponseDto(MediaEntity entity);
+    DataIngestionResponseDto entityToResponseDto(DataIngestionEntity entity);
 }

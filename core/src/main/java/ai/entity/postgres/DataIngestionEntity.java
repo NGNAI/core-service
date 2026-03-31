@@ -5,10 +5,9 @@ import java.util.UUID;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import ai.entity.postgres.embeddable.AuditEmbed;
+import ai.enums.DataIngestionDeleteStatus;
 import ai.enums.DataScope;
 import ai.enums.IngestionStatus;
-import ai.enums.MediaDeleteStatus;
-import ai.enums.MediaUploadTarget;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -34,17 +33,17 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "media", indexes = {
-        @jakarta.persistence.Index(name = "idx_media_folder", columnList = "folder"),
-        @jakarta.persistence.Index(name = "idx_media_org_id", columnList = "org_id"),
-        @jakarta.persistence.Index(name = "idx_media_owner_id", columnList = "owner_id"),
-        @jakarta.persistence.Index(name = "idx_media_parent_id", columnList = "parent_id"),
-    @jakarta.persistence.Index(name = "idx_media_target", columnList = "target"),
-    @jakarta.persistence.Index(name = "idx_media_delete_status", columnList = "delete_status")
+@Table(name = "data_ingestion", indexes = {
+        @jakarta.persistence.Index(name = "idx_data_ingestion_folder", columnList = "folder"),
+        @jakarta.persistence.Index(name = "idx_data_ingestion_org_id", columnList = "org_id"),
+        @jakarta.persistence.Index(name = "idx_data_ingestion_owner_id", columnList = "owner_id"),
+        @jakarta.persistence.Index(name = "idx_data_ingestion_parent_id", columnList = "parent_id"),
+        @jakarta.persistence.Index(name = "idx_data_ingestion_target", columnList = "target"),
+        @jakarta.persistence.Index(name = "idx_data_ingestion_delete_status", columnList = "delete_status")
 })
 @EntityListeners(AuditingEntityListener.class)
 @Entity
-public class MediaEntity {
+public class DataIngestionEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", nullable = false, updatable = false)
@@ -54,15 +53,15 @@ public class MediaEntity {
     @Column(name = "name", nullable = false)
     String name;
 
-    // Nếu media này là folder thì trường folder sẽ là true, nếu media này là file thì trường folder sẽ là false
+    // Nếu data ingestion này là folder thì trường folder sẽ là true, nếu là file thì trường folder sẽ là false
     @Column(name = "folder", nullable = false)
     boolean folder;
 
-    // Loại file, ví dụ: "image/png", "application/pdf", v.v. Null nếu media này là folder
+    // Loại file, ví dụ: "image/png", "application/pdf", v.v. Null nếu data ingestion này là folder
     @Column(name = "content_type", length = 50)
     String contentType;
 
-    // Kích thước của file, null nếu media này là folder
+    // Kích thước của file, null nếu data ingestion này là folder
     @Column(name = "file_size")
     Long fileSize;
 
@@ -70,44 +69,40 @@ public class MediaEntity {
     @Column(name = "minio_path")
     String minioPath;
 
-    // Nếu media này là media dùng chung cho cả tổ chức thì trường organization sẽ không null, nếu media này là media cá nhân thì trường organization sẽ null
+    // Nếu data ingestion này dùng chung cho cả tổ chức thì trường organization sẽ không null, nếu là dữ liệu cá nhân thì organization sẽ null
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
-    MediaEntity parent;
+    DataIngestionEntity parent;
 
-    // Nếu media này là media dùng chung cho cả tổ chức thì trường owner sẽ không null, nếu media này là media cá nhân thì trường owner sẽ null
+    // Nếu data ingestion này thuộc cá nhân thì owner sẽ không null; nếu là dữ liệu chia sẻ theo tổ chức thì owner có thể null
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
     UserEntity owner;
 
-    // Nếu media này là media dùng chung cho cả tổ chức thì trường organization sẽ không null, nếu media này là media cá nhân thì trường organization sẽ null
+    // Nếu data ingestion này là dữ liệu dùng chung cho cả tổ chức thì organization sẽ không null, nếu là dữ liệu cá nhân thì organization có thể null
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "org_id")
     OrganizationEntity organization;
 
-    // Quyền truy cập của media này, có thể là PERSONAL (chỉ owner có quyền truy cập), LOCAL (owner và các thành viên trong cùng tổ chức có quyền truy cập), hoặc GLOBAL (tất cả mọi người đều có quyền truy cập)
+    // Quyền truy cập của data ingestion này, có thể là PERSONAL, LOCAL hoặc GLOBAL
     @Enumerated(EnumType.STRING)
     @Column(name = "access_level", length = 20)
     DataScope accessLevel;
 
-    // Mục đích của media này, dùng để làm gì, liên quan đến entity nào, v.v. Ví dụ: nếu media này dùng để làm avatar cho User thì target sẽ là AVATAR, nếu media này dùng để đính kèm cho Topic thì target sẽ là TOPIC, v.v.
-    @Enumerated(EnumType.STRING)
-    @Column(name = "target", length = 20)
-    MediaUploadTarget target;
-
-    // ID của ingestion job nếu media này được upload để ingest, null nếu media này không liên quan đến ingestion
+    // ID của ingestion job nếu data ingestion này được upload để ingest, null nếu không liên quan đến ingestion
     @Column(name = "job_id", nullable = true)
     UUID jobId;
 
-    // Trạng thái của ingestion job, null nếu media này không liên quan đến ingestion
+    // Trạng thái của ingestion job, null nếu data ingestion này không liên quan đến ingestion
     @Enumerated(EnumType.STRING)
     @Column(name = "ingestion_status", length = 20, nullable = true)
     IngestionStatus ingestionStatus;
 
+    // Trạng thái xóa của data ingestion, ACTIVE nếu đang sử dụng bình thường, DELETED nếu đã bị xóa (có thể là xóa mềm hoặc xóa cứng tùy theo cách triển khai)
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "delete_status", length = 20, nullable = false)
-    MediaDeleteStatus deleteStatus = MediaDeleteStatus.ACTIVE;
+    DataIngestionDeleteStatus deleteStatus = DataIngestionDeleteStatus.ACTIVE;
 
     @Builder.Default
     @Embedded
