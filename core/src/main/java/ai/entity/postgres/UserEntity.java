@@ -68,5 +68,5 @@ public class UserEntity {
     List<TopicEntity> topics;
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
-    List<MediaEntity> medias;
+    List<DataIngestionEntity> dataIngestions;
 }

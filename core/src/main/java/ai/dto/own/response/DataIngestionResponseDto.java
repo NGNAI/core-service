@@ -3,7 +3,6 @@ package ai.dto.own.response;
 import java.util.UUID;
 
 import ai.enums.DataScope;
-import ai.enums.MediaUploadTarget;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,7 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class MediaResponseDto extends AuditResponseDto {
+public class DataIngestionResponseDto extends AuditResponseDto {
     UUID id;
     String name;
     boolean folder;
@@ -26,5 +25,4 @@ public class MediaResponseDto extends AuditResponseDto {
     UUID jobId;
     String ingestionStatus;
     String deleteStatus;
-    MediaUploadTarget target;
 }

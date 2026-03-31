@@ -1,6 +1,6 @@
 package ai.enums;
 
-public enum MediaDeleteStatus {
+public enum DataIngestionDeleteStatus {
     ACTIVE,
     PENDING_DELETE,
     DELETE_FAILED

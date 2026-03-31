@@ -10,7 +10,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class MediaUpdateFolderRequestDto {
+public class DataIngestionUpdateFolderRequestDto {
     @Schema(description = "Tên mới của thư mục, nếu muốn đổi tên", example = "New Folder Name")
     String name;
     
