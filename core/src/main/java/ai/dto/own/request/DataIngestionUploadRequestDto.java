@@ -23,5 +23,5 @@ public class DataIngestionUploadRequestDto {
 
     @Schema(description = "Mức độ truy cập/phạm vi sử dụng", exampleClasses = DataScope.class) 
     @NotNull(message = "DATA_INGESTION_ACCESS_LEVEL_INVALID")
-    DataScope accessLevel=DataScope.GLOBAL;
+    DataScope accessLevel=null;
 }
