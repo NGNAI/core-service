@@ -18,4 +18,17 @@ public interface DataIngestionRepository extends JpaRepository<DataIngestionEnti
     Iterable<DataIngestionEntity> findByIngestionStatus(IngestionStatus ingestionStatus);
 
     Iterable<DataIngestionEntity> findByDeleteStatus(DataIngestionDeleteStatus deleteStatus);
+
+        Optional<DataIngestionEntity> findFirstByFolderTrueAndNameAndParentIsNullAndOwnerIdAndOrganizationIdAndDeleteStatus(
+            String name,
+            UUID ownerId,
+            UUID organizationId,
+            DataIngestionDeleteStatus deleteStatus);
+
+        Optional<DataIngestionEntity> findFirstByFolderTrueAndNameAndParentIdAndOwnerIdAndOrganizationIdAndDeleteStatus(
+            String name,
+            UUID parentId,
+            UUID ownerId,
+            UUID organizationId,
+            DataIngestionDeleteStatus deleteStatus);
 }
