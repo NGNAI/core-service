@@ -1,8 +1,20 @@
 package ai.service;
 
-import ai.dto.own.request.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+
+import ai.dto.own.request.OrganizationCreateRequestDto;
+import ai.dto.own.request.OrganizationUpdateRequestDto;
 import ai.dto.own.request.filter.OrganizationFilterDto;
-import ai.dto.own.response.*;
+import ai.dto.own.response.OrganizationResponseDto;
 import ai.entity.postgres.OrganizationEntity;
 import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
@@ -10,17 +22,9 @@ import ai.mapper.OrganizationMapper;
 import ai.model.CustomPairModel;
 import ai.repository.OrganizationRepository;
 import ai.repository.OrganizationUserRoleRepository;
-import jakarta.persistence.criteria.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.data.domain.Page;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Service;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -60,6 +64,14 @@ public class OrganizationService {
         return new CustomPairModel<>(page.getTotalElements(),organizations);
     }
 
+    // Khoa viết chi tiết giùm anh nhé, anh chỉ viết khung thôi, phần logic anh để em tự viết nhé
+    public OrganizationEntity getRoot(){
+        return OrganizationEntity.builder()
+                .id(UUID.fromString("1222cf1d-7443-4fc9-ba39-88c2812d3558"))
+                .name("Root")
+                .description("Root organization")
+                .build();
+    }
     
 //    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
     public CustomPairModel<Long,List<OrganizationResponseDto>> getRoot(Integer nestedChild, OrganizationFilterDto filterDto){

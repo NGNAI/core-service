@@ -66,3 +66,13 @@ minio:
   secret-key: "password"
   bucket: "ingestions"
 
+auto-ingestion:
+  enabled: true
+  input-dir: "D:/input"
+  processing-dir: "D:/input/.processing"
+  failed-dir: "D:/input/.failed"
+  poller-delay-ms: 5000
+  file-stable-seconds: 20
+  access-level: "GLOBAL"
+  delete-local-after-success: true
+

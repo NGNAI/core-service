@@ -3,12 +3,13 @@ package ai.service;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,7 @@ import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.DataIngestionDeleteStatus;
+import ai.enums.DataScope;
 import ai.enums.IngestionStatus;
 import ai.exeption.AppException;
 import ai.mapper.DataIngestionMapper;
@@ -39,27 +41,23 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = false)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class DataIngestionService {
-    final static int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
-    
-    boolean ingestionServiceAvailable = true;
-    boolean dataIngestionDeleteWorkerAvailable = true;
+    // Định nghĩa thời gian mặc định cho presigned URL là 15 phút (900 giây), có thể cấu hình lại khi gọi API để lấy presigned URL với thời gian tùy chỉnh
+    static int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
 
-    final DataIngestionRepository dataIngestionRepository;
-    final IngestionService ingestionService;
-    final MinioService minioService;
-    final DataIngestionMapper dataIngestionMapper;
-    final UserService userService;
-    final OrganizationService organizationService;
+    DataIngestionRepository dataIngestionRepository;
+    IngestionService ingestionService;
+    MinioService minioService;
+    DataIngestionMapper dataIngestionMapper;
+    UserService userService;
+    OrganizationService organizationService;
 
-    @Scheduled(cron = "0 0/1 * * * ?") // Mỗi 1 phút chạy một lần
-    public void syncIngestionStatuses() {
-        if (!ingestionServiceAvailable) {
-            return;
-        }
-        ingestionServiceAvailable = false; // Đánh dấu đang trong quá trình đồng bộ để tránh nhiều instance cùng chạy song song
+    /**
+     * Định nghĩa phương thức để đồng bộ trạng thái ingestion mới nhất cho tất cả data ingestion đang ở trạng thái pending, phương thức này sẽ được gọi định kỳ bởi scheduler để đảm bảo trạng thái ingestion luôn được cập nhật mới nhất, tránh trường hợp dữ liệu bị treo ở trạng thái pending mãi mãi do lỗi không nhận được callback từ ingestion service hoặc lỗi khi gọi API để lấy trạng thái ingestion
+     */
+    public void syncPendingIngestionStatuses() {
         System.out.println("Start syncing ingestion statuses for pending data ingestion items...");
         // Lấy tất cả data ingestion có target là INGESTION và trạng thái ingestion là PENDING để đồng bộ trạng thái mới nhất từ ingestion service
         dataIngestionRepository.findByIngestionStatus(IngestionStatus.PENDING)
@@ -72,35 +70,32 @@ public class DataIngestionService {
                         exception.printStackTrace();
                     }
                 });
-        ingestionServiceAvailable = true;
         System.out.println("Finished syncing ingestion statuses for pending data ingestion items.");
     }
 
-    @Scheduled(cron = "0 0/1 * * * ?") // Mỗi 1 phút chạy một lần
-    public void processPendingDataIngestionDeletes() {
-        if (!dataIngestionDeleteWorkerAvailable) {
-            return;
-        }
-
-        dataIngestionDeleteWorkerAvailable = false;
+    /**
+     * Định nghĩa phương thức để xử lý hàng đợi xóa các data ingestion đang ở trạng thái pending delete, phương thức này sẽ được gọi định kỳ bởi scheduler để đảm bảo các data ingestion cần xóa được xử lý kịp thời, tránh trường hợp dữ liệu bị treo ở trạng thái pending delete mãi mãi do lỗi khi xóa trên MinIO hoặc lỗi khi xóa trong database. Phương thức này sẽ tìm tất cả data ingestion có trạng thái delete là PENDING_DELETE, sau đó thực hiện xóa file trên MinIO nếu có và xóa bản ghi trong database, nếu có lỗi xảy ra trong quá trình xử lý một item nào đó thì sẽ log lỗi và tiếp tục xử lý các item còn lại để không chặn toàn bộ tiến trình
+     */
+    public void processPendingDeleteQueue() {
         System.out.println("Start processing pending data ingestion deletions...");
-        try {
-            dataIngestionRepository.findByDeleteStatus(DataIngestionDeleteStatus.PENDING_DELETE)
-                    .forEach(dataIngestion -> {
-                        try {
-                            executeDelete(dataIngestion);
-                        } catch (Exception exception) {
-                            // Log lỗi và tiếp tục xử lý các item còn lại
-                            System.err.println("Error processing delete for data ingestion with ID: " + dataIngestion.getId());
-                            exception.printStackTrace();
-                        }
-                    });
-        } finally {
-            dataIngestionDeleteWorkerAvailable = true;
-            System.out.println("Finished processing pending data ingestion deletions.");
-        }
+        dataIngestionRepository.findByDeleteStatus(DataIngestionDeleteStatus.PENDING_DELETE)
+                .forEach(dataIngestion -> {
+                    try {
+                        executeDelete(dataIngestion);
+                    } catch (Exception exception) {
+                        // Log lỗi và tiếp tục xử lý các item còn lại
+                        System.err.println("Error processing delete for data ingestion with ID: " + dataIngestion.getId());
+                        exception.printStackTrace();
+                    }
+                });
+        System.out.println("Finished processing pending data ingestion deletions.");
     }
 
+    /**
+     * Định nghĩa phương thức để upload file và tạo data ingestion mới, phương thức này sẽ được gọi khi người dùng upload file mới thông qua API, phương thức sẽ thực hiện các bước sau: 1) xác thực người dùng và tổ chức từ JWT token, 2) upload file lên MinIO trước để đảm bảo nếu có lỗi xảy ra khi upload file thì sẽ không tạo bản ghi data ingestion trong database, tránh trường hợp dữ liệu bị lỗi không thể retry được, 3) tạo bản ghi data ingestion mới trong database với thông tin về file đã upload và trạng thái ingestion là PENDING, 4) gọi API của ingestion service để đẩy file đã upload sang ingestion service để xử lý, nếu có lỗi xảy ra khi gọi API của ingestion service hoặc response trả về không hợp lệ thì sẽ cập nhật trạng thái ingestion của data ingestion này thành FAILED để tránh bị treo ở trạng thái PENDING mãi mãi, đồng thời trả về response cho client để client có thể hiển thị thông báo lỗi chính xác
+     * @param requestDto
+     * @return
+     */
     @Transactional(noRollbackFor = AppException.class)
     public DataIngestionResponseDto uploadDataIngestion(DataIngestionUploadRequestDto requestDto) {
         UserEntity user = userService.getEntityById(JwtUtil.getUserId());
@@ -169,6 +164,11 @@ public class DataIngestionService {
         }
     }
 
+    /**
+     * Định nghĩa phương thức để tạo thư mục mới, phương thức này sẽ được gọi khi người dùng tạo thư mục mới thông qua API, phương thức sẽ thực hiện các bước sau: 1) xác thực người dùng và tổ chức từ JWT token, 2) tạo bản ghi data ingestion mới trong database với thông tin về thư mục và đánh dấu là folder, trạng thái ingestion sẽ để null vì thư mục không cần ingest, 3) nếu có cung cấp parentId thì sẽ gán thư mục cha cho thư mục mới tạo, nếu parentId không tồn tại hoặc không phải là folder thì sẽ trả về lỗi, tránh trường hợp dữ liệu bị lỗi không thể retry được
+     * @param requestDto
+     * @return
+     */
     @Transactional
     public DataIngestionResponseDto createFolder(DataIngestionCreateFolderRequestDto requestDto) {
         UserEntity user = userService.getEntityById(JwtUtil.getUserId());
@@ -199,6 +199,102 @@ public class DataIngestionService {
         return dataIngestionMapper.entityToResponseDto(dataIngestion);
     }
 
+    /**
+     * Định nghĩa phương thức để ingest file đã có sẵn trên hệ thống, phương thức này sẽ được gọi bởi luồng xử lý tự động để ingest file từ thư mục đầu vào mà không cần phải upload lại, phương thức sẽ thực hiện các bước sau: 1) xác thực người dùng và tổ chức từ tham số truyền vào, 2) kiểm tra file đã tồn tại và hợp lệ hay chưa, nếu không hợp lệ thì trả về lỗi để luồng xử lý tự động có thể di chuyển file sang thư mục failed, 3) tạo bản ghi data ingestion mới trong database với thông tin về file và trạng thái ingestion là PENDING, 4) gọi API của ingestion service để đẩy file sang ingestion service để xử lý, nếu có lỗi xảy ra khi gọi API của ingestion service hoặc response trả về không hợp lệ thì sẽ cập nhật trạng thái ingestion của data ingestion này thành FAILED để tránh bị treo ở trạng thái PENDING mãi mãi, đồng thời trả về response để luồng xử lý tự động có thể di chuyển file sang thư mục failed
+     * @param stagedFile
+     * @param relativePath
+     * @param ownerId
+     * @param organizationId
+     * @param accessLevel
+     * @return
+     */
+    @Transactional(noRollbackFor = AppException.class)
+    public DataIngestionResponseDto ingestLocalFile(
+            Path stagedFile,
+            Path relativePath,
+            UUID ownerId,
+            UUID organizationId,
+            DataScope accessLevel) {
+        if (stagedFile == null || !Files.exists(stagedFile) || !Files.isRegularFile(stagedFile)) {
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_FILE_REQUIRED);
+        }
+
+        UserEntity owner = userService.getEntityById(ownerId);
+        OrganizationEntity organization = organizationService.getEntityById(organizationId);
+
+        DataIngestionEntity parent = resolveOrCreateFolderTree(
+                relativePath == null ? null : relativePath.getParent(),
+                owner,
+                organization,
+                accessLevel);
+
+        String fileName = stagedFile.getFileName().toString();
+        String contentType;
+        long fileSize;
+        byte[] fileBytes;
+
+        try {
+            contentType = Files.probeContentType(stagedFile);
+            if (contentType == null || contentType.isBlank()) {
+                contentType = "application/octet-stream";
+            }
+            fileBytes = Files.readAllBytes(stagedFile);
+            fileSize = fileBytes.length;
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);
+        }
+
+        String minioPath = minioService.upload(fileBytes, fileName, contentType, owner.getUserName(), organization.getName());
+
+        DataIngestionEntity dataIngestion = new DataIngestionEntity();
+        dataIngestion.setName(fileName);
+        dataIngestion.setFolder(false);
+        dataIngestion.setMinioPath(minioPath);
+        dataIngestion.setFileSize(fileSize);
+        dataIngestion.setContentType(contentType);
+        dataIngestion.setAccessLevel(accessLevel);
+        dataIngestion.setOwner(owner);
+        dataIngestion.setOrganization(organization);
+        dataIngestion.setIngestionStatus(IngestionStatus.PENDING);
+        dataIngestion.setDeleteStatus(DataIngestionDeleteStatus.ACTIVE);
+        dataIngestion.setParent(parent);
+
+        dataIngestion = dataIngestionRepository.save(dataIngestion);
+
+        try {
+            IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
+                    fileBytes,
+                    fileName,
+                    dataIngestion.getId().toString(),
+                    owner.getUserName(),
+                    organization.getId().toString(),
+                    organization.getName(),
+                    accessLevel);
+
+            if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
+                dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
+                dataIngestion = dataIngestionRepository.save(dataIngestion);
+                return dataIngestionMapper.entityToResponseDto(dataIngestion);
+            }
+
+            dataIngestion.setJobId(ingestionResponse.getJobId());
+            dataIngestion.setIngestionStatus(IngestionStatus.PENDING);
+            dataIngestion = dataIngestionRepository.save(dataIngestion);
+            return dataIngestionMapper.entityToResponseDto(dataIngestion);
+        } catch (AppException exception) {
+            exception.printStackTrace();
+            dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
+            dataIngestion = dataIngestionRepository.save(dataIngestion);
+            return dataIngestionMapper.entityToResponseDto(dataIngestion);
+        }
+    }
+
+    /**
+     * Định nghĩa phương thức để lấy chi tiết data ingestion theo ID, phương thức này sẽ được gọi khi người dùng xem chi tiết một data ingestion cụ thể, phương thức sẽ thực hiện các bước sau: 1) kiểm tra cache trước để lấy thông tin data ingestion nếu đã từng truy cập trước đó, tránh phải truy vấn database nhiều lần cho cùng một data ingestion, 2) nếu không có trong cache thì truy vấn database để lấy thông tin data ingestion, nếu không tồn tại thì trả về lỗi, 3) ánh xạ entity sang response DTO và trả về cho client, đồng thời lưu vào cache để lần sau truy cập nhanh hơn. Cache sẽ được tự động làm mới khi có cập nhật liên quan đến data ingestion này (ví dụ: đổi tên thư mục, di chuyển thư mục, xóa data ingestion)
+     * @param dataIngestionId
+     * @return
+     */
     @Cacheable(value = CacheName.DATA_INGESTION_DTO_DETAILS, key = "#dataIngestionId", unless = "#result == null", condition = "#dataIngestionId != null")
     @Transactional(readOnly = true)
     public DataIngestionResponseDto getById(UUID dataIngestionId) {
@@ -207,6 +303,11 @@ public class DataIngestionService {
         return dataIngestionMapper.entityToResponseDto(dataIngestion);
     }
 
+    /**
+     * Định nghĩa phương thức để tải file của data ingestion theo ID, phương thức này sẽ được gọi khi người dùng tải file của một data ingestion cụ thể, phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion, nếu không tồn tại thì trả về lỗi, 2) kiểm tra xem data ingestion này có hợp lệ để tải xuống hay không (ví dụ: không phải là folder, trạng thái ingestion đã thành công, không đang ở trạng thái pending delete), nếu không hợp lệ thì trả về lỗi, 3) gọi MinioService để tải file từ MinIO theo object path đã lưu trong data ingestion, nếu có lỗi xảy ra khi tải file thì trả về lỗi, 4) trả về dữ liệu file dưới dạng byte array cùng với content type để client có thể xử lý tải xuống. Phương thức này sẽ không cache dữ liệu file vì dữ liệu file có thể rất lớn và không nên lưu trong cache
+     * @param dataIngestionId
+     * @return
+     */
     @Transactional
     public DataIngestionDownloadData downloadById(UUID dataIngestionId) {
         DataIngestionEntity dataIngestion = dataIngestionRepository.findById(dataIngestionId)
@@ -223,6 +324,12 @@ public class DataIngestionService {
                 objectData.getBytes());
     }
 
+    /**
+     * Định nghĩa phương thức để lấy presigned URL để tải file của data ingestion theo ID, phương thức này sẽ được gọi khi người dùng muốn tải file của một data ingestion cụ thể nhưng không muốn tải trực tiếp qua server mà muốn tải trực tiếp từ MinIO thông qua presigned URL, phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion, nếu không tồn tại thì trả về lỗi, 2) kiểm tra xem data ingestion này có hợp lệ để tải xuống hay không (ví dụ: không phải là folder, trạng thái ingestion đã thành công, không đang ở trạng thái pending delete), nếu không hợp lệ thì trả về lỗi, 3) gọi MinioService để tạo presigned URL cho object path đã lưu trong data ingestion với thời gian hết hạn được cấu hình hoặc mặc định, nếu có lỗi xảy ra khi tạo presigned URL thì trả về lỗi, 4) trả về presigned URL cùng với thời gian hết hạn cho client. Phương thức này sẽ không cache presigned URL vì mỗi lần tạo presigned URL sẽ có một giá trị khác nhau và thời gian hết hạn cũng có thể khác nhau
+     * @param dataIngestionId
+     * @param expiresInSeconds
+     * @return
+     */
     @Transactional(readOnly = true)
     public DataIngestionPresignedUrlResponseDto getPresignedDownloadUrl(UUID dataIngestionId, Integer expiresInSeconds) {
         DataIngestionEntity dataIngestion = dataIngestionRepository.findById(dataIngestionId)
@@ -241,6 +348,12 @@ public class DataIngestionService {
                 .build();
     }
 
+    /**
+     * Định nghĩa phương thức để cập nhật thông tin thư mục, phương thức này sẽ được gọi khi người dùng muốn cập nhật thông tin của một thư mục cụ thể (ví dụ: đổi tên thư mục, di chuyển thư mục sang vị trí khác), phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion, nếu không tồn tại thì trả về lỗi, 2) kiểm tra xem data ingestion này có phải là folder hay không, nếu không phải là folder thì trả về lỗi vì chỉ cho phép cập nhật thông tin cho thư mục, 3) kiểm tra các thông tin cần cập nhật có hợp lệ hay không (ví dụ: tên thư mục không được để trống, nếu có parentId mới thì parentId đó phải tồn tại và phải là folder), nếu không hợp lệ thì trả về lỗi, 4) cập nhật thông tin cho thư mục trong database, đồng thời xóa cache chi tiết của data ingestion này để lần sau truy cập sẽ lấy thông tin mới nhất từ database. Phương thức này chỉ cho phép cập nhật thông tin của thư mục mà không cho phép cập nhật file của data ingestion vì việc cập nhật file sẽ phức tạp hơn nhiều (ví dụ: cần phải upload lại file lên MinIO, gọi lại API của ingestion service để đẩy file mới sang ingestion service, xử lý trạng thái ingestion phức tạp hơn) nên sẽ không hỗ trợ trong phương
+     * @param dataIngestionId
+     * @param requestDto
+     * @return
+     */
     @CacheEvict(value = CacheName.DATA_INGESTION_DTO_DETAILS, key = "#dataIngestionId", condition = "#dataIngestionId != null")
     @Transactional
     public DataIngestionResponseDto updateFolder(UUID dataIngestionId, DataIngestionUpdateFolderRequestDto requestDto) {
@@ -251,9 +364,13 @@ public class DataIngestionService {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_FOLDER_ONLY_OPERATION);
         }
 
-        boolean hasName = requestDto != null && requestDto.getName() != null && !requestDto.getName().isBlank();
-        boolean hasParent = requestDto != null && requestDto.getParentId() != null;
-        boolean moveToRoot = requestDto != null && Boolean.TRUE.equals(requestDto.getMoveToRoot());
+        if(requestDto == null){
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_FOLDER_UPDATE_REQUIRED);
+        }
+
+        boolean hasName = requestDto.getName() != null && !requestDto.getName().isBlank();
+        boolean hasParent = requestDto.getParentId() != null;
+        boolean moveToRoot = Boolean.TRUE.equals(requestDto.getMoveToRoot());
         if (!hasName && !hasParent && !moveToRoot) {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_FOLDER_UPDATE_REQUIRED);
         }
@@ -286,6 +403,11 @@ public class DataIngestionService {
         return dataIngestionMapper.entityToResponseDto(dataIngestionRepository.save(folder));
     }
 
+    /**
+     * Định nghĩa phương thức để lấy danh sách data ingestion với phân trang và lọc theo các tiêu chí khác nhau, phương thức này sẽ được gọi khi người dùng xem danh sách data ingestion, phương thức sẽ thực hiện các bước sau: 1) xác thực người dùng và tổ chức từ JWT token, 2) xây dựng Specification để lọc dữ liệu trong database dựa trên các tiêu chí truyền vào (ví dụ: lọc theo tên, lọc theo thư mục cha, lọc theo trạng thái ingestion), đồng thời chỉ lấy những data ingestion thuộc về tổ chức của người dùng và do chính người dùng đó sở hữu để đảm bảo tính bảo mật và phân quyền, 3) gọi repository để truy vấn database với Specification đã xây dựng và pageable được tạo từ thông tin phân trang truyền vào, 4) ánh xạ kết quả trả về sang response DTO và trả về cho client. Phương thức này sẽ không cache kết quả vì kết quả có thể thay đổi thường xuyên khi có cập nhật liên quan đến data ingestion
+     * @param filterDto
+     * @return
+     */
     @Transactional(readOnly = true)
     public Page<DataIngestionResponseDto> getAll(DataIngestionFilterDto filterDto) {
 
@@ -301,6 +423,11 @@ public class DataIngestionService {
                 .map(dataIngestionMapper::entityToResponseDto);
     }
 
+    /**
+     * Định nghĩa phương thức để retry một data ingestion đã bị lỗi, phương thức này sẽ được gọi khi người dùng muốn thử lại quá trình ingest cho một data ingestion cụ thể đã ở trạng thái FAILED, phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion theo ID, nếu không tồn tại thì trả về lỗi, 2) kiểm tra xem data ingestion này có hợp lệ để retry hay không (ví dụ: không phải là folder, đang ở trạng thái FAILED, không đang ở trạng thái pending delete), nếu không hợp lệ thì trả về lỗi, 3) gọi MinioService để tải file từ MinIO theo object path đã lưu trong data ingestion, nếu có lỗi xảy ra khi tải file thì trả về lỗi, 4) gọi API của ingestion service để đẩy file sang ingestion service để xử lý lại, nếu có lỗi xảy ra khi gọi API của ingestion service hoặc response trả về không hợp lệ thì sẽ cập nhật trạng thái ingestion của data ingestion này thành FAILED để tránh bị treo ở trạng thái PENDING mãi mãi, đồng thời trả về response cho client để client có thể hiển thị thông báo lỗi chính xác. Phương thức này sẽ không cache kết quả vì kết quả có thể thay đổi sau khi retry
+     * @param dataIngestionId
+     * @return
+     */
     @Transactional(noRollbackFor = AppException.class)
     public DataIngestionResponseDto retryIngestion(UUID dataIngestionId) {
         DataIngestionEntity dataIngestion = dataIngestionRepository.findById(dataIngestionId)
@@ -362,6 +489,11 @@ public class DataIngestionService {
         }
     }
 
+    /**
+     * Định nghĩa phương thức để poll trạng thái ingestion mới nhất cho một data ingestion cụ thể, phương thức này sẽ được gọi khi người dùng muốn xem trạng thái ingestion mới nhất cho một data ingestion cụ thể, phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion theo ID, nếu không tồn tại thì trả về lỗi, 2) kiểm tra xem data ingestion này có hợp lệ để poll trạng thái hay không (ví dụ: không phải là folder, không đang ở trạng thái pending delete), nếu không hợp lệ thì trả về lỗi, 3) gọi API của ingestion service để lấy trạng thái ingestion mới nhất dựa trên jobId đã lưu trong data ingestion, nếu có lỗi xảy ra khi gọi API của ingestion service hoặc response trả về không hợp lệ thì sẽ trả về lỗi, 4) cập nhật trạng thái ingestion mới nhất vào database và trả về cho client. Phương thức này sẽ không cache kết quả vì trạng thái ingestion có thể thay đổi thường xuyên và cần được cập nhật mới nhất mỗi khi người dùng yêu cầu
+     * @param dataIngestionId
+     * @return
+     */
     @Transactional
     public DataIngestionJobStatusResponseDto pollIngestionJobStatus(UUID dataIngestionId) {
         Optional<DataIngestionEntity> dataIngestionOptional = dataIngestionRepository.findById(dataIngestionId);
@@ -400,7 +532,11 @@ public class DataIngestionService {
                 .build();
     }
 
-
+    /**
+     * Định nghĩa phương thức để xóa một data ingestion theo ID, phương thức này sẽ được gọi khi người dùng muốn xóa một data ingestion cụ thể, phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion theo ID, nếu không tồn tại thì trả về lỗi, 2) kiểm tra xem data ingestion này có hợp lệ để xóa hay không (ví dụ: nếu là folder thì không cho phép xóa bằng API file mà phải gọi API xóa folder, nếu đang ở trạng thái pending delete thì không cho phép xóa nữa), nếu không hợp lệ thì trả về lỗi, 3) cập nhật trạng thái delete của data ingestion thành PENDING_DELETE để đánh dấu là đang chờ xóa, sau đó trả về thông tin data ingestion đã được cập nhật cho client. Thực tế việc xóa sẽ được thực hiện bởi một tiến trình riêng biệt định kỳ gọi phương thức processPendingDeleteQueue để xử lý các data ingestion đang ở trạng thái pending delete nhằm đảm bảo việc xóa được thực hiện kịp thời và tránh trường hợp dữ liệu bị treo ở trạng thái pending delete mãi mãi do lỗi khi xóa trên MinIO hoặc lỗi khi xóa trong database. Phương thức này sẽ xóa cache chi tiết của data ingestion này để lần sau truy cập sẽ lấy thông tin mới nhất từ database
+     * @param dataIngestionId
+     * @return
+     */
     @CacheEvict(value = CacheName.DATA_INGESTION_DTO_DETAILS, key = "#dataIngestionId", condition = "#dataIngestionId != null")
     @Transactional
     public DataIngestionResponseDto deleteFileById(UUID dataIngestionId) {
@@ -421,12 +557,21 @@ public class DataIngestionService {
         return dataIngestionMapper.entityToResponseDto(dataIngestion);
     }
 
+    /**
+     * Định nghĩa phương thức để xóa một thư mục data ingestion theo ID, phương thức này sẽ được gọi khi người dùng muốn xóa một thư mục data ingestion cụ thể, phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion theo ID, nếu không tồn tại thì trả về lỗi, 2) kiểm tra xem data ingestion này có phải là folder hay không, nếu không phải là folder thì trả về lỗi vì chỉ cho phép xóa thư mục bằng API này, 3) xóa trực tiếp thư mục này trong database vì việc xóa thư mục sẽ tự động cascade xóa tất cả các data ingestion con bên dưới nó, đồng thời xóa cache chi tiết của data ingestion này để lần sau truy cập sẽ lấy thông tin mới nhất từ database. Phương thức này sẽ không đánh dấu trạng thái delete thành PENDING_DELETE như phương thức xóa file mà sẽ xóa trực tiếp vì việc xóa thư mục thường ít gặp lỗi hơn so với việc xóa file (ví dụ: không cần phải xóa trên MinIO) nên có thể thực hiện trực tiếp để tránh trường hợp dữ liệu bị treo ở trạng thái pending delete mãi mãi do lỗi khi xóa trên MinIO hoặc lỗi khi xóa trong database
+     * @param dataIngestionId
+     * @return
+     */
     @CacheEvict(value = CacheName.DATA_INGESTION_DTO_DETAILS, key = "#dataIngestionId", condition = "#dataIngestionId != null")
     @Transactional
     public DataIngestionResponseDto deleteById(UUID dataIngestionId) {
         return deleteFileById(dataIngestionId);
     }
 
+    /**
+     * Định nghĩa phương thức để xử lý hàng đợi xóa các data ingestion đang ở trạng thái pending delete, phương thức này sẽ được gọi định kỳ bởi một tiến trình riêng biệt để đảm bảo việc xóa được thực hiện kịp thời và tránh trường hợp dữ liệu bị treo ở trạng thái pending delete mãi mãi do lỗi khi xóa trên MinIO hoặc lỗi khi xóa trong database, phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy danh sách các data ingestion đang ở trạng thái pending delete, 2) với mỗi data ingestion trong danh sách, thực hiện xóa trên MinIO nếu có minioPath, sau đó xóa bản ghi data ingestion trong database, nếu có lỗi xảy ra khi xóa trên MinIO hoặc lỗi khi xóa trong database thì sẽ cập nhật trạng thái delete của data ingestion đó thành DELETE_FAILED để đánh dấu là đã có lỗi xảy ra khi xóa và cần phải retry lại, tránh trường hợp dữ liệu bị treo ở trạng thái pending delete mãi mãi do lỗi khi xóa trên MinIO hoặc lỗi khi xóa trong database
+     * @param dataIngestion
+     */
     private void executeDelete(DataIngestionEntity dataIngestion) {
         try {
             // Xóa bên minio trước để tránh rác file nếu xóa database thành công nhưng xóa object thất bại
@@ -449,6 +594,10 @@ public class DataIngestionService {
         }
     }
 
+    /**
+     * Định nghĩa phương thức để xóa một thư mục data ingestion theo ID, phương thức này sẽ được gọi khi người dùng muốn xóa một thư mục data ingestion cụ thể, phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion theo ID, nếu không tồn tại thì trả về lỗi, 2) kiểm tra xem data ingestion này có phải là folder hay không, nếu không phải là folder thì trả về lỗi vì chỉ cho phép xóa thư mục bằng API này, 3) xóa trực tiếp thư mục này trong database vì việc xóa thư mục sẽ tự động cascade xóa tất cả các data ingestion con bên dưới nó, đồng thời xóa cache chi tiết của data ingestion này để lần sau truy cập sẽ lấy thông tin mới nhất từ database. Phương thức này sẽ không đánh dấu trạng thái delete thành PENDING_DELETE như phương thức xóa file mà sẽ xóa trực tiếp vì việc xóa thư mục thường ít gặp lỗi hơn so với việc xóa file (ví dụ: không cần phải xóa trên MinIO) nên có thể thực hiện trực tiếp để tránh trường hợp dữ liệu bị treo ở trạng thái pending delete mãi mãi do lỗi khi xóa trên MinIO hoặc lỗi khi xóa trong database
+     * @param dataIngestionId
+     */
     @CacheEvict(value = CacheName.DATA_INGESTION_DTO_DETAILS, key = "#dataIngestionId", condition = "#dataIngestionId != null")
     @Transactional
     public void deleteFolderById(UUID dataIngestionId) {
@@ -460,6 +609,10 @@ public class DataIngestionService {
         dataIngestionRepository.delete(dataIngestion);
     }
 
+    /**
+     * Định nghĩa phương thức để kiểm tra xem một data ingestion có hợp lệ để tải xuống hay không, phương thức này sẽ được gọi trong các phương thức liên quan đến tải xuống file (ví dụ: downloadById, getPresignedDownloadUrl) để đảm bảo rằng chỉ những data ingestion hợp lệ mới được phép tải xuống, phương thức sẽ thực hiện các bước sau: 1) kiểm tra xem data ingestion có phải là folder hay không, nếu là folder thì không cho phép tải xuống vì folder không có file để tải, 2) kiểm tra xem data ingestion có đang ở trạng thái pending delete hay không, nếu đang ở trạng thái pending delete thì không cho phép tải xuống vì dữ liệu đang chờ xóa và có thể bị xóa bất cứ lúc nào, 3) kiểm tra xem data ingestion có minioPath hợp lệ hay không, nếu minioPath null hoặc blank thì không cho phép tải xuống vì không biết đường dẫn để tải file từ MinIO. Nếu bất kỳ điều kiện nào ở trên không th
+     * @param dataIngestion
+     */
     private void validateDownloadableDataIngestion(DataIngestionEntity dataIngestion) {
         if (dataIngestion.isFolder()) {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_FOLDER_ONLY_OPERATION);
@@ -472,10 +625,98 @@ public class DataIngestionService {
         }
     }
 
+    /**
+     * Định nghĩa phương thức để resolve trạng thái delete của data ingestion, phương thức này sẽ được gọi trong các phương thức liên quan đến delete để đảm bảo rằng khi kiểm tra trạng thái delete của data ingestion thì sẽ có giá trị mặc định là ACTIVE nếu trường deleteStatus trong database là null, tránh trường hợp dữ liệu bị treo ở trạng thái pending delete mãi mãi do lỗi khi lưu dữ liệu mà trường deleteStatus bị null
+     * @param dataIngestion
+     * @return
+     */
     private DataIngestionDeleteStatus resolveDeleteStatus(DataIngestionEntity dataIngestion) {
         return dataIngestion.getDeleteStatus() == null ? DataIngestionDeleteStatus.ACTIVE : dataIngestion.getDeleteStatus();
     }
 
+    /**
+     * Định nghĩa phương thức để resolve hoặc tạo mới cây thư mục dựa trên đường dẫn tương đối truyền vào, phương thức này sẽ được gọi khi ingest một file mới với đường dẫn tương đối chứa các thư mục cha, phương thức sẽ thực hiện các bước sau: 1) nếu đường dẫn tương đối là null thì trả về null vì không có thư mục cha nào cả, 2) nếu đường dẫn tương đối không null thì sẽ tách đường dẫn thành các segment và duyệt qua từng segment để resolve hoặc tạo mới node thư mục tương ứng trong database, 3) với mỗi segment, sẽ kiểm tra xem đã tồn tại một node thư mục nào có tên giống segment đó và cùng parentId (hoặc parentId null nếu segment đó là thư mục gốc) hay chưa, nếu đã tồn tại thì sử dụng node đó làm parent cho segment tiếp theo, nếu chưa tồn tại thì tạo mới một node thư mục với tên là segment đó, parentId là node thư mục đã resolve được ở bước trước đó (hoặc null nếu segment đó là thư mục gốc), owner và organization lấy từ tham số truyền vào, accessLevel lấy từ tham số truyền vào, sau đó lưu vào database và sử dụng node mới tạo làm parent cho segment tiếp theo. Cuối cùng sau khi duyệt hết tất cả các segment thì sẽ trả về node thư mục cuối cùng đã resolve hoặc tạo mới được để làm parent cho file cần ingest
+     * @param relativeParentPath
+     * @param owner
+     * @param organization
+     * @param accessLevel
+     * @return
+     */
+    private DataIngestionEntity resolveOrCreateFolderTree(
+            Path relativeParentPath,
+            UserEntity owner,
+            OrganizationEntity organization,
+            DataScope accessLevel) {
+        if (relativeParentPath == null) {
+            return null;
+        }
+
+        DataIngestionEntity currentParent = null;
+        for (Path segment : relativeParentPath) {
+            String folderName = segment.toString().trim();
+            if (folderName.isEmpty()) {
+                continue;
+            }
+            currentParent = resolveOrCreateFolderNode(folderName, currentParent, owner, organization, accessLevel);
+        }
+
+        return currentParent;
+    }
+
+    /**
+     * Định nghĩa phương thức để resolve hoặc tạo mới một node thư mục dựa trên tên thư mục và parent, phương thức này sẽ được gọi trong phương thức resolveOrCreateFolderTree để xử lý từng segment của đường dẫn tương đối, phương thức sẽ thực hiện các bước sau: 1) kiểm tra xem đã tồn tại một node thư mục nào có tên giống folderName và cùng parentId (hoặc parentId null nếu parent là null) hay chưa, nếu đã tồn tại thì trả về node đó, nếu chưa tồn tại thì tạo mới một node thư mục với tên là folderName, parentId là id của parent (hoặc null nếu parent là null), owner và organization lấy từ tham số truyền vào, accessLevel lấy từ tham số truyền vào, sau đó lưu vào database và trả về node mới tạo. Phương thức này sẽ đảm bảo rằng không có hai node thư mục nào có cùng tên và cùng
+     * @param folderName
+     * @param parent
+     * @param owner
+     * @param organization
+     * @param accessLevel
+     * @return
+     */
+    private DataIngestionEntity resolveOrCreateFolderNode(
+            String folderName,
+            DataIngestionEntity parent,
+            UserEntity owner,
+            OrganizationEntity organization,
+            DataScope accessLevel) {
+        Optional<DataIngestionEntity> existing = parent == null
+                ? dataIngestionRepository.findFirstByFolderTrueAndNameAndParentIsNullAndOwnerIdAndOrganizationIdAndDeleteStatus(
+                        folderName,
+                        owner.getId(),
+                        organization.getId(),
+                        DataIngestionDeleteStatus.ACTIVE)
+                : dataIngestionRepository.findFirstByFolderTrueAndNameAndParentIdAndOwnerIdAndOrganizationIdAndDeleteStatus(
+                        folderName,
+                        parent.getId(),
+                        owner.getId(),
+                        organization.getId(),
+                        DataIngestionDeleteStatus.ACTIVE);
+
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        DataIngestionEntity folder = new DataIngestionEntity();
+        folder.setName(folderName);
+        folder.setFolder(true);
+        folder.setContentType(null);
+        folder.setFileSize(0L);
+        folder.setMinioPath(null);
+        folder.setAccessLevel(accessLevel);
+        folder.setOwner(owner);
+        folder.setOrganization(organization);
+        folder.setJobId(null);
+        folder.setIngestionStatus(null);
+        folder.setDeleteStatus(DataIngestionDeleteStatus.ACTIVE);
+        folder.setParent(parent);
+        return dataIngestionRepository.save(folder);
+    }
+
+    /**
+     * Định nghĩa phương thức để kiểm tra xem một node có phải là descendant của một node khác hay không, phương thức này sẽ được gọi trong phương thức updateFolder khi di chuyển một thư mục sang parent mới để đảm bảo rằng không tạo ra vòng lặp trong cây thư mục (ví dụ: di chuyển một thư mục cha vào trong một thư mục con của nó), phương thức sẽ thực hiện các bước sau: 1) bắt đầu từ candidateParent, duyệt lên trên theo hướng parent cho đến khi gặp null, 2) nếu trong quá trình duyệt lên mà gặp node có id giống với node đang được di chuyển thì có nghĩa là candidateParent là descendant của node và việc di chuyển sẽ tạo ra vòng lặp, do đó trả về true để báo lỗi, 3) nếu duyệt lên đến cùng mà không gặp node nào có id giống với node đang được di chuyển thì có nghĩa là candidateParent không phải là descendant của node và việc di chuyển là hợp lệ, do đó trả về false. Phương thức này sẽ giúp đảm bảo tính toàn vẹn của cây thư mục và tránh các lỗi liên quan đến vòng lặp trong cây thư mục
+     * @param candidateParent
+     * @param node
+     * @return
+     */
     private boolean isDescendantOf(DataIngestionEntity candidateParent, DataIngestionEntity node) {
         DataIngestionEntity cursor = candidateParent;
         while (cursor != null) {

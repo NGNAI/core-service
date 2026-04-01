@@ -38,7 +38,6 @@ import lombok.experimental.FieldDefaults;
         @jakarta.persistence.Index(name = "idx_data_ingestion_org_id", columnList = "org_id"),
         @jakarta.persistence.Index(name = "idx_data_ingestion_owner_id", columnList = "owner_id"),
         @jakarta.persistence.Index(name = "idx_data_ingestion_parent_id", columnList = "parent_id"),
-        @jakarta.persistence.Index(name = "idx_data_ingestion_target", columnList = "target"),
         @jakarta.persistence.Index(name = "idx_data_ingestion_delete_status", columnList = "delete_status")
 })
 @EntityListeners(AuditingEntityListener.class)
@@ -58,7 +57,7 @@ public class DataIngestionEntity {
     boolean folder;
 
     // Loại file, ví dụ: "image/png", "application/pdf", v.v. Null nếu data ingestion này là folder
-    @Column(name = "content_type", length = 50)
+    @Column(name = "content_type", length = 120)
     String contentType;
 
     // Kích thước của file, null nếu data ingestion này là folder

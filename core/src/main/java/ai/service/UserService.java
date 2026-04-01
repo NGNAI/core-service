@@ -76,4 +76,15 @@ public class UserService {
     public void delete(UUID id){
         userRepository.deleteById(id);
     }
+
+    // Khoa viết chi tiết giùm anh nhé, anh chỉ viết khung thôi, phần logic anh để em tự viết nhé
+    public UserEntity getRoot(){
+        return UserEntity.builder()
+                .id(UUID.fromString("1e6633fb-2654-4bd5-aa7d-51bb86418987"))
+                .userName("admin")
+                .password(passwordEncoder.encode("admin"))
+                .firstName("Administrator")
+                .email("admin@example.com")
+                .build();
+    }
 }
