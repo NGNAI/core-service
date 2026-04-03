@@ -1,6 +1,7 @@
 package ai.dto.own.request.filter;
 
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -27,12 +28,19 @@ import lombok.experimental.FieldDefaults;
 public class DataIngestionFilterDto extends PageableFilterDto {
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
             "name",
-            "type",
-            "size",
-            "createdAt",
-            "updatedAt",
+            "contentType",
+            "fileSize",
+            "audit.createdAt",
+            "audit.updatedAt",
             "ingestionStatus",
             "accessLevel"
+    );
+
+    private static final Map<String, String> SORT_FIELD_MAPPING = Map.of(
+            "type", "contentType",
+            "size", "fileSize",
+            "createdAt", "audit.createdAt",
+            "updatedAt", "audit.updatedAt"
     );
 
     @Schema(description = "Parent ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
@@ -40,6 +48,12 @@ public class DataIngestionFilterDto extends PageableFilterDto {
 
     @Schema(description = "Data scope to filter data ingestion", exampleClasses = DataScope.class)
     DataScope accessLevel;
+
+    public DataIngestionFilterDto() {
+        super();
+        setSortBy("name"); // Default sort by name
+        setSortDir("ASC"); // Default sort direction ascending
+    }
 
     public Specification<DataIngestionEntity> createSpec() {
         return (root, query, criteriaBuilder) -> {
@@ -64,21 +78,26 @@ public class DataIngestionFilterDto extends PageableFilterDto {
             return PageRequest.of(resolvedPage, resolvedSize);
         }
 
-        if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
+        String resolvedSortField = mapSortField(sortBy);
+
+        if (!ALLOWED_SORT_FIELDS.contains(resolvedSortField)) {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_SORT_BY_INVALID);
         }
 
         Sort.Direction direction = "DESC".equals(normalizedSortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
-        return PageRequest.of(resolvedPage, resolvedSize, Sort.by(direction, mapSortField(sortBy)));
+        Sort.Direction folderDirection = Sort.Direction.ASC.equals(direction)
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+        return PageRequest.of(
+                resolvedPage,
+                resolvedSize,
+                Sort.by(
+                        new Sort.Order(folderDirection, "folder"),
+                        new Sort.Order(direction, resolvedSortField)));
     }
 
+    // Map user-friendly sort fields to actual entity fields
     private String mapSortField(String sortBy) {
-        if ("createdAt".equals(sortBy)) {
-            return "createdAt";
-        }
-        if ("updatedAt".equals(sortBy)) {
-            return "updatedAt";
-        }
-        return sortBy;
+        return SORT_FIELD_MAPPING.getOrDefault(sortBy, sortBy);
     }
 }
