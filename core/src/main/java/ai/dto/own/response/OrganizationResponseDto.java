@@ -25,5 +25,6 @@ public class OrganizationResponseDto {
     String name;
     String description;
     UUID parentId;
+    String path;
     Set<OrganizationResponseDto> children;
 }

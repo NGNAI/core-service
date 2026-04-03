@@ -192,13 +192,13 @@ public class OrganizationUserRoleService {
     }
 
     @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'REMOVE', 'USER')")
-    public void removeUsers(UUID id, OrganizationRemoveUserRequestDto requestDto) {
-        if (!orgRepository.existsById(id)) throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
+    public void removeUsers(UUID orgId, OrganizationRemoveUserRequestDto requestDto) {
+        if (!orgRepository.existsById(orgId)) throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
 
         List<UserEntity> users = userRepository.findAllById(requestDto.getUserIds());
         if (users.size() < requestDto.getUserIds().size()) throw new AppException(ApiResponseStatus.USER_NOT_EXISTS);
 
-        List<OrganizationUserRoleEntity> ourList = ourRepository.findByOrganizationIdAndUserIdIn(id, requestDto.getUserIds());
+        List<OrganizationUserRoleEntity> ourList = ourRepository.findByOrganizationIdAndUserIdIn(orgId, requestDto.getUserIds());
 
         int distinctUserId = ourList.stream().map(our -> our.getId().getUserId()).collect(Collectors.toSet()).size();
 
@@ -209,8 +209,8 @@ public class OrganizationUserRoleService {
     }
 
     @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'REMOVE', 'ROLE')")
-    public void removeRole(UUID id, OrganizationRemoveRoleRequestDto requestDto) {
-        OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
+    public void removeRole(UUID orgId, OrganizationRemoveRoleRequestDto requestDto) {
+        OrganizationEntity org = orgRepository.findById(orgId).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
         List<UserEntity> users = userRepository.findAllById(requestDto.getUserIds());
 
@@ -218,7 +218,7 @@ public class OrganizationUserRoleService {
 
         RoleEntity role = roleRepository.findById(requestDto.getRoleId()).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
 
-        List<OrganizationUserRoleEntity> ourList = ourRepository.findByOrganizationIdAndUserIdIn(id, requestDto.getUserIds());
+        List<OrganizationUserRoleEntity> ourList = ourRepository.findByOrganizationIdAndUserIdIn(orgId, requestDto.getUserIds());
 
         long singleRoleCount = ourList.stream().collect(Collectors.groupingBy(our -> our.getUser().getId())).values().stream().filter(list -> list.size() == 1).mapToLong(List::size).sum();
 
@@ -259,14 +259,14 @@ public class OrganizationUserRoleService {
     }
 
     @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'ASSIGN', 'ROLE')")
-    public void resetRole(UUID id, OrganizationResetRoleRequestDto requestDto) {
-        OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
+    public void resetRole(UUID orgId, OrganizationResetRoleRequestDto requestDto) {
+        OrganizationEntity org = orgRepository.findById(orgId).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
         List<UserEntity> users = userRepository.findAllById(requestDto.getUserIds());
 
         if (users.size() < requestDto.getUserIds().size()) throw new AppException(ApiResponseStatus.USER_NOT_EXISTS);
 
-        List<OrganizationUserRoleEntity> ourList = ourRepository.findByOrganizationIdAndUserIdIn(id, requestDto.getUserIds());
+        List<OrganizationUserRoleEntity> ourList = ourRepository.findByOrganizationIdAndUserIdIn(orgId, requestDto.getUserIds());
 
         int distinctUserId = ourList.stream().map(our -> our.getId().getUserId()).collect(Collectors.toSet()).size();
 

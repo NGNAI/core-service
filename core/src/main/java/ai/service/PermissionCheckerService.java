@@ -23,78 +23,7 @@ public class PermissionCheckerService {
 
     public boolean canAccess(UUID targetOrg, String resource, String action, String targetResource){
         List<PermissionGrantModel> permissions = ourService.getPermissionGrant(JwtUtil.getUserId(), JwtUtil.getOrgId());
-        System.out.println(permissions);
-//        permissions.add(PermissionGrantModel.builder()
-//                .resource(PermissionResource.ORG)
-//                .action(PermissionAction.READ)
-//                .scope(PermissionScope.ALL)
-//                .orgId(UUID.fromString("663a58a1-204f-49b5-8591-0e54deae71cd"))
-//                .build());
-//        permissions.add(PermissionGrantModel.builder()
-//                .resource(PermissionResource.ORG)
-//                .action(PermissionAction.CREATE)
-//                .scope(PermissionScope.DESCENDANT)
-//                        .orgId(UUID.fromString("663a58a1-204f-49b5-8591-0e54deae71cd"))
-//                .build());
-//        permissions.add(PermissionGrantModel.builder()
-//                .resource(PermissionResource.ORG)
-//                .action(PermissionAction.UPDATE)
-//                .scope(PermissionScope.ALL)
-//                .orgId(UUID.fromString("663a58a1-204f-49b5-8591-0e54deae71cd"))
-//                .build());
-//        permissions.add(PermissionGrantModel.builder()
-//                .resource(PermissionResource.ORG)
-//                .action(PermissionAction.DELETE)
-//                .scope(PermissionScope.DESCENDANT)
-//                .orgId(UUID.fromString("663a58a1-204f-49b5-8591-0e54deae71cd"))
-//                .build());
-//        permissions.add(PermissionGrantModel.builder()
-//                .resource(PermissionResource.ORG)
-//                .action(PermissionAction.ASSIGN)
-//                        .targetResource(PermissionResource.USER)
-//                .scope(PermissionScope.OWN)
-//                .orgId(UUID.fromString("663a58a1-204f-49b5-8591-0e54deae71cd"))
-//                .build());
-//        permissions.add(PermissionGrantModel.builder()
-//                .resource(PermissionResource.ORG)
-//                .action(PermissionAction.ASSIGN)
-//                .targetResource(PermissionResource.ROLE)
-//                .scope(PermissionScope.ALL)
-//                .orgId(UUID.fromString("663a58a1-204f-49b5-8591-0e54deae71cd"))
-//                .build());
-//        permissions.add(PermissionGrantModel.builder()
-//                .resource(PermissionResource.ORG)
-//                .action(PermissionAction.REMOVE)
-//                .targetResource(PermissionResource.USER)
-//                .scope(PermissionScope.OWN)
-//                .orgId(UUID.fromString("663a58a1-204f-49b5-8591-0e54deae71cd"))
-//                .build());
-//        permissions.add(PermissionGrantModel.builder()
-//                .resource(PermissionResource.ORG)
-//                .action(PermissionAction.REMOVE)
-//                .targetResource(PermissionResource.ROLE)
-//                .scope(PermissionScope.ALL)
-//                .orgId(UUID.fromString("663a58a1-204f-49b5-8591-0e54deae71cd"))
-//                .build());
-//
-//        permissions.add(PermissionGrantModel.builder()
-//                .resource(PermissionResource.USER)
-//                .action(PermissionAction.READ)
-//                .scope(PermissionScope.ALL)
-//                .orgId(UUID.fromString("663a58a1-204f-49b5-8591-0e54deae71cd"))
-//                .build());
-//        permissions.add(PermissionGrantModel.builder()
-//                .resource(PermissionResource.PERMISSION)
-//                .action(PermissionAction.READ)
-//                .scope(PermissionScope.OWN)
-//                .orgId(UUID.fromString("663a58a1-204f-49b5-8591-0e54deae71cd"))
-//                .build());
-//        permissions.add(PermissionGrantModel.builder()
-//                .resource(PermissionResource.PERMISSION)
-//                .action(PermissionAction.UPDATE)
-//                .scope(PermissionScope.ALL)
-//                .orgId(UUID.fromString("663a58a1-204f-49b5-8591-0e54deae71cd"))
-//                .build());
+
         if(permissions==null || permissions.isEmpty())
             return false;
 
