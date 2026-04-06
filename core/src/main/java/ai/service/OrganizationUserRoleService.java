@@ -142,6 +142,76 @@ public class OrganizationUserRoleService {
         return new CustomPairModel<>(page.getTotalElements(), page.stream().map(userMapper::entityToResponseDto).toList());
     }
 
+    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'READ',null)")
+    public CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> getUsersByOrgIdAndInRole(UUID orgId, UUID roleId,UserFilterDto userFilterDto) {
+        if (!orgRepository.existsById(orgId)) throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
+
+        Map<UUID, UserWithRoleInOrgResponseDto> mapResult = new HashMap<>();
+
+        Specification<OrganizationUserRoleEntity> spec = (root, query, criteriaBuilder) -> {
+            Join<?, ?> user = root.join("user");
+
+            Predicate userSearch = userFilterDto.createSpec(user, criteriaBuilder);
+            Predicate orgIdSearch = criteriaBuilder.equal(root.get("organization").get("id"), orgId);
+            Predicate roleIdSearch = criteriaBuilder.equal(root.get("role").get("id"), roleId);
+            return criteriaBuilder.and(userSearch, orgIdSearch, roleIdSearch);
+        };
+
+        Page<OrganizationUserRoleEntity> users = ourRepository.findAll(spec, userFilterDto.createPageable());
+        if (!users.isEmpty()) {
+            Map<UUID, Map<String, Map<String, Map<String, String>>>> mapRolePermission = roleService.getPermissionListOfRole();
+
+            users.forEach(our -> {
+                UUID userId = our.getUser().getId();
+                RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(our.getRole());
+                role.setPermissions(mapRolePermission.getOrDefault(role.getId(), Map.of()));
+                if (!mapResult.containsKey(userId)) {
+                    UserWithRoleInOrgResponseDto userResponseDto = userMapper.entityToWithRoleResponseDto(our.getUser());
+                    userResponseDto.getRoles().add(role);
+
+                    mapResult.put(userId, userResponseDto);
+                } else mapResult.get(userId).getRoles().add(role);
+            });
+        }
+
+        return new CustomPairModel<>(users.getTotalElements(), mapResult.values().stream().toList());
+    }
+
+    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'READ',null)")
+    public CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> getUsersByOrgIdAndNotInRole(UUID orgId, UUID roleId,UserFilterDto userFilterDto) {
+        if (!orgRepository.existsById(orgId)) throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
+
+        Map<UUID, UserWithRoleInOrgResponseDto> mapResult = new HashMap<>();
+
+        Specification<OrganizationUserRoleEntity> spec = (root, query, criteriaBuilder) -> {
+            Join<?, ?> user = root.join("user");
+
+            Predicate userSearch = userFilterDto.createSpec(user, criteriaBuilder);
+            Predicate orgIdSearch = criteriaBuilder.equal(root.get("organization").get("id"), orgId);
+            Predicate roleIdSearch = criteriaBuilder.notEqual(root.get("role").get("id"), roleId);
+            return criteriaBuilder.and(userSearch, orgIdSearch, roleIdSearch);
+        };
+
+        Page<OrganizationUserRoleEntity> users = ourRepository.findAll(spec, userFilterDto.createPageable());
+        if (!users.isEmpty()) {
+            Map<UUID, Map<String, Map<String, Map<String, String>>>> mapRolePermission = roleService.getPermissionListOfRole();
+
+            users.forEach(our -> {
+                UUID userId = our.getUser().getId();
+                RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(our.getRole());
+                role.setPermissions(mapRolePermission.getOrDefault(role.getId(), Map.of()));
+                if (!mapResult.containsKey(userId)) {
+                    UserWithRoleInOrgResponseDto userResponseDto = userMapper.entityToWithRoleResponseDto(our.getUser());
+                    userResponseDto.getRoles().add(role);
+
+                    mapResult.put(userId, userResponseDto);
+                } else mapResult.get(userId).getRoles().add(role);
+            });
+        }
+
+        return new CustomPairModel<>(users.getTotalElements(), mapResult.values().stream().toList());
+    }
+
     @PreAuthorize("@perm.canAccess(#id, 'ORG', 'ASSIGN', 'USER')")
     public void assignUsers(UUID id, OrganizationAssignUserRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
@@ -224,6 +294,9 @@ public class OrganizationUserRoleService {
 
         if (singleRoleCount > 0)
             throw new AppException(ApiResponseStatus.USER_MUST_HAVE_AT_LEAST_ONE_ROLE_IN_ORGANIZATION);
+
+        if(ourList.stream().filter(our-> our.getId().getRoleId()==requestDto.getRoleId()).toList().size()<requestDto.getUserIds().size())
+            throw new AppException(ApiResponseStatus.USER_WITH_ROLE_NOT_EXIST_IN_ORGANIZATION);
 
         ourRepository.deleteAll(users.stream().map(user -> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
     }

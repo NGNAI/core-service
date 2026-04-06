@@ -47,6 +47,18 @@ public class OrganizationController {
         );
     }
 
+    @GetMapping("/on-permission")
+    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getByPermission(@ModelAttribute OrganizationFilterDto filterDto){
+        CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getByPermission(filterDto);
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<OrganizationResponseDto>>builder()
+                        .message("Get list organizations successfully")
+                        .count(result.getFirst())
+                        .data(result.getSecond())
+                        .build()
+        );
+    }
+
     @GetMapping("/root")
     ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getRoot(@RequestParam(required = false) Integer nestedChild,@ModelAttribute OrganizationFilterDto filterDto){
         CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getRoot(nestedChild,filterDto);

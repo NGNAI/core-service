@@ -33,6 +33,8 @@ public interface OrganizationUserRoleRepository extends JpaRepository<Organizati
 
     List<OrganizationUserRoleEntity> findByOrganizationIdAndRoleId(UUID orgId, UUID roleId);
 
+    List<OrganizationUserRoleEntity> findByOrganizationIdAndRoleIdNot(UUID orgId, UUID roleId);
+
     @Query("""
         SELECT our
         FROM OrganizationUserRoleEntity our

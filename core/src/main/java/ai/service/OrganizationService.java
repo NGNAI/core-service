@@ -6,6 +6,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import ai.enums.PermissionAction;
+import ai.enums.PermissionResource;
+import ai.model.PermissionGrantModel;
+import ai.util.JwtUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,6 +38,8 @@ public class OrganizationService {
     OrganizationUserRoleRepository ourRepository;
 
     OrganizationMapper orgMapper;
+
+    OrganizationUserRoleService ourService;
 
     public OrganizationEntity getEntityById(UUID id){
         return orgRepository.findById(id)
@@ -86,6 +92,27 @@ public class OrganizationService {
         }).toList();
 
         return new CustomPairModel<>(page.getTotalElements(),organizations);
+    }
+
+    public CustomPairModel<Long,List<OrganizationResponseDto>> getByPermission(OrganizationFilterDto filterDto){
+        List<PermissionGrantModel> permissions = ourService.getPermissionGrant(JwtUtil.getUserId(), JwtUtil.getOrgId());
+        for(PermissionGrantModel permission : permissions) {
+            if(!permission.getResource().equals(PermissionResource.ORG) || !permission.getAction().equals(PermissionAction.READ))
+                continue;
+            switch (permission.getScope()){
+                case ALL -> {
+                    return getRoot(999,filterDto);
+                }
+                case OWN -> {
+                    return new CustomPairModel<>(1L,List.of(getById(JwtUtil.getOrgId(),0)));
+                }
+                case DESCENDANT -> {
+                    return new CustomPairModel<>(1L,List.of(getById(JwtUtil.getOrgId(),999)));
+                }
+            }
+        }
+
+        throw new AppException(ApiResponseStatus.PERMISSION_DENIED);
     }
 
     @PreAuthorize("@perm.canAccess(#parentId, 'ORG', 'READ',null)")
