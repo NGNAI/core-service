@@ -30,8 +30,8 @@ public class DataIngestionFilterDto extends PageableFilterDto {
             "name",
             "contentType",
             "fileSize",
-            "audit.createdAt",
-            "audit.updatedAt",
+            "createdAt",
+            "updatedAt",
             "ingestionStatus",
             "accessLevel"
     );
@@ -39,8 +39,8 @@ public class DataIngestionFilterDto extends PageableFilterDto {
     private static final Map<String, String> SORT_FIELD_MAPPING = Map.of(
             "type", "contentType",
             "size", "fileSize",
-            "createdAt", "audit.createdAt",
-            "updatedAt", "audit.updatedAt"
+            "createdAt", "createdAt",
+            "updatedAt", "updatedAt"
     );
 
     @Schema(description = "Parent ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
