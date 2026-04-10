@@ -68,6 +68,11 @@ minio:
   notebook-bucket: "notebookllm"
   attachment-bucket: "attachments"
 
+integration:
+  attachment-api:
+    header-name: "X-API-KEY"
+    key: "ATTACHMENT_API_KEY_1234567890"
+
 auto-ingestion:
   enabled: true
   input-dir: "D:/input"

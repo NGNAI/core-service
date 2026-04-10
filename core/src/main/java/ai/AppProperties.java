@@ -18,6 +18,7 @@ public class AppProperties {
     Rag rag;
     Ingestion ingestion;
     Minio minio;
+    Integration integration;
     AutoIngestion autoIngestion;
 
     @Data
@@ -55,6 +56,19 @@ public class AppProperties {
         String ingestionBucket;
         String notebookBucket;
         String attachmentBucket;
+    }
+
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Integration {
+        AttachmentApi attachmentApi;
+    }
+
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class AttachmentApi {
+        String headerName;
+        String key;
     }
 
     @Data
