@@ -10,11 +10,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
-import ai.entity.postgres.DataIngestionEntity;
+import ai.entity.postgres.DriveEntity;
 import ai.enums.ApiResponseStatus;
-import ai.enums.DataScope;
 import ai.exeption.AppException;
-import ai.specification.DataIngestionEntitySpecification;
+import ai.specification.DriveEntitySpecification;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
@@ -25,15 +24,13 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class DataIngestionFilterDto extends PageableFilterDto {
+public class DriveFilterDto extends PageableFilterDto {
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
             "name",
             "contentType",
             "fileSize",
             "createdAt",
-            "updatedAt",
-            "ingestionStatus",
-            "accessLevel"
+                "updatedAt"
     );
 
     private static final Map<String, String> SORT_FIELD_MAPPING = Map.of(
@@ -43,24 +40,19 @@ public class DataIngestionFilterDto extends PageableFilterDto {
             "updatedAt", "updatedAt"
     );
 
-    @Schema(description = "Parent ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
+    @Schema(description = "Parent ID to filter drive items", example = "123e4567-e89b-12d3-a456-426614174000")
     UUID parentId;
 
-    @Schema(description = "Data scope to filter data ingestion", exampleClasses = DataScope.class)
-    DataScope accessLevel;
-
-    public DataIngestionFilterDto() {
+    public DriveFilterDto() {
         super();
-        setSortBy("name"); // Default sort by name
-        setSortDir("ASC"); // Default sort direction ascending
+        setSortBy("name");
+        setSortDir("ASC");
     }
 
-    public Specification<DataIngestionEntity> createSpec() {
+    public Specification<DriveEntity> createSpec() {
         return (root, query, criteriaBuilder) -> {
-            Predicate parentPredicate = DataIngestionEntitySpecification.buildParent(root, criteriaBuilder, parentId);
-            Predicate accessLevelPredicate = DataIngestionEntitySpecification.buildAccessLevel(root, criteriaBuilder, accessLevel);
-
-            return criteriaBuilder.and(parentPredicate, accessLevelPredicate);
+            Predicate parentPredicate = DriveEntitySpecification.buildParent(root, criteriaBuilder, parentId);
+            return criteriaBuilder.and(parentPredicate);
         };
     }
 
@@ -71,17 +63,16 @@ public class DataIngestionFilterDto extends PageableFilterDto {
 
         String normalizedSortDir = sortDir == null ? "ASC" : sortDir.trim().toUpperCase(Locale.ROOT);
         if (!"ASC".equals(normalizedSortDir) && !"DESC".equals(normalizedSortDir)) {
-            throw new AppException(ApiResponseStatus.DATA_INGESTION_SORT_DIR_INVALID);
+            throw new AppException(ApiResponseStatus.DRIVE_SORT_DIR_INVALID);
         }
 
         if (sortBy == null || sortBy.isBlank()) {
             return PageRequest.of(resolvedPage, resolvedSize);
         }
 
-        String resolvedSortField = mapSortField(sortBy);
-
+        String resolvedSortField = SORT_FIELD_MAPPING.getOrDefault(sortBy, sortBy);
         if (!ALLOWED_SORT_FIELDS.contains(resolvedSortField)) {
-            throw new AppException(ApiResponseStatus.DATA_INGESTION_SORT_BY_INVALID);
+            throw new AppException(ApiResponseStatus.DRIVE_SORT_BY_INVALID);
         }
 
         Sort.Direction direction = "DESC".equals(normalizedSortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
@@ -94,10 +85,5 @@ public class DataIngestionFilterDto extends PageableFilterDto {
                 Sort.by(
                         new Sort.Order(folderDirection, "folder"),
                         new Sort.Order(direction, resolvedSortField)));
-    }
-
-    // Map user-friendly sort fields to actual entity fields
-    private String mapSortField(String sortBy) {
-        return SORT_FIELD_MAPPING.getOrDefault(sortBy, sortBy);
     }
 }

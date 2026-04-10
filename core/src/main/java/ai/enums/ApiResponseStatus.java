@@ -97,9 +97,32 @@ public enum ApiResponseStatus {
     DATA_INGESTION_DELETE_FAILED(1123, "Data ingestion delete failed",HttpStatus.BAD_REQUEST),
     DATA_INGESTION_DELETE_IN_PROGRESS(1124, "Data ingestion deletion is in progress",HttpStatus.CONFLICT),
 
+    DRIVE_PARENT_NOT_EXISTS(1201, "Drive parent not exists", HttpStatus.BAD_REQUEST),
+    DRIVE_FILE_REQUIRED(1202, "Drive file is required", HttpStatus.BAD_REQUEST),
+    DRIVE_UPLOAD_FAILED(1204, "Drive upload failed", HttpStatus.BAD_REQUEST),
+    DRIVE_DOWNLOAD_FAILED(1205, "Drive download failed", HttpStatus.BAD_REQUEST),
+    DRIVE_NOT_EXISTS(1206, "Drive not exists", HttpStatus.BAD_REQUEST),
+    DRIVE_NAME_REQUIRED(1207, "Drive name is required", HttpStatus.BAD_REQUEST),
+    DRIVE_SORT_BY_INVALID(1208, "Drive sort field is invalid", HttpStatus.BAD_REQUEST),
+    DRIVE_SORT_DIR_INVALID(1209, "Drive sort direction is invalid", HttpStatus.BAD_REQUEST),
+    DRIVE_FOLDER_ONLY_OPERATION(1210, "This operation is only for drive folder", HttpStatus.BAD_REQUEST),
+    DRIVE_PARENT_MUST_BE_FOLDER(1211, "Drive parent must be folder", HttpStatus.BAD_REQUEST),
+    DRIVE_MOVE_CYCLE_NOT_ALLOWED(1212, "Drive move cycle is not allowed", HttpStatus.BAD_REQUEST),
+    DRIVE_FOLDER_UPDATE_REQUIRED(1213, "Drive folder update payload is empty", HttpStatus.BAD_REQUEST),
+    DRIVE_DELETE_FAILED(1214, "Drive delete failed", HttpStatus.BAD_REQUEST),
+    DRIVE_DELETE_IN_PROGRESS(1215, "Drive deletion is in progress", HttpStatus.CONFLICT),
+
+    ATTACHMENT_NOT_EXISTS(1301, "Attachment does not exist", HttpStatus.NOT_FOUND),
+    ATTACHMENT_FILE_REQUIRED(1302, "Attachment file is required", HttpStatus.BAD_REQUEST),
+    ATTACHMENT_UPLOAD_FAILED(1303, "Attachment upload failed", HttpStatus.BAD_REQUEST),
+    ATTACHMENT_DOWNLOAD_FAILED(1304, "Attachment download failed", HttpStatus.BAD_REQUEST),
+    ATTACHMENT_SORT_BY_INVALID(1305, "Attachment sort field is invalid", HttpStatus.BAD_REQUEST),
+    ATTACHMENT_SORT_DIR_INVALID(1306, "Attachment sort direction is invalid", HttpStatus.BAD_REQUEST),
+
     UNEXPECTED(9999, "An unexpected error occurred!",HttpStatus.INTERNAL_SERVER_ERROR);
 
     int code;
     String message;
     HttpStatusCode httpStatusCode;
 }
+ 

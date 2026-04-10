@@ -10,7 +10,8 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum MessageType {
     USER("user"),
-    ASSISTANT("assistant");
+    ASSISTANT("assistant"),
+    FILE("file");
 
     String value;
 }

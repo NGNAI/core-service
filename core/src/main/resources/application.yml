@@ -64,7 +64,9 @@ minio:
   endpoint: "http://192.168.30.71:9000"
   access-key: "admin"
   secret-key: "password"
-  bucket: "ingestions"
+  ingestion-bucket: "ingestions"
+  notebook-bucket: "notebookllm"
+  attachment-bucket: "attachments"
 
 auto-ingestion:
   enabled: true

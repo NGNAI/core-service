@@ -3,15 +3,18 @@ package ai.service;
 import ai.dto.own.request.MessageCreateRequestDto;
 import ai.dto.own.request.MessageUpdateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
+import ai.dto.own.response.AttachmentResponseDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.entity.postgres.MessageEntity;
 import ai.entity.postgres.TopicEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.MessageType;
 import ai.exeption.AppException;
 import ai.mapper.MessageMapper;
 import ai.model.CustomPairModel;
 import ai.repository.MessageRepository;
 import ai.util.JwtUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -28,8 +31,8 @@ import java.util.UUID;
 public class MessageService {
     MessageRepository messageRepository;
     TopicService topicService;
-
     MessageMapper messageMapper;
+    ObjectMapper objectMapper;
 
     public CustomPairModel<Long,List<MessageResponseDto>> getAll(UUID topicId, MessageFilterDto filterDto){
         topicService.validateTopicOfUser(topicId, JwtUtil.getUserId());
@@ -54,6 +57,26 @@ public class MessageService {
         newEntity.setTopic(topicEntity);
 
         return messageMapper.entityToResponseDto(messageRepository.save(newEntity));
+    }
+
+    /**
+     * Tạo message kiểu attachment, dùng để lưu thông tin file khi user upload file lên topic. Sau đó message này sẽ được gửi vào rag để rag lưu thông tin file vào vector db cùng với nội dung message (nếu có) để phục vụ cho việc tìm kiếm sau này
+     * @param topicId
+     * @param attachmentDto
+     * @return
+     */
+    public MessageResponseDto createAttachmentMessage(UUID topicId, AttachmentResponseDto attachmentDto) {
+        String content;
+        try {
+            content = objectMapper.writeValueAsString(attachmentDto);
+        } catch (Exception e) {
+            content = "{}";
+        }
+        return create(MessageCreateRequestDto.builder()
+                .topicId(topicId)
+                .type(MessageType.FILE.getValue())
+                .content(content)
+                .build());
     }
 
     public MessageResponseDto update(UUID messageId, MessageUpdateRequestDto updateRequestDto){

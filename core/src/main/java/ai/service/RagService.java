@@ -5,7 +5,9 @@ import ai.dto.own.request.ConversationRequestDto;
 import ai.dto.own.request.MessageCreateRequestDto;
 import ai.dto.own.request.MessageUpdateRequestDto;
 import ai.dto.own.request.TopicCreateRequestDto;
+import ai.dto.own.request.filter.AttachmentFilterDto;
 import ai.dto.own.request.filter.MessageFilterDto;
+import ai.dto.own.response.AttachmentResponseDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.enums.MessageType;
 import ai.enums.TopicType;
@@ -34,6 +36,7 @@ public class RagService {
     RagApiService ragApiService;
     TopicService topicService;
     MessageService messageService;
+    AttachmentService attachmentService;
 
     ObjectMapper objectMapper;
 
@@ -82,6 +85,13 @@ public class RagService {
                         .content(messageResponseDto.getType()).build()).collect(Collectors.toList());
 
         Collections.reverse(historyConversations);
+
+
+        // Get attachments of topic - Khoa xử lý tiếp nha
+        AttachmentFilterDto attachmentFilterDto = new AttachmentFilterDto();
+        attachmentFilterDto.setTopicId(finalTopicId);
+
+        List<AttachmentResponseDto> attachments = attachmentService.getList(attachmentFilterDto).toList();
 
         RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
                 .model("")
