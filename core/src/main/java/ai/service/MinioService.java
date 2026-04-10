@@ -34,13 +34,14 @@ public class MinioService {
     AppProperties appProperties;
 
     /**
-     * Hàm upload này dành cho trường hợp upload file trực tiếp từ client thông qua MultipartFile, hàm sẽ nhận MultipartFile, tên người dùng và đơn vị để xây dựng đường dẫn lưu trữ trong Minio, sau đó tải file lên Minio và trả về object path để lưu vào database. Hàm này sẽ tự động tạo bucket nếu bucket chưa tồn tại, và xây dựng đường dẫn đối tượng theo định dạng: unit/username/yyyy/MM/dd/safeFileName để tổ chức file trong Minio một cách có cấu trúc và dễ quản lý.
+     * Hàm này sẽ nhận một file MultipartFile cùng với thông tin về username, unit và bucketName để tải file đó lên Minio. Hàm sẽ xây dựng đường dẫn đối tượng trong Minio theo định dạng: unit/username/yyyy/MM/dd/safeFileName, trong đó safeFileName là tên file đã được chuẩn hóa và thêm UUID để đảm bảo tính duy nhất. Sau đó, hàm sẽ sử dụng MinioClient để kiểm tra sự tồn tại của bucket và tạo bucket nếu cần thiết, rồi tải file lên Minio. Nếu quá trình tải file thành công, hàm sẽ trả về đường dẫn đối tượng trong Minio. Nếu có lỗi xảy ra trong quá trình tải file, hàm sẽ ném ra AppException với mã lỗi DATA_INGESTION_UPLOAD_FAILED.
      * @param file
      * @param username
      * @param unit
+     * @param bucketName
      * @return
      */
-    public String upload(MultipartFile file, String username, String unit) {
+    public String upload(MultipartFile file, String username, String unit, String bucketName) {
         try {
             AppProperties.Minio minio = appProperties.getMinio();
             MinioClient client = MinioClient.builder()
@@ -48,7 +49,7 @@ public class MinioService {
                     .credentials(minio.getAccessKey(), minio.getSecretKey())
                     .build();
 
-            String bucket = minio.getBucket();
+            String bucket = bucketName;
             ensureBucket(client, bucket);
 
             String objectPath = buildObjectPath(username, unit, file.getOriginalFilename());
@@ -70,15 +71,16 @@ public class MinioService {
     }
 
     /**
-     * Hàm upload này dành cho trường hợp cần upload file đã có sẵn dưới dạng byte array, ví dụ như file đã được lưu tạm thời trên server sau khi xử lý, hoặc file được tạo ra từ dữ liệu nhị phân nào đó mà không thông qua MultipartFile. Hàm này sẽ nhận dữ liệu byte array, tên file gốc (để xây dựng object path), content type của file, tên người dùng và đơn vị để xây dựng đường dẫn lưu trữ trong Minio, sau đó tải file lên Minio và trả về object path để lưu vào database.
+     * Hàm này sẽ nhận đường dẫn đối tượng trong Minio và bucketName, sau đó tải file đó về từ Minio và trả về dữ liệu file dưới dạng byte array cùng với content type của file. Hàm sẽ sử dụng MinioClient để gọi API tải file về từ Minio. Nếu có lỗi xảy ra trong quá trình tải file, hàm sẽ ném ra AppException với mã lỗi DATA_INGESTION_DOWNLOAD_FAILED.
      * @param bytes
      * @param fileName
      * @param contentType
      * @param username
      * @param unit
+     * @param bucketName
      * @return
      */
-    public String upload(byte[] bytes, String fileName, String contentType, String username, String unit) {
+    public String upload(byte[] bytes, String fileName, String contentType, String username, String unit, String bucketName) {
         try {
             AppProperties.Minio minio = appProperties.getMinio();
             MinioClient client = MinioClient.builder()
@@ -86,7 +88,7 @@ public class MinioService {
                     .credentials(minio.getAccessKey(), minio.getSecretKey())
                     .build();
 
-            String bucket = minio.getBucket();
+            String bucket = bucketName;
             ensureBucket(client, bucket);
 
             String objectPath = buildObjectPath(username, unit, fileName);
@@ -109,11 +111,12 @@ public class MinioService {
     }
 
     /**
-     * Hàm download này sẽ nhận object path của file trong Minio, sau đó tải file về dưới dạng byte array cùng với content type để trả về cho client. Hàm này sẽ sử dụng MinioClient để truy xuất file từ Minio, đọc nội dung file vào byte array và lấy content type từ metadata của đối tượng trong Minio. Nếu có lỗi trong quá trình tải file, hàm sẽ ném ra AppException với mã lỗi DATA_INGESTION_DOWNLOAD_FAILED.
+     * Hàm này sẽ nhận đường dẫn đối tượng trong Minio và bucketName, sau đó tải file đó về từ Minio và trả về dữ liệu file dưới dạng byte array cùng với content type của file. Hàm sẽ sử dụng MinioClient để gọi API tải file về từ Minio. Nếu có lỗi xảy ra trong quá trình tải file, hàm sẽ ném ra AppException với mã lỗi DATA_INGESTION_DOWNLOAD_FAILED.
      * @param objectPath
+     * @param bucketName
      * @return
      */
-    public MinioObjectData download(String objectPath) {
+    public MinioObjectData download(String objectPath, String bucketName) {
         try {
             AppProperties.Minio minio = appProperties.getMinio();
             MinioClient client = MinioClient.builder()
@@ -121,16 +124,18 @@ public class MinioService {
                     .credentials(minio.getAccessKey(), minio.getSecretKey())
                     .build();
 
+            String bucket = bucketName;
+
             String contentType = client.statObject(
                 StatObjectArgs.builder()
-                    .bucket(minio.getBucket())
+                    .bucket(bucket)
                     .object(objectPath)
                     .build()
             ).contentType();
 
             try (InputStream inputStream = client.getObject(
                     GetObjectArgs.builder()
-                            .bucket(minio.getBucket())
+                        .bucket(bucket)
                             .object(objectPath)
                             .build())) {
                 ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -151,10 +156,11 @@ public class MinioService {
     }
 
     /**
-     * Hàm delete này sẽ nhận object path của file trong Minio, sau đó xóa file đó khỏi Minio. Hàm này sẽ sử dụng MinioClient để gọi API xóa đối tượng trong Minio. Nếu có lỗi trong quá trình xóa file, hàm sẽ ném ra AppException với mã lỗi DATA_INGESTION_DELETE_FAILED.
+     * Hàm này sẽ nhận đường dẫn đối tượng trong Minio và bucketName, sau đó xóa file đó khỏi Minio. Hàm sẽ sử dụng MinioClient để gọi API xóa file khỏi Minio. Nếu có lỗi xảy ra trong quá trình xóa file, hàm sẽ ném ra AppException với mã lỗi DATA_INGESTION_DELETE_FAILED.
      * @param objectPath
+     * @param bucketName
      */
-    public void delete(String objectPath) {
+    public void delete(String objectPath, String bucketName) {
         try {
             AppProperties.Minio minio = appProperties.getMinio();
             MinioClient client = MinioClient.builder()
@@ -162,9 +168,11 @@ public class MinioService {
                     .credentials(minio.getAccessKey(), minio.getSecretKey())
                     .build();
 
+            String bucket = bucketName;
+
             client.removeObject(
                     RemoveObjectArgs.builder()
-                            .bucket(minio.getBucket())
+                        .bucket(bucket)
                             .object(objectPath)
                             .build()
             );
@@ -179,7 +187,7 @@ public class MinioService {
      * @param expiresInSeconds
      * @return
      */
-    public String generatePresignedDownloadUrl(String objectPath, int expiresInSeconds) {
+    public String generatePresignedDownloadUrl(String objectPath, int expiresInSeconds, String bucketName) {
         try {
             AppProperties.Minio minio = appProperties.getMinio();
             MinioClient client = MinioClient.builder()
@@ -187,12 +195,14 @@ public class MinioService {
                     .credentials(minio.getAccessKey(), minio.getSecretKey())
                     .build();
 
+            String bucket = bucketName;
+
             int effectiveExpiry = expiresInSeconds > 0 ? expiresInSeconds : 900;
 
             return client.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
-                            .bucket(minio.getBucket())
+                        .bucket(bucket)
                             .object(objectPath)
                             .expiry(effectiveExpiry, TimeUnit.SECONDS)
                             .build()

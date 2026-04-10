@@ -13,6 +13,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import ai.AppProperties;
 import ai.constant.CacheName;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
@@ -47,6 +48,7 @@ public class DataIngestionService {
     // Định nghĩa thời gian mặc định cho presigned URL là 15 phút (900 giây), có thể cấu hình lại khi gọi API để lấy presigned URL với thời gian tùy chỉnh
     static int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
 
+    AppProperties appProperties;
     DataIngestionRepository dataIngestionRepository;
     IngestionService ingestionService;
     MinioService minioService;
@@ -104,7 +106,7 @@ public class DataIngestionService {
         // Push lên MinIO trước để tránh trường hợp đã lưu data ingestion vào database nhưng
         // upload file lên MinIO thất bại, dẫn đến dữ liệu bị lỗi không thể retry
         // ingestion được
-        String minioPath = minioService.upload(requestDto.getFile(), user.getUserName(), organization.getName());
+        String minioPath = minioService.upload(requestDto.getFile(), user.getUserName(), organization.getName(), appProperties.getMinio().getIngestionBucket());
 
         DataIngestionEntity dataIngestion = new DataIngestionEntity();
         dataIngestion.setName(requestDto.getFile().getOriginalFilename());
@@ -245,7 +247,7 @@ public class DataIngestionService {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);
         }
 
-        String minioPath = minioService.upload(fileBytes, fileName, contentType, owner.getUserName(), organization.getName());
+        String minioPath = minioService.upload(fileBytes, fileName, contentType, owner.getUserName(), organization.getName(), appProperties.getMinio().getIngestionBucket());
 
         DataIngestionEntity dataIngestion = new DataIngestionEntity();
         dataIngestion.setName(fileName);
@@ -315,7 +317,7 @@ public class DataIngestionService {
 
         validateDownloadableDataIngestion(dataIngestion);
 
-        MinioService.MinioObjectData objectData = minioService.download(dataIngestion.getMinioPath());
+            MinioService.MinioObjectData objectData = minioService.download(dataIngestion.getMinioPath(), appProperties.getMinio().getIngestionBucket());
         dataIngestionRepository.save(dataIngestion);
 
         return new DataIngestionDownloadData(
@@ -341,7 +343,7 @@ public class DataIngestionService {
                 ? DEFAULT_PRESIGNED_EXPIRY_SECONDS
                 : expiresInSeconds;
 
-        String url = minioService.generatePresignedDownloadUrl(dataIngestion.getMinioPath(), effectiveExpiry);
+        String url = minioService.generatePresignedDownloadUrl(dataIngestion.getMinioPath(), effectiveExpiry, appProperties.getMinio().getIngestionBucket());
         return DataIngestionPresignedUrlResponseDto.builder()
                 .url(url)
                 .expiresInSeconds(effectiveExpiry)
@@ -457,7 +459,7 @@ public class DataIngestionService {
         OrganizationEntity organization = dataIngestion.getOrganization();
 
         try {
-            MinioService.MinioObjectData objectData = minioService.download(dataIngestion.getMinioPath());
+            MinioService.MinioObjectData objectData = minioService.download(dataIngestion.getMinioPath(), appProperties.getMinio().getIngestionBucket());
             IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
                     objectData.getBytes(),
                     dataIngestion.getName(),
@@ -576,7 +578,7 @@ public class DataIngestionService {
         try {
             // Xóa bên minio trước để tránh rác file nếu xóa database thành công nhưng xóa object thất bại
             if (dataIngestion.getMinioPath() != null && !dataIngestion.getMinioPath().isBlank()) {
-                minioService.delete(dataIngestion.getMinioPath());
+                minioService.delete(dataIngestion.getMinioPath(), appProperties.getMinio().getIngestionBucket());
             }
 
             // Nếu data ingestion này liên quan đến ingestion job nào đó thì gọi API của ingestion service để xóa job đó luôn, tránh trường hợp dữ liệu bị xóa nhưng job

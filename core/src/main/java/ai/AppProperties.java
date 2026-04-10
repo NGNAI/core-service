@@ -52,7 +52,8 @@ public class AppProperties {
         String endpoint;
         String accessKey;
         String secretKey;
-        String bucket;
+        String ingestionBucket;
+        String notebookBucket;
     }
 
     @Data
