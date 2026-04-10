@@ -1,5 +1,6 @@
 package ai.security;
 
+import ai.AppProperties;
 import ai.enums.TokenType;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -27,6 +27,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 public class SecurityConfig {
     CustomJwtDecoder customJWTDecoder;
+        AppProperties appProperties;
 
     @Bean
     @Order(1)
@@ -69,6 +70,7 @@ public class SecurityConfig {
                                         .jwtAuthenticationConverter(jwtAuthenticationConverter())
                         ).authenticationEntryPoint(new JwtAuthenticationEntryPoint())
                 )
+                .addFilterBefore(new AttachmentApiKeyFilter(appProperties), BearerTokenAuthenticationFilter.class)
                 .addFilterAfter(new TokenTypeFilter(TokenType.ACCESS), BearerTokenAuthenticationFilter.class)
                 .cors(cors -> {})
                 .csrf(AbstractHttpConfigurer::disable);

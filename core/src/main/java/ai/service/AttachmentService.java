@@ -4,6 +4,8 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,6 +23,7 @@ import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
 import ai.mapper.AttachmentMapper;
 import ai.repository.AttachmentRepository;
+import ai.security.ApiKeyAuthenticationConstants;
 import ai.util.JwtUtil;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
@@ -161,7 +164,10 @@ public class AttachmentService {
         AttachmentEntity attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new AppException(ApiResponseStatus.ATTACHMENT_NOT_EXISTS));
 
-        validateOwnership(attachment, JwtUtil.getUserId(), JwtUtil.getOrgId());
+        if (!isAttachmentApiKeyRequest()) {
+            validateOwnership(attachment, JwtUtil.getUserId(), JwtUtil.getOrgId());
+        }
+
         return attachment;
     }
 
@@ -182,5 +188,13 @@ public class AttachmentService {
             return DEFAULT_ATTACHMENT_BUCKET;
         }
         return configured;
+    }
+
+    private boolean isAttachmentApiKeyRequest() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        return authentication != null
+                && authentication.isAuthenticated()
+                && ApiKeyAuthenticationConstants.ATTACHMENT_API_KEY_PRINCIPAL.equals(authentication.getPrincipal());
     }
 }
