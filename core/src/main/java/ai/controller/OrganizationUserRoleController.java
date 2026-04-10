@@ -98,9 +98,9 @@ public class OrganizationUserRoleController {
         );
     }
 
-    @PostMapping("/users/roles/assign")
-    ResponseEntity<ApiResponseModel<Void>> assignRole(@PathVariable UUID organizationId,@Valid @RequestBody OrganizationAssignRoleRequestDto requestDto){
-        ourService.assignRole(organizationId, requestDto);
+    @PostMapping("/roles/{roleId}/users")
+    ResponseEntity<ApiResponseModel<Void>> assignRole(@PathVariable UUID organizationId, @PathVariable UUID roleId,@Valid @RequestBody OrganizationAssignRoleRequestDto requestDto){
+        ourService.assignRole(organizationId, roleId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Assign users to role from organization successfully")
@@ -108,9 +108,9 @@ public class OrganizationUserRoleController {
         );
     }
 
-    @PostMapping("/users/roles/remove")
-    ResponseEntity<ApiResponseModel<Void>> removeRole(@PathVariable UUID organizationId,@Valid @RequestBody OrganizationRemoveRoleRequestDto requestDto){
-        ourService.removeRole(organizationId, requestDto);
+    @PostMapping("/roles/{roleId}/users/remove")
+    ResponseEntity<ApiResponseModel<Void>> removeRole(@PathVariable UUID organizationId, @PathVariable UUID roleId,@Valid @RequestBody OrganizationRemoveRoleRequestDto requestDto){
+        ourService.removeRole(organizationId, roleId, requestDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Remove users from role from organization successfully")

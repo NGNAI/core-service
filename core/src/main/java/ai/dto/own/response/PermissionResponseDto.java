@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.UUID;
 
 @JsonPropertyOrder({
@@ -27,4 +28,5 @@ public class PermissionResponseDto extends AuditResponseDto {
     String code;
     String resource;
     String action;
+    List<String> scopes;
 }

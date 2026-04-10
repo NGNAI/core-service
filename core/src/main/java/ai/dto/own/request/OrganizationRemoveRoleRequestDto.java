@@ -14,7 +14,4 @@ import java.util.UUID;
 public class OrganizationRemoveRoleRequestDto {
     @NotEmpty(message = "USER_IDS_CAN_NOT_BE_NULL_OR_EMPTY")
     Set<UUID> userIds;
-
-    @NotNull(message = "ROLE_ID_CAN_NOT_BE_NULL")
-    UUID roleId;
 }

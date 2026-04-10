@@ -1,15 +1,14 @@
 package ai.entity.postgres;
 
 import ai.entity.postgres.embeddable.AuditEmbed;
-import ai.mapper.GeneralMapper;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import org.mapstruct.Mapping;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
+import org.hibernate.type.SqlTypes;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -43,6 +42,9 @@ public class PermissionEntity {
 
     @Column(name = "target_resource")
     String targetResource;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    List<String> scopes;
 
     @Embedded
     AuditEmbed audit = new AuditEmbed();

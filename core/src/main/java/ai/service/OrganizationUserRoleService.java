@@ -188,8 +188,15 @@ public class OrganizationUserRoleService {
 
             Predicate userSearch = userFilterDto.createSpec(user, criteriaBuilder);
             Predicate orgIdSearch = criteriaBuilder.equal(root.get("organization").get("id"), orgId);
-            Predicate roleIdSearch = criteriaBuilder.notEqual(root.get("role").get("id"), roleId);
-            return criteriaBuilder.and(userSearch, orgIdSearch, roleIdSearch);
+
+            Subquery<UUID> subquery = query.subquery(UUID.class);
+            Root<OrganizationUserRoleEntity> our = subquery.from(OrganizationUserRoleEntity.class);
+            subquery.select(our.get("id").get("userId"));
+            subquery.where(criteriaBuilder.equal(our.get("id").get("roleId"), roleId));
+
+            Predicate userNotInSearch = criteriaBuilder.not(root.get("user").get("id").in(subquery));
+
+            return criteriaBuilder.and(userSearch, orgIdSearch, userNotInSearch);
         };
 
         Page<OrganizationUserRoleEntity> users = ourRepository.findAll(spec, userFilterDto.createPageable());
@@ -237,7 +244,7 @@ public class OrganizationUserRoleService {
     }
 
     @PreAuthorize("@perm.canAccess(#id, 'ORG', 'ASSIGN', 'ROLE')")
-    public void assignRole(UUID id, OrganizationAssignRoleRequestDto requestDto) {
+    public void assignRole(UUID id, UUID roleId,OrganizationAssignRoleRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
         List<UserEntity> users = userRepository.findAllById(requestDto.getUserIds());
@@ -251,9 +258,9 @@ public class OrganizationUserRoleService {
         if (distinctUserId < requestDto.getUserIds().size())
             throw new AppException(ApiResponseStatus.USER_NOT_EXIST_IN_ORGANIZATION);
 
-        RoleEntity role = roleRepository.findById(requestDto.getRoleId()).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
+        RoleEntity role = roleRepository.findById(roleId).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
 
-        ourRepository.findByOrganizationIdAndRoleId(id, requestDto.getRoleId()).forEach(our -> {
+        ourRepository.findByOrganizationIdAndRoleId(id, roleId).forEach(our -> {
             if (requestDto.getUserIds().contains(our.getId().getUserId()))
                 throw new AppException(ApiResponseStatus.USER_WITH_ROLE_EXISTED_IN_ORGANIZATION);
         });
@@ -279,14 +286,14 @@ public class OrganizationUserRoleService {
     }
 
     @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'REMOVE', 'ROLE')")
-    public void removeRole(UUID orgId, OrganizationRemoveRoleRequestDto requestDto) {
+    public void removeRole(UUID orgId,UUID roleId, OrganizationRemoveRoleRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(orgId).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
         List<UserEntity> users = userRepository.findAllById(requestDto.getUserIds());
 
         if (users.size() < requestDto.getUserIds().size()) throw new AppException(ApiResponseStatus.USER_NOT_EXISTS);
 
-        RoleEntity role = roleRepository.findById(requestDto.getRoleId()).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
+        RoleEntity role = roleRepository.findById(roleId).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
 
         List<OrganizationUserRoleEntity> ourList = ourRepository.findByOrganizationIdAndUserIdIn(orgId, requestDto.getUserIds());
 
@@ -295,7 +302,7 @@ public class OrganizationUserRoleService {
         if (singleRoleCount > 0)
             throw new AppException(ApiResponseStatus.USER_MUST_HAVE_AT_LEAST_ONE_ROLE_IN_ORGANIZATION);
 
-        if(ourList.stream().filter(our-> our.getId().getRoleId()==requestDto.getRoleId()).toList().size()<requestDto.getUserIds().size())
+        if(ourList.stream().filter(our-> our.getId().getRoleId().equals(roleId)).toList().size()<requestDto.getUserIds().size())
             throw new AppException(ApiResponseStatus.USER_WITH_ROLE_NOT_EXIST_IN_ORGANIZATION);
 
         ourRepository.deleteAll(users.stream().map(user -> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
