@@ -14,5 +14,6 @@ public interface TopicMapper extends GeneralMapper{
     @Mapping(target = "createdBy", expression = "java(createdByFromAudit(entity.getAudit()))")
     @Mapping(target = "updatedAt", expression = "java(updatedAtFromAudit(entity.getAudit()))")
     @Mapping(target = "updatedBy", expression = "java(updatedByFromAudit(entity.getAudit()))")
+    @Mapping(target = "ownerId", source = "owner.id")
     TopicResponseDto entityToResponseDto(TopicEntity entity);
 }
