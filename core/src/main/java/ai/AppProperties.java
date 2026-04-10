@@ -54,6 +54,7 @@ public class AppProperties {
         String secretKey;
         String ingestionBucket;
         String notebookBucket;
+        String attachmentBucket;
     }
 
     @Data

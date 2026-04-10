@@ -112,6 +112,13 @@ public enum ApiResponseStatus {
     DRIVE_DELETE_FAILED(1214, "Drive delete failed", HttpStatus.BAD_REQUEST),
     DRIVE_DELETE_IN_PROGRESS(1215, "Drive deletion is in progress", HttpStatus.CONFLICT),
 
+    ATTACHMENT_NOT_EXISTS(1301, "Attachment does not exist", HttpStatus.NOT_FOUND),
+    ATTACHMENT_FILE_REQUIRED(1302, "Attachment file is required", HttpStatus.BAD_REQUEST),
+    ATTACHMENT_UPLOAD_FAILED(1303, "Attachment upload failed", HttpStatus.BAD_REQUEST),
+    ATTACHMENT_DOWNLOAD_FAILED(1304, "Attachment download failed", HttpStatus.BAD_REQUEST),
+    ATTACHMENT_SORT_BY_INVALID(1305, "Attachment sort field is invalid", HttpStatus.BAD_REQUEST),
+    ATTACHMENT_SORT_DIR_INVALID(1306, "Attachment sort direction is invalid", HttpStatus.BAD_REQUEST),
+
     UNEXPECTED(9999, "An unexpected error occurred!",HttpStatus.INTERNAL_SERVER_ERROR);
 
     int code;

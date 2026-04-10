@@ -66,6 +66,7 @@ minio:
   secret-key: "password"
   ingestion-bucket: "ingestions"
   notebook-bucket: "notebookllm"
+  attachment-bucket: "attachments"
 
 auto-ingestion:
   enabled: true
