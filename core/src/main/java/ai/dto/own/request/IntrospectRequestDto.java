@@ -1,5 +1,6 @@
 package ai.dto.own.request;
 
+import ai.constant.InputValidateKey;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -10,6 +11,6 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class IntrospectRequestDto {
-    @NotBlank(message = "TOKEN_CAN_NOT_BE_NULL_OR_EMPTY")
+    @NotBlank(message = InputValidateKey.TOKEN_CAN_NOT_BE_NULL_OR_EMPTY)
     String token;
 }

@@ -1,5 +1,6 @@
 package ai.dto.own.request;
 
+import ai.constant.InputValidateKey;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -11,6 +12,6 @@ import java.util.UUID;
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RolePermissionUpdateRequestDto {
-    @NotNull(message = "ROLE_PERMISSION_CAN_NOT_BE_NULL")
+    @NotNull(message = InputValidateKey.ROLE_PERMISSION_CAN_NOT_BE_NULL)
     Set<PermissionAssignRequestDto> permissions;
 }

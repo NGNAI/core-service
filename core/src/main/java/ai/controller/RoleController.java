@@ -27,7 +27,7 @@ public class RoleController {
     RoleService roleService;
 
     @GetMapping
-    ResponseEntity<ApiResponseModel<List<RoleResponseDto>>> getAll(@ModelAttribute RoleFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<RoleResponseDto>>> getAll(@Valid @ModelAttribute RoleFilterDto filterDto){
         CustomPairModel<Long, List<RoleResponseDto>> result = roleService.getAll(filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<RoleResponseDto>>builder()
@@ -49,7 +49,7 @@ public class RoleController {
     }
 
     @PutMapping("/{roleId}")
-    ResponseEntity<ApiResponseModel<RoleResponseDto>> update(@Valid @PathVariable UUID roleId, @RequestBody RoleUpdateRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<RoleResponseDto>> update(@PathVariable UUID roleId,@Valid  @RequestBody RoleUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<RoleResponseDto>builder()
                         .message("Update role successfully")

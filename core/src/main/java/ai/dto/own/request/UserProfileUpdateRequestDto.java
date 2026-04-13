@@ -1,5 +1,6 @@
 package ai.dto.own.request;
 
+import ai.constant.InputValidateKey;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -11,14 +12,14 @@ import lombok.experimental.FieldDefaults;
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserProfileUpdateRequestDto {
-    @NotBlank(message = "USER_FIRST_NAME_CAN_NOT_BE_NULL_OR_EMPTY")
+    @NotBlank(message = InputValidateKey.USER_FIRST_NAME_CAN_NOT_BE_NULL_OR_EMPTY)
     String firstName;
     String lastName;
-    @Min(value = 0, message = "USER_GENDER_VALUE_INVALID")
-    @Max(value = 1, message = "USER_GENDER_VALUE_INVALID")
+    @Min(value = 0, message = InputValidateKey.USER_GENDER_VALUE_INVALID)
+    @Max(value = 1, message = InputValidateKey.USER_GENDER_VALUE_INVALID)
     int gender;
-    @NotBlank(message = "USER_EMAIL_CAN_NOT_BE_NULL_OR_EMPTY")
-    @Email(message = "USER_EMAIL_VALUE_INVALID")
+    @NotBlank(message = InputValidateKey.USER_EMAIL_CAN_NOT_BE_NULL_OR_EMPTY)
+    @Email(message = InputValidateKey.USER_EMAIL_VALUE_INVALID)
     String email;
     String phoneNumber;
 }

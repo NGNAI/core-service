@@ -16,6 +16,7 @@ public enum ApiResponseStatus {
 
     USERNAME_CAN_NOT_BE_NULL_OR_EMPTY(1001, "Username cannot be null or empty", HttpStatus.BAD_REQUEST),
     PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY(1002, "Password cannot be null or empty", HttpStatus.BAD_REQUEST),
+    INVALID_PASSWORD(1002, "Password length must be at least 5 characters", HttpStatus.BAD_REQUEST),
     SOURCE_CAN_NOT_BE_NULL_OR_EMPTY(1003, "Source cannot be null or empty", HttpStatus.BAD_REQUEST),
     TOKEN_CAN_NOT_BE_NULL_OR_EMPTY(1004, "Token cannot be null or empty", HttpStatus.BAD_REQUEST),
 
@@ -23,6 +24,7 @@ public enum ApiResponseStatus {
     ORGANIZATION_NOT_EXISTS(1006, "Organization does not exist", HttpStatus.NOT_FOUND),
     ORGANIZATION_NOT_EMPTY(1007, "Organization is not empty", HttpStatus.CONFLICT),
     ORGANIZATION_NAME_CAN_NOT_BE_NULL_OR_EMPTY(1008, "Organization name cannot be null or empty", HttpStatus.BAD_REQUEST),
+    ORGANIZATION_ID_CAN_NOT_BE_NULL_OR_EMPTY(1008, "Organization id cannot be null or empty", HttpStatus.BAD_REQUEST),
     PARENT_ORGANIZATION_ID_CAN_NOT_BE_NULL_OR_EMPTY(1008, "Parent organization id cannot be null or empty", HttpStatus.BAD_REQUEST),
     ROOT_ORGANIZATION_NOT_EXIST(1008, "Root organization not exists!", HttpStatus.NOT_FOUND),
 
@@ -38,9 +40,12 @@ public enum ApiResponseStatus {
 
     PERMISSION_NAME_CAN_NOT_BE_NULL_OR_EMPTY(1017, "Permission name cannot be null or empty", HttpStatus.BAD_REQUEST),
     PERMISSION_RESOURCE_CAN_NOT_BE_NULL_OR_EMPTY(1018, "Permission resource cannot be null or empty", HttpStatus.BAD_REQUEST),
+    INVALID_VALUE_PERMISSION_RESOURCE(1018, "Invalid permission resource", HttpStatus.BAD_REQUEST),
     PERMISSION_ACTION_CAN_NOT_BE_NULL_OR_EMPTY(1019, "Permission action cannot be null or empty", HttpStatus.BAD_REQUEST),
+    INVALID_VALUE_PERMISSION_ACTION(1019, "Invalid permission action", HttpStatus.BAD_REQUEST),
     PERMISSION_NAME_EXISTED(1020, "Permission name already exists", HttpStatus.CONFLICT),
     PERMISSION_ID_NOT_EXISTS(1021, "Permission ID does not exist", HttpStatus.NOT_FOUND),
+    INVALID_VALUE_PERMISSION_SCOPE(1019, "Invalid permission scope", HttpStatus.BAD_REQUEST),
 
     ASSIGN_PERMISSION_ID_CAN_NOT_BE_NULL(1022, "Assign permission id cannot be null or empty", HttpStatus.BAD_REQUEST),
     ASSIGN_PERMISSION_SCOPE_CAN_NOT_BE_NULL(1023, "Assign permission scope cannot be null or empty", HttpStatus.BAD_REQUEST),
@@ -69,6 +74,7 @@ public enum ApiResponseStatus {
     MESSAGE_ID_NOT_EXISTS(1041, "Topic ID does not exist", HttpStatus.NOT_FOUND),
     MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1042, "Message cannot be null or empty", HttpStatus.BAD_REQUEST),
     RAG_SCOPE_CAN_NOT_BE_NULL_OR_EMPTY(1042, "Scope cannot be null or empty", HttpStatus.BAD_REQUEST),
+    INVALID_RAG_SCOPE_VALUE(1042, "Invalid scope value", HttpStatus.BAD_REQUEST),
 
     UNAUTHENTICATED(1043, "Unauthenticated", HttpStatus.UNAUTHORIZED),
     PERMISSION_DENIED(1044, "You do not have permission", HttpStatus.FORBIDDEN),

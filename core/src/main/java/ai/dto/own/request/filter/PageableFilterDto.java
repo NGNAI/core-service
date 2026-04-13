@@ -1,6 +1,7 @@
 package ai.dto.own.request.filter;
 
 import ai.annotation.StringValue;
+import ai.constant.InputValidateKey;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -25,7 +26,7 @@ public class PageableFilterDto {
     @Schema(description = "Sort by field", example = "name")
     String sortBy;
     @Schema(description = "Sort direction, default is ASC", example = "ASC")
-    @StringValue(acceptedValues = {"asc","desc"}, ignoreCase = true, message = "INVALID_SORT_DIR_VALUE")
+    @StringValue(acceptedValues = {"asc","desc"}, ignoreCase = true, message = InputValidateKey.INVALID_SORT_DIR_VALUE)
     String sortDir;
     @JsonIgnore
     String sortPrefix = "";

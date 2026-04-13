@@ -26,7 +26,7 @@ public class PermissionController {
     PermissionService permissionService;
 
     @GetMapping
-    ResponseEntity<ApiResponseModel<List<PermissionResponseDto>>> getAll(@ModelAttribute PermissionFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<PermissionResponseDto>>> getAll(@Valid @ModelAttribute PermissionFilterDto filterDto){
         CustomPairModel<Long, List<PermissionResponseDto>> result = permissionService.getAll(filterDto);
 
         return ResponseEntity.ok(

@@ -29,7 +29,7 @@ public class TopicController {
     MessageService messageService;
 
     @GetMapping()
-    ResponseEntity<ApiResponseModel<List<TopicResponseDto>>> getAllByUserId(@ModelAttribute TopicFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<TopicResponseDto>>> getAllByUserId(@Valid @ModelAttribute TopicFilterDto filterDto){
         CustomPairModel<Long, List<TopicResponseDto>> result = topicService.getAll(filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<TopicResponseDto>>builder()
@@ -72,7 +72,7 @@ public class TopicController {
     }
 
     @GetMapping("/{topicId}/messages")
-    ResponseEntity<ApiResponseModel<List<MessageResponseDto>>> getMessageByTopicId(@PathVariable UUID topicId, @ModelAttribute MessageFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<MessageResponseDto>>> getMessageByTopicId(@PathVariable UUID topicId,@Valid @ModelAttribute MessageFilterDto filterDto){
         CustomPairModel<Long, List<MessageResponseDto>> result = messageService.getAll(topicId, filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<MessageResponseDto>>builder()

@@ -1,5 +1,7 @@
 package ai.dto.own.request.filter;
 
+import ai.annotation.StringValue;
+import ai.constant.InputValidateKey;
 import ai.entity.postgres.RoleEntity;
 import ai.util.StringUtil;
 import jakarta.persistence.criteria.Predicate;
@@ -38,5 +40,11 @@ public class RoleFilterDto extends PageableFilterDto{
 
             return criteriaBuilder.or(predicates.toArray(new Predicate[0]));
         });
+    }
+
+    @StringValue(acceptedValues = {"createdAt","updatedAt","name"}, ignoreCase = false, message = InputValidateKey.INVALID_SORT_FIELD_VALUE)
+    @Override
+    public String getSortBy(){
+        return super.getSortBy();
     }
 }

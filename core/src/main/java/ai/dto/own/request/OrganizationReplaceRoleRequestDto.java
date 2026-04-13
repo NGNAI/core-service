@@ -1,5 +1,6 @@
 package ai.dto.own.request;
 
+import ai.constant.InputValidateKey;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
@@ -12,12 +13,12 @@ import java.util.UUID;
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrganizationReplaceRoleRequestDto {
-    @NotEmpty(message = "USER_IDS_CAN_NOT_BE_NULL_OR_EMPTY")
+    @NotEmpty(message = InputValidateKey.USER_IDS_CAN_NOT_BE_NULL_OR_EMPTY)
     Set<UUID> userIds;
 
-    @NotNull(message = "ROLE_ID_CAN_NOT_BE_NULL")
+    @NotNull(message = InputValidateKey.ROLE_ID_CAN_NOT_BE_NULL)
     UUID oldRoleId;
 
-    @NotNull(message = "ROLE_ID_CAN_NOT_BE_NULL")
+    @NotNull(message = InputValidateKey.ROLE_ID_CAN_NOT_BE_NULL)
     UUID newRoleId;
 }

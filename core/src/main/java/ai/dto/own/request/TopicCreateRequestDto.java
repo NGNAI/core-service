@@ -1,5 +1,6 @@
 package ai.dto.own.request;
 
+import ai.constant.InputValidateKey;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -10,8 +11,8 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class TopicCreateRequestDto {
-    @NotBlank(message = "TOPIC_TITLE_CAN_NOT_BE_NULL_OR_EMPTY")
+    @NotBlank(message = InputValidateKey.TOPIC_TITLE_CAN_NOT_BE_NULL_OR_EMPTY)
     String title;
-    @NotBlank(message = "TOPIC_TYPE_CAN_NOT_BE_NULL_OR_EMPTY")
+    @NotBlank(message = InputValidateKey.TOPIC_TYPE_CAN_NOT_BE_NULL_OR_EMPTY)
     String type;
 }

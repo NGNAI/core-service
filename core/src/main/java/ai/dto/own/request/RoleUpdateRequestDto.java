@@ -1,5 +1,6 @@
 package ai.dto.own.request;
 
+import ai.constant.InputValidateKey;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
@@ -11,7 +12,7 @@ import java.util.Set;
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RoleUpdateRequestDto {
-    @NotBlank(message = "ROLE_NAME_CAN_NOT_BE_NULL_OR_EMPTY")
+    @NotBlank(message = InputValidateKey.ROLE_NAME_CAN_NOT_BE_NULL_OR_EMPTY)
     String name;
     String description;
     boolean defaultAssign;

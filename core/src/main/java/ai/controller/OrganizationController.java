@@ -1,5 +1,6 @@
 package ai.controller;
 
+import ai.constant.InputValidateKey;
 import ai.dto.own.request.*;
 import ai.dto.own.request.filter.OrganizationFilterDto;
 import ai.dto.own.response.OrganizationResponseDto;
@@ -26,7 +27,7 @@ public class OrganizationController {
 
     @GetMapping("/{organizationId}")
     ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getById(@PathVariable UUID organizationId
-            , @Valid @Min(value = 0, message = "NESTED_CHILD_VALUE_INVALID") @RequestParam(required = false) Integer nestedChild){
+            , @Valid @Min(value = 0, message = InputValidateKey.NESTED_CHILD_VALUE_INVALID) @RequestParam(required = false) Integer nestedChild){
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationResponseDto>builder()
                         .message("Get organization successfully")
@@ -36,7 +37,7 @@ public class OrganizationController {
     }
 
     @GetMapping
-    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getAll(@ModelAttribute OrganizationFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getAll(@Valid @ModelAttribute OrganizationFilterDto filterDto){
         CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getAll(filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<OrganizationResponseDto>>builder()
@@ -48,7 +49,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/on-permission")
-    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getByPermission(@ModelAttribute OrganizationFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getByPermission(@Valid @ModelAttribute OrganizationFilterDto filterDto){
         CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getByPermission(filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<OrganizationResponseDto>>builder()
@@ -60,7 +61,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/root")
-    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getRoot(@RequestParam(required = false) Integer nestedChild){
+    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getRoot(@Valid @Min(value = 0, message = InputValidateKey.NESTED_CHILD_VALUE_INVALID) @RequestParam(required = false) Integer nestedChild){
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationResponseDto>builder()
                         .message("Get root list organizations successfully")
@@ -70,7 +71,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/{organizationId}/children")
-    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getChild(@PathVariable UUID organizationId, @RequestParam(required = false) Integer nestedChild,@ModelAttribute OrganizationFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getChild(@PathVariable UUID organizationId, @Valid @Min(value = 0, message = InputValidateKey.NESTED_CHILD_VALUE_INVALID) @RequestParam(required = false) Integer nestedChild,@Valid @ModelAttribute OrganizationFilterDto filterDto){
         CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getChild(organizationId, nestedChild, filterDto);
 
         return ResponseEntity.ok(
