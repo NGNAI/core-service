@@ -26,7 +26,7 @@ public class OrganizationUserRoleController {
     OrganizationUserRoleService ourService;
 
     @GetMapping("/users")
-    ResponseEntity<ApiResponseModel<List<UserWithRoleInOrgResponseDto>>> getUserByOrgId(@PathVariable UUID organizationId, @ModelAttribute UserFilterDto userFilterDto){
+    ResponseEntity<ApiResponseModel<List<UserWithRoleInOrgResponseDto>>> getUserByOrgId(@PathVariable UUID organizationId,@Valid @ModelAttribute UserFilterDto userFilterDto){
         CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> result = ourService.getUsersByOrgId(organizationId, userFilterDto);
 
         return ResponseEntity.ok(
@@ -39,7 +39,7 @@ public class OrganizationUserRoleController {
     }
 
     @GetMapping("/users/unassigned")
-    ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getUserNotInOrg(@PathVariable UUID organizationId, @ModelAttribute UserFilterDto userFilterDto){
+    ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getUserNotInOrg(@PathVariable UUID organizationId,@Valid @ModelAttribute UserFilterDto userFilterDto){
         CustomPairModel<Long, List<UserResponseDto>> result = ourService.getUsersNotInOrg(organizationId,userFilterDto);
 
         
@@ -53,7 +53,7 @@ public class OrganizationUserRoleController {
     }
 
     @GetMapping("/roles/{roleId}/users")
-    ResponseEntity<ApiResponseModel<List<UserWithRoleInOrgResponseDto>>> getUserHasRoleInOrg(@PathVariable UUID organizationId, @PathVariable UUID roleId, @ModelAttribute UserFilterDto userFilterDto){
+    ResponseEntity<ApiResponseModel<List<UserWithRoleInOrgResponseDto>>> getUserHasRoleInOrg(@PathVariable UUID organizationId, @PathVariable UUID roleId,@Valid @ModelAttribute UserFilterDto userFilterDto){
         CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> result = ourService.getUsersByOrgIdAndInRole(organizationId, roleId, userFilterDto);
 
         return ResponseEntity.ok(
@@ -66,7 +66,7 @@ public class OrganizationUserRoleController {
     }
 
     @GetMapping("/roles/{roleId}/users/unassigned")
-    ResponseEntity<ApiResponseModel<List<UserWithRoleInOrgResponseDto>>> getUserNotHasRoleInOrg(@PathVariable UUID organizationId, @PathVariable UUID roleId, @ModelAttribute UserFilterDto userFilterDto){
+    ResponseEntity<ApiResponseModel<List<UserWithRoleInOrgResponseDto>>> getUserNotHasRoleInOrg(@PathVariable UUID organizationId, @PathVariable UUID roleId,@Valid @ModelAttribute UserFilterDto userFilterDto){
         CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> result = ourService.getUsersByOrgIdAndNotInRole(organizationId, roleId, userFilterDto);
 
         return ResponseEntity.ok(

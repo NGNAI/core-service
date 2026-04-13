@@ -31,7 +31,7 @@ public class ApplicationInitConfig {
     ApplicationRunner applicationRunner(OrganizationService organizationService, UserService userService, RoleService roleService, OrganizationUserRoleService ourService){
         log.info("Init application...");
         return args -> {
-            if(organizationService.getRoot(null, new OrganizationFilterDto()).getFirst()==0){
+            if(organizationService.getRoot()==null){
                 OrganizationResponseDto org = organizationService.create(OrganizationCreateRequestDto.builder()
                                 .name("Root")
                                 .description("Root organization")

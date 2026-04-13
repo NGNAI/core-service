@@ -35,7 +35,7 @@ public class UserController {
     }
 
     @GetMapping
-    ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getAll(@ModelAttribute UserFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getAll(@Valid @ModelAttribute UserFilterDto filterDto){
         CustomPairModel<Long, List<UserResponseDto>> result = userService.getAll(filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<UserResponseDto>>builder()

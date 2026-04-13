@@ -1,5 +1,6 @@
 package ai.dto.own.request.filter;
 
+import ai.annotation.StringValue;
 import ai.specification.UserEntitySpecification;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Path;
@@ -20,5 +21,11 @@ public class UserFilterDto extends PageableFilterDto{
         return criteriaBuilder.and(
                 UserEntitySpecification.buildKeyword(root,criteriaBuilder,keyword),
                 UserEntitySpecification.buildSource(root,criteriaBuilder,source));
+    }
+
+    @StringValue(acceptedValues = {"createdAt","updatedAt","firstName","lastName","gender","email","phoneNumber","lastLogin","source","active"}, ignoreCase = false, message = "INVALID_SORT_FIELD_VALUE")
+    @Override
+    public String getSortBy(){
+        return super.getSortBy();
     }
 }

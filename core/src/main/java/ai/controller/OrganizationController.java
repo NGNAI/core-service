@@ -60,13 +60,11 @@ public class OrganizationController {
     }
 
     @GetMapping("/root")
-    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getRoot(@RequestParam(required = false) Integer nestedChild,@ModelAttribute OrganizationFilterDto filterDto){
-        CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getRoot(nestedChild,filterDto);
+    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getRoot(@RequestParam(required = false) Integer nestedChild){
         return ResponseEntity.ok(
-                ApiResponseModel.<List<OrganizationResponseDto>>builder()
+                ApiResponseModel.<OrganizationResponseDto>builder()
                         .message("Get root list organizations successfully")
-                        .count(result.getFirst())
-                        .data(result.getSecond())
+                        .data(organizationService.getRoot(nestedChild))
                         .build()
         );
     }

@@ -100,7 +100,8 @@ public class OrganizationUserRoleService {
             Predicate orgIdSearch = criteriaBuilder.equal(root.get("organization").get("id"), orgId);
             return criteriaBuilder.and(userSearch, orgIdSearch);
         };
-
+        if(userFilterDto.getSortBy()!=null)
+            userFilterDto.setSortPrefix("user");
         Page<OrganizationUserRoleEntity> users = ourRepository.findAll(spec, userFilterDto.createPageable());
         if (!users.isEmpty()) {
             Map<UUID, Map<String, Map<String, Map<String, String>>>> mapRolePermission = roleService.getPermissionListOfRole();
@@ -136,7 +137,6 @@ public class OrganizationUserRoleService {
 
             return criteriaBuilder.and(userSearch, notExists);
         };
-
         Page<UserEntity> page = userRepository.findAll(spec, userFilterDto.createPageable());
 
         return new CustomPairModel<>(page.getTotalElements(), page.stream().map(userMapper::entityToResponseDto).toList());
@@ -156,7 +156,8 @@ public class OrganizationUserRoleService {
             Predicate roleIdSearch = criteriaBuilder.equal(root.get("role").get("id"), roleId);
             return criteriaBuilder.and(userSearch, orgIdSearch, roleIdSearch);
         };
-
+        if(userFilterDto.getSortBy()!=null)
+            userFilterDto.setSortPrefix("user");
         Page<OrganizationUserRoleEntity> users = ourRepository.findAll(spec, userFilterDto.createPageable());
         if (!users.isEmpty()) {
             Map<UUID, Map<String, Map<String, Map<String, String>>>> mapRolePermission = roleService.getPermissionListOfRole();
@@ -198,7 +199,8 @@ public class OrganizationUserRoleService {
 
             return criteriaBuilder.and(userSearch, orgIdSearch, userNotInSearch);
         };
-
+        if(userFilterDto.getSortBy()!=null)
+            userFilterDto.setSortPrefix("user");
         Page<OrganizationUserRoleEntity> users = ourRepository.findAll(spec, userFilterDto.createPageable());
         if (!users.isEmpty()) {
             Map<UUID, Map<String, Map<String, Map<String, String>>>> mapRolePermission = roleService.getPermissionListOfRole();

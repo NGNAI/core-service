@@ -1,9 +1,6 @@
 package ai.service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import ai.enums.PermissionAction;
@@ -29,6 +26,7 @@ import ai.repository.OrganizationUserRoleRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.web.bind.annotation.ModelAttribute;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -72,36 +70,30 @@ public class OrganizationService {
 
     // Khoa viết chi tiết giùm anh nhé, anh chỉ viết khung thôi, phần logic anh để em tự viết nhé
     public OrganizationEntity getRoot(){
-        return OrganizationEntity.builder()
-                .id(UUID.fromString("1222cf1d-7443-4fc9-ba39-88c2812d3558"))
-                .name("Root")
-                .description("Root organization")
-                .build();
+        Specification<OrganizationEntity> spec = ((root, query, criteriaBuilder) -> criteriaBuilder.isNull(root.get("parent")));
+        return orgRepository.findOne(spec).orElse(null);
     }
     
 //    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
-    public CustomPairModel<Long,List<OrganizationResponseDto>> getRoot(Integer nestedChild, OrganizationFilterDto filterDto){
-        Specification<OrganizationEntity> spec = filterDto.createSpec().and(((root, query, criteriaBuilder) -> criteriaBuilder.isNull(root.get("parent"))));
-        Page<OrganizationEntity> page = orgRepository.findAll(spec,filterDto.createPageable());
-        List<OrganizationResponseDto> organizations = page.getContent().stream().map(entity -> {
-            OrganizationResponseDto childResponseDto = orgMapper.entityToResponseDto(entity);
-            if(nestedChild!=null && nestedChild > 0)
-                appendChild(1,nestedChild, childResponseDto);
+    public OrganizationResponseDto getRoot(Integer nestedChild){
+        OrganizationEntity orgRoot = getRoot();
+        if(getRoot()==null)
+            throw new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS);
+        OrganizationResponseDto responseDto = orgMapper.entityToResponseDto(orgRoot);
+        if(nestedChild!=null && nestedChild > 0)
+            appendChild(1,nestedChild, responseDto);
 
-            return childResponseDto;
-        }).toList();
-
-        return new CustomPairModel<>(page.getTotalElements(),organizations);
+        return responseDto;
     }
 
-    public CustomPairModel<Long,List<OrganizationResponseDto>> getByPermission(OrganizationFilterDto filterDto){
+    public CustomPairModel<Long,List<OrganizationResponseDto>> getByPermission(@ModelAttribute OrganizationFilterDto filterDto){
         List<PermissionGrantModel> permissions = ourService.getPermissionGrant(JwtUtil.getUserId(), JwtUtil.getOrgId());
         for(PermissionGrantModel permission : permissions) {
             if(!permission.getResource().equals(PermissionResource.ORG) || !permission.getAction().equals(PermissionAction.READ))
                 continue;
             switch (permission.getScope()){
                 case ALL -> {
-                    return getRoot(999,filterDto);
+                    return new CustomPairModel<>(1L,List.of(getRoot(999)));
                 }
                 case OWN -> {
                     return new CustomPairModel<>(1L,List.of(getById(JwtUtil.getOrgId(),0)));

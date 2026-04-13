@@ -11,6 +11,9 @@ import org.springframework.http.HttpStatusCode;
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum ApiResponseStatus {
+    INVALID_SORT_FIELD_VALUE(1001, "Invalid sort field value", HttpStatus.BAD_REQUEST),
+    INVALID_SORT_DIR_VALUE(1001, "Sort direction value only accept ASC/DESC", HttpStatus.BAD_REQUEST),
+
     USERNAME_CAN_NOT_BE_NULL_OR_EMPTY(1001, "Username cannot be null or empty", HttpStatus.BAD_REQUEST),
     PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY(1002, "Password cannot be null or empty", HttpStatus.BAD_REQUEST),
     SOURCE_CAN_NOT_BE_NULL_OR_EMPTY(1003, "Source cannot be null or empty", HttpStatus.BAD_REQUEST),
@@ -20,6 +23,8 @@ public enum ApiResponseStatus {
     ORGANIZATION_NOT_EXISTS(1006, "Organization does not exist", HttpStatus.NOT_FOUND),
     ORGANIZATION_NOT_EMPTY(1007, "Organization is not empty", HttpStatus.CONFLICT),
     ORGANIZATION_NAME_CAN_NOT_BE_NULL_OR_EMPTY(1008, "Organization name cannot be null or empty", HttpStatus.BAD_REQUEST),
+    PARENT_ORGANIZATION_ID_CAN_NOT_BE_NULL_OR_EMPTY(1008, "Parent organization id cannot be null or empty", HttpStatus.BAD_REQUEST),
+    ROOT_ORGANIZATION_NOT_EXIST(1008, "Root organization not exists!", HttpStatus.NOT_FOUND),
 
     USER_NOT_EXISTS(1009, "User does not exist", HttpStatus.NOT_FOUND),
     USER_EXISTED(1010, "User already exists", HttpStatus.CONFLICT),

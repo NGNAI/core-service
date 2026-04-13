@@ -1,5 +1,9 @@
 package ai.dto.own.request.filter;
 
+import ai.annotation.StringValue;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -9,7 +13,6 @@ import org.springframework.data.domain.Sort;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Data
@@ -22,15 +25,19 @@ public class PageableFilterDto {
     @Schema(description = "Sort by field", example = "name")
     String sortBy;
     @Schema(description = "Sort direction, default is ASC", example = "ASC")
+    @StringValue(acceptedValues = {"asc","desc"}, ignoreCase = true, message = "INVALID_SORT_DIR_VALUE")
     String sortDir;
+    @JsonIgnore
+    String sortPrefix = "";
 
     public Pageable createPageable(){
-//        if(List.of("createdBy","createdAt","updatedBy","updatedAt").contains(sortBy))
-//            sortBy = String.format("audit.%s",sortBy);
         Pageable pageable;
-        if(sortBy!=null)
+        if(sortBy!=null){
+            boolean auditSort = sortBy.contains("createdAt") || sortBy.contains("createdBy") || sortBy.contains("updatedAt") || sortBy.contains("updatedBy");
+            sortBy = String.format("%s%s.%s",sortPrefix,auditSort?".audit":"",sortBy);
+
             pageable = PageRequest.of(pageNumber, pageSize, sortDir!=null ? Sort.by(Sort.Direction.valueOf(sortDir.toUpperCase()),sortBy) : Sort.by(sortBy));
-        else
+        } else
             pageable = PageRequest.of(pageNumber, pageSize);
 
         return pageable;
