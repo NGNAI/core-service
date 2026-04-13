@@ -1,7 +1,6 @@
 package ai.controller;
 
 import ai.dto.own.request.ConversationRequestDto;
-import ai.dto.own.request.ConversationWithAttachmentRequestDto;
 import ai.service.AttachmentService;
 import ai.service.RagService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -32,7 +31,7 @@ public class ConversationController {
     @PostMapping(value = "/{topicId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> conversation(
             @PathVariable UUID topicId,
-            @Valid @ModelAttribute ConversationWithAttachmentRequestDto requestDto) throws JsonProcessingException {
+            @Valid @ModelAttribute ConversationRequestDto requestDto) throws JsonProcessingException {
         if (requestDto.getFiles() != null) {
             for (MultipartFile file : requestDto.getFiles()) {
                 if (file != null && !file.isEmpty()) {
@@ -41,8 +40,6 @@ public class ConversationController {
             }
         }
 
-        ConversationRequestDto conversationRequest = new ConversationRequestDto();
-        conversationRequest.setMessage(requestDto.getMessage());
-        return ragService.chat(topicId, conversationRequest);
+        return ragService.chat(topicId, requestDto);
     }
 }

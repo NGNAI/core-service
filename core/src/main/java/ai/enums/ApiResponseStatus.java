@@ -63,6 +63,7 @@ public enum ApiResponseStatus {
 
     MESSAGE_ID_NOT_EXISTS(1041, "Topic ID does not exist", HttpStatus.NOT_FOUND),
     MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1042, "Message cannot be null or empty", HttpStatus.BAD_REQUEST),
+    RAG_SCOPE_CAN_NOT_BE_NULL_OR_EMPTY(1042, "Scope cannot be null or empty", HttpStatus.BAD_REQUEST),
 
     UNAUTHENTICATED(1043, "Unauthenticated", HttpStatus.UNAUTHORIZED),
     PERMISSION_DENIED(1044, "You do not have permission", HttpStatus.FORBIDDEN),

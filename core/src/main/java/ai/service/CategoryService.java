@@ -6,6 +6,7 @@ import ai.dto.own.response.PermissionScopeResponseDto;
 import ai.enums.PermissionAction;
 import ai.enums.PermissionResource;
 import ai.enums.PermissionScope;
+import ai.enums.RagScope;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -18,6 +19,17 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class CategoryService {
+    public List<PermissionResourceResponseDto> getRagScope() {
+        return Arrays.stream(RagScope.values())
+                .map(resource -> {
+                    PermissionResourceResponseDto dto = new PermissionResourceResponseDto();
+                    dto.setKey(resource.getKey());
+                    dto.setName(resource.getName());
+                    return dto;
+                })
+                .toList();
+    }
+
     public List<PermissionResourceResponseDto> getPermissionResource() {
         return Arrays.stream(PermissionResource.values())
                 .map(resource -> {

@@ -21,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
-import org.checkerframework.checker.units.qual.m;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -69,7 +68,7 @@ public class RagService {
         //Insert assistant question
         MessageResponseDto assistantMessage = messageService.create(
                 MessageCreateRequestDto.builder()
-                        .content("Answering")
+                        .content("Answering.....")
                         .type(MessageType.ASSISTANT.getValue())
                         .topicId(finalTopicId)
                         .build()
@@ -90,7 +89,6 @@ public class RagService {
 
         Collections.reverse(historyConversations);
 
-
         // Get attachments of topic - Khoa xử lý tiếp nha
         AttachmentFilterDto attachmentFilterDto = new AttachmentFilterDto();
         attachmentFilterDto.setTopicId(finalTopicId);
@@ -104,15 +102,18 @@ public class RagService {
                         .content(requestDto.getMessage())
                         .build()))
                 .history(historyConversations)
-                .topK(10)
+                .metadata(RagCompletionRequestDto.Metadata.builder()
+                        .userId(JwtUtil.getUserId())
+                        .organizationId(JwtUtil.getOrgId())
+                        .scopes(requestDto.getScopes())
+                        .fileIds(attachments.stream().map(AttachmentResponseDto::getId).collect(Collectors.toSet()))
+                        .build())
                 .stream(true)
                 .build();
 
         StringBuilder fullAnswer = new StringBuilder();
         StringBuilder source = new StringBuilder();
 
-
-        //System.out.println("====> RagCompletionRequestDto: " + objectMapper.writeValueAsString(ragCompletionRequestDto));
         return ragApiService.completions(ragCompletionRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}",assistantMessage.getId()))
                 .startWith(String.format("{\"topicId\": \"%s\"}",topicId))

@@ -1,6 +1,5 @@
 package ai.controller;
 
-import ai.dto.own.response.IntrospectResponseDto;
 import ai.dto.own.response.PermissionActionResponseDto;
 import ai.dto.own.response.PermissionResourceResponseDto;
 import ai.dto.own.response.PermissionScopeResponseDto;
@@ -20,6 +19,16 @@ import java.util.List;
 @RestController
 public class CategoryController {
     CategoryService categoryService;
+
+    @GetMapping("/rag-scope")
+    ResponseEntity<ApiResponseModel<List<PermissionResourceResponseDto>>> ragScope() {
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<PermissionResourceResponseDto>>builder()
+                        .message("Get rag scope successfully!")
+                        .data(categoryService.getRagScope())
+                        .build()
+        );
+    }
 
     @GetMapping("/permission-resource")
     ResponseEntity<ApiResponseModel<List<PermissionResourceResponseDto>>> permissionResource() {

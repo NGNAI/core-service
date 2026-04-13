@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -15,9 +17,7 @@ public class RagCompletionRequestDto {
     String model;
     List<Message> messages;
     List<Message> history;
-
-    @JsonProperty("top_k")
-    int topK;
+    Metadata metadata;
     boolean stream;
 
     @Data
@@ -26,5 +26,15 @@ public class RagCompletionRequestDto {
     public static class Message {
         String role;
         String content;
+    }
+
+    @Data
+    @Builder
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Metadata {
+        UUID userId;
+        UUID organizationId;
+        Set<String> scopes;
+        Set<UUID> fileIds;
     }
 }
