@@ -18,6 +18,7 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class MessageFilterDto extends PageableFilterDto{
     String keyword;
+    List<String> types;
 
     public Specification<MessageEntity> createSpec(){
         return ((root, query, criteriaBuilder) -> {
@@ -27,6 +28,10 @@ public class MessageFilterDto extends PageableFilterDto{
                         criteriaBuilder.function("unaccent", String.class, criteriaBuilder.lower(root.get("content"))),
                         "%" + StringUtil.removeAccent(keyword).toLowerCase() + "%"
                 ));
+            }
+
+            if (types != null && !types.isEmpty()) {
+                predicates.add(root.get("type").in(types));
             }
 
             if (predicates.isEmpty())

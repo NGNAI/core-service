@@ -20,9 +20,12 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+
+import org.checkerframework.checker.units.qual.m;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -73,6 +76,7 @@ public class RagService {
         );
 
         MessageFilterDto messageFilterDto = new MessageFilterDto();
+        messageFilterDto.setTypes(Arrays.asList(MessageType.USER.name(),MessageType.ASSISTANT.name()));
         messageFilterDto.setPageNumber(0);
         messageFilterDto.setPageSize(10);
         messageFilterDto.setSortBy("id");
@@ -81,8 +85,8 @@ public class RagService {
         //Query history
         List<RagCompletionRequestDto.Message> historyConversations = messageService.getAll(finalTopicId, messageFilterDto).getSecond()
                 .stream().map(messageResponseDto -> RagCompletionRequestDto.Message.builder()
-                        .role(messageResponseDto.getContent())
-                        .content(messageResponseDto.getType()).build()).collect(Collectors.toList());
+                        .role(messageResponseDto.getType())
+                        .content(messageResponseDto.getContent()).build()).collect(Collectors.toList());
 
         Collections.reverse(historyConversations);
 
@@ -106,6 +110,9 @@ public class RagService {
 
         StringBuilder fullAnswer = new StringBuilder();
         StringBuilder source = new StringBuilder();
+
+
+        //System.out.println("====> RagCompletionRequestDto: " + objectMapper.writeValueAsString(ragCompletionRequestDto));
         return ragApiService.completions(ragCompletionRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}",assistantMessage.getId()))
                 .startWith(String.format("{\"topicId\": \"%s\"}",topicId))
@@ -113,7 +120,7 @@ public class RagService {
                     try {
                         if(!raw.trim().equals("[DONE]")) {
                             JsonNode node = objectMapper.readTree(raw);
-
+                            
                             if (node.has("token")) {
                                 fullAnswer.append(node.get("token").asText());
                             }
