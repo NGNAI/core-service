@@ -39,8 +39,8 @@ public class DataIngestionFilterDto extends PageableFilterDto {
     private static final Map<String, String> SORT_FIELD_MAPPING = Map.of(
             "type", "contentType",
             "size", "fileSize",
-            "createdAt", "createdAt",
-            "updatedAt", "updatedAt"
+            "createdAt", "audit.createdAt",
+            "updatedAt", "audit.updatedAt"
     );
 
     @Schema(description = "Parent ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
@@ -66,19 +66,19 @@ public class DataIngestionFilterDto extends PageableFilterDto {
 
     @Override
     public Pageable createPageable() {
-        int resolvedPage = pageNumber == null || pageNumber < 0 ? 0 : pageNumber;
-        int resolvedSize = pageSize == null || pageSize <= 0 ? 10 : pageSize;
+        int resolvedPage = getPageNumber() == null || getPageNumber() < 0 ? 0 : getPageNumber();
+        int resolvedSize = getPageSize() == null || getPageSize() <= 0 ? 10 : getPageSize();
 
-        String normalizedSortDir = sortDir == null ? "ASC" : sortDir.trim().toUpperCase(Locale.ROOT);
+        String normalizedSortDir = getSortDir() == null ? "ASC" : getSortDir().trim().toUpperCase(Locale.ROOT);
         if (!"ASC".equals(normalizedSortDir) && !"DESC".equals(normalizedSortDir)) {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_SORT_DIR_INVALID);
         }
 
-        if (sortBy == null || sortBy.isBlank()) {
+        if (getSortBy() == null || getSortBy().isBlank()) {
             return PageRequest.of(resolvedPage, resolvedSize);
         }
 
-        String resolvedSortField = mapSortField(sortBy);
+        String resolvedSortField = mapSortField(getSortBy().trim());
 
         if (!ALLOWED_SORT_FIELDS.contains(resolvedSortField)) {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_SORT_BY_INVALID);

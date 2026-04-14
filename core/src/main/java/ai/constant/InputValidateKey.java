@@ -35,4 +35,11 @@ public class InputValidateKey {
     public final static String USER_PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY = "USER_PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY";
     public final static String INVALID_PASSWORD = "INVALID_PASSWORD";
     public final static String USER_NAME_CAN_NOT_BE_NULL_OR_EMPTY = "USER_NAME_CAN_NOT_BE_NULL_OR_EMPTY";
+
+    public final static String DATA_INGESTION_NAME_REQUIRED = "DATA_INGESTION_NAME_REQUIRED";
+    public final static String DATA_INGESTION_ACCESS_LEVEL_INVALID = "DATA_INGESTION_ACCESS_LEVEL_INVALID";
+    public final static String DATA_INGESTION_FILE_REQUIRED = "DATA_INGESTION_FILE_REQUIRED";
+
+    public final static String DRIVE_NAME_REQUIRED = "DRIVE_NAME_REQUIRED";
+    public final static String DRIVE_FILE_REQUIRED = "DRIVE_FILE_REQUIRED";
 }

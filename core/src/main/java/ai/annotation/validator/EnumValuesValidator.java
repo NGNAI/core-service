@@ -22,14 +22,22 @@ public class EnumValuesValidator implements ConstraintValidator<EnumValue, Strin
 
     @Override
     public void initialize(EnumValue annotation) {
-        if(annotation.enumClass()==RagScope.class){
+        if (annotation.enumClass() == RagScope.class) {
             acceptedValues.addAll(Stream.of(RagScope.values()).map(RagScope::getKey).toList());
-        } else if(annotation.enumClass()== PermissionResource.class){
+        } else if (annotation.enumClass() == PermissionResource.class) {
             acceptedValues.addAll(Stream.of(PermissionResource.values()).map(PermissionResource::getKey).toList());
-        } else if(annotation.enumClass()== PermissionScope.class){
+        } else if (annotation.enumClass() == PermissionScope.class) {
             acceptedValues.addAll(Stream.of(PermissionScope.values()).map(PermissionScope::getKey).toList());
-        } else if(annotation.enumClass()== PermissionAction.class){
+        } else if (annotation.enumClass() == PermissionAction.class) {
             acceptedValues.addAll(Stream.of(PermissionAction.values()).map(PermissionAction::getKey).toList());
+        } else {
+            acceptedValues.addAll(Arrays.stream(annotation.enumClass().getEnumConstants()).map(e -> {
+                try {
+                    return (String) annotation.enumClass().getMethod("name").invoke(e);
+                } catch (Exception ex) {
+                    throw new RuntimeException("Enum class must have a name() method that returns a String");
+                }
+            }).toList());
         }
     }
 
