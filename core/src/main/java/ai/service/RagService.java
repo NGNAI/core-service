@@ -75,7 +75,7 @@ public class RagService {
         );
 
         MessageFilterDto messageFilterDto = new MessageFilterDto();
-        messageFilterDto.setTypes(Arrays.asList(MessageType.USER.name(),MessageType.ASSISTANT.name()));
+        messageFilterDto.setTypes(Arrays.asList(MessageType.USER.getValue(),MessageType.ASSISTANT.getValue()));
         messageFilterDto.setPageNumber(0);
         messageFilterDto.setPageSize(10);
         messageFilterDto.setSortBy("id");
@@ -113,6 +113,8 @@ public class RagService {
 
         StringBuilder fullAnswer = new StringBuilder();
         StringBuilder source = new StringBuilder();
+
+        System.out.println(new ObjectMapper().writeValueAsString(ragCompletionRequestDto));
 
         return ragApiService.completions(ragCompletionRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}",assistantMessage.getId()))

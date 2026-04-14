@@ -35,7 +35,7 @@ public class PageableFilterDto {
         Pageable pageable;
         if(sortBy!=null){
             boolean auditSort = sortBy.contains("createdAt") || sortBy.contains("createdBy") || sortBy.contains("updatedAt") || sortBy.contains("updatedBy");
-            sortBy = String.format("%s%s.%s",sortPrefix,auditSort?".audit":"",sortBy);
+            sortBy = String.format("%s%s%s",!sortPrefix.isBlank() ? sortPrefix+"." : "",auditSort?"audit.":"",sortBy);
 
             pageable = PageRequest.of(pageNumber, pageSize, sortDir!=null ? Sort.by(Sort.Direction.valueOf(sortDir.toUpperCase()),sortBy) : Sort.by(sortBy));
         } else
