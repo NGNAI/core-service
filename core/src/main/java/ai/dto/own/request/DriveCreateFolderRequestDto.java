@@ -2,6 +2,7 @@ package ai.dto.own.request;
 
 import java.util.UUID;
 
+import ai.constant.InputValidateKey;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AccessLevel;
@@ -12,7 +13,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class DriveCreateFolderRequestDto {
     @Schema(description = "Folder name", example = "Notebook Folder")
-    @NotBlank(message = "DRIVE_NAME_REQUIRED")
+    @NotBlank(message = InputValidateKey.DRIVE_NAME_REQUIRED)
     String name;
 
     @Schema(description = "Parent folder ID. If null, folder will be created at root")
