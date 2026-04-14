@@ -2,10 +2,7 @@ package ai.annotation.validator;
 
 import ai.annotation.EnumValue;
 import ai.annotation.StringValue;
-import ai.enums.PermissionAction;
-import ai.enums.PermissionResource;
-import ai.enums.PermissionScope;
-import ai.enums.RagScope;
+import ai.enums.*;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import lombok.AccessLevel;
@@ -22,7 +19,9 @@ public class EnumValuesValidator implements ConstraintValidator<EnumValue, Strin
 
     @Override
     public void initialize(EnumValue annotation) {
-        if (annotation.enumClass() == RagScope.class) {
+        if (annotation.enumClass() == UserSource.class) {
+            acceptedValues.addAll(Stream.of(UserSource.values()).map(UserSource::getValue).toList());
+        } if (annotation.enumClass() == RagScope.class) {
             acceptedValues.addAll(Stream.of(RagScope.values()).map(RagScope::getKey).toList());
         } else if (annotation.enumClass() == PermissionResource.class) {
             acceptedValues.addAll(Stream.of(PermissionResource.values()).map(PermissionResource::getKey).toList());

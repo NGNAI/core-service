@@ -1,5 +1,6 @@
 package ai.dto.own.request;
 
+import ai.annotation.PhoneNumber;
 import ai.constant.InputValidateKey;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
@@ -21,5 +22,6 @@ public class UserProfileUpdateRequestDto {
     @NotBlank(message = InputValidateKey.USER_EMAIL_CAN_NOT_BE_NULL_OR_EMPTY)
     @Email(message = InputValidateKey.USER_EMAIL_VALUE_INVALID)
     String email;
+    @PhoneNumber(message = InputValidateKey.USER_PHONE_NUMBER_VALUE_INVALID)
     String phoneNumber;
 }

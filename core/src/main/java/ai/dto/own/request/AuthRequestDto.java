@@ -1,6 +1,8 @@
 package ai.dto.own.request;
 
+import ai.annotation.EnumValue;
 import ai.constant.InputValidateKey;
+import ai.enums.UserSource;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -25,7 +27,8 @@ public class AuthRequestDto {
     @NotBlank(message = InputValidateKey.PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY)
     String password;
 
-    @NotBlank(message = InputValidateKey.SOURCE_CAN_NOT_BE_NULL_OR_EMPTY)
     @Schema(description = "Source of authentication, e.g., 'LOCAL', 'GOOGLE', 'GITHUB'", example = "local")
+    @NotBlank(message = InputValidateKey.USER_SOURCE_CAN_NOT_BE_NULL_OR_EMPTY)
+    @EnumValue(enumClass = UserSource.class, message = InputValidateKey.INVALID_USER_SOURCE_VALUE)
     String source;
 }

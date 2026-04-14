@@ -5,7 +5,8 @@ public class InputValidateKey {
     public final static String ORGANIZATION_ID_CAN_NOT_BE_NULL_OR_EMPTY = "ORGANIZATION_ID_CAN_NOT_BE_NULL_OR_EMPTY";
     public final static String USERNAME_CAN_NOT_BE_NULL_OR_EMPTY = "USERNAME_CAN_NOT_BE_NULL_OR_EMPTY";
     public final static String PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY = "PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY";
-    public final static String SOURCE_CAN_NOT_BE_NULL_OR_EMPTY = "SOURCE_CAN_NOT_BE_NULL_OR_EMPTY";
+    public final static String USER_SOURCE_CAN_NOT_BE_NULL_OR_EMPTY = "USER_SOURCE_CAN_NOT_BE_NULL_OR_EMPTY";
+    public final static String INVALID_USER_SOURCE_VALUE = "INVALID_USER_SOURCE_VALUE";
     public final static String MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY = "MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY";
     public final static String RAG_SCOPE_CAN_NOT_BE_NULL_OR_EMPTY = "RAG_SCOPE_CAN_NOT_BE_NULL_OR_EMPTY";
     public final static String INVALID_RAG_SCOPE_VALUE = "INVALID_RAG_SCOPE_VALUE";
@@ -33,6 +34,7 @@ public class InputValidateKey {
     public final static String USER_EMAIL_CAN_NOT_BE_NULL_OR_EMPTY = "USER_EMAIL_CAN_NOT_BE_NULL_OR_EMPTY";
     public final static String USER_EMAIL_VALUE_INVALID = "USER_EMAIL_VALUE_INVALID";
     public final static String USER_PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY = "USER_PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY";
+    public final static String USER_PHONE_NUMBER_VALUE_INVALID = "USER_PHONE_NUMBER_VALUE_INVALID";
     public final static String INVALID_PASSWORD = "INVALID_PASSWORD";
     public final static String USER_NAME_CAN_NOT_BE_NULL_OR_EMPTY = "USER_NAME_CAN_NOT_BE_NULL_OR_EMPTY";
 

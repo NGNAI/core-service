@@ -10,7 +10,7 @@ import ai.entity.postgres.OrganizationUserRoleEntity;
 import ai.entity.postgres.RoleEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
-import ai.enums.UserSourceAction;
+import ai.enums.UserSource;
 import ai.exeption.AppException;
 import ai.mapper.RoleMapper;
 import ai.mapper.UserMapper;
@@ -73,7 +73,7 @@ public class UserProfileService {
 
     public UserProfileResponseDto update(UserProfileUpdateRequestDto updateRequestDto){
         UserEntity entity = userRepository.findById(JwtUtil.getUserId()).orElseThrow(() -> new AppException(ApiResponseStatus.USER_NOT_EXISTS));
-        if(!entity.getSource().toUpperCase().equals(UserSourceAction.LOCAL.toString()))
+        if(!entity.getSource().toUpperCase().equals(UserSource.LOCAL.toString()))
             throw new AppException(ApiResponseStatus.ONLY_LOCAL_USER_CAN_UPDATE_INFO);
         userMapper.updateEntity(entity, updateRequestDto);
 
@@ -82,7 +82,7 @@ public class UserProfileService {
 
     public void changePassword(UserPasswordUpdateRequestDto requestDto){
         UserEntity entity = userRepository.findById(JwtUtil.getUserId()).orElseThrow(() -> new AppException(ApiResponseStatus.USER_NOT_EXISTS));
-        if(!entity.getSource().toUpperCase().equals(UserSourceAction.LOCAL.toString()))
+        if(!entity.getSource().toUpperCase().equals(UserSource.LOCAL.toString()))
             throw new AppException(ApiResponseStatus.ONLY_LOCAL_USER_CAN_UPDATE_INFO);
 
         if(!passwordEncoder.matches(requestDto.getOldPassword(),entity.getPassword()))
