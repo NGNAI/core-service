@@ -2,8 +2,7 @@ package ai.dto.own.request.filter;
 
 import ai.annotation.StringValue;
 import ai.constant.InputValidateKey;
-import ai.entity.postgres.MessageEntity;
-import ai.entity.postgres.TopicEntity;
+import ai.entity.postgres.NoteBookEntity;
 import ai.util.StringUtil;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
@@ -18,22 +17,17 @@ import java.util.List;
 @Setter
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class MessageFilterDto extends PageableFilterDto{
+public class NoteBookFilterDto extends PageableFilterDto{
     String keyword;
-    List<String> types;
 
-    public Specification<MessageEntity> createSpec(){
+    public Specification<NoteBookEntity> createSpec(){
         return ((root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             if(keyword!=null && !keyword.isEmpty()) {
                 predicates.add(criteriaBuilder.like(
-                        criteriaBuilder.function("unaccent", String.class, criteriaBuilder.lower(root.get("content"))),
+                        criteriaBuilder.function("unaccent", String.class, criteriaBuilder.lower(root.get("title"))),
                         "%" + StringUtil.removeAccent(keyword).toLowerCase() + "%"
                 ));
-            }
-
-            if (types != null && !types.isEmpty()) {
-                predicates.add(root.get("type").in(types));
             }
 
             if (predicates.isEmpty())
@@ -43,7 +37,7 @@ public class MessageFilterDto extends PageableFilterDto{
         });
     }
 
-    @StringValue(acceptedValues = {"id","createdAt","updatedAt","content"}, ignoreCase = false, message = InputValidateKey.INVALID_SORT_FIELD_VALUE)
+    @StringValue(acceptedValues = {"createdAt","updatedAt","title"}, ignoreCase = false, message = InputValidateKey.INVALID_SORT_FIELD_VALUE)
     @Override
     public String getSortBy(){
         return super.getSortBy();

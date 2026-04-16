@@ -56,6 +56,26 @@ public class RagService {
 
         topicService.validateTopicId(finalTopicId);
 
+        MessageFilterDto messageFilterDto = new MessageFilterDto();
+        messageFilterDto.setTypes(Arrays.asList(MessageType.USER.getValue(),MessageType.ASSISTANT.getValue()));
+        messageFilterDto.setPageNumber(0);
+        messageFilterDto.setPageSize(10);
+        messageFilterDto.setSortBy("createdAt");
+        messageFilterDto.setSortDir("desc");
+
+        //Query history
+        List<RagCompletionRequestDto.Message> historyConversations = messageService.getAll(finalTopicId, messageFilterDto).getSecond()
+                .stream().map(messageResponseDto -> RagCompletionRequestDto.Message.builder()
+                        .role(messageResponseDto.getType())
+                        .content(messageResponseDto.getContent()).build()).collect(Collectors.toList());
+
+        Collections.reverse(historyConversations);
+
+        historyConversations.add(RagCompletionRequestDto.Message.builder()
+                .role(MessageType.USER.getValue())
+                .content(requestDto.getMessage())
+                .build());
+
         //Insert user question
         messageService.create(
                 MessageCreateRequestDto.builder()
@@ -74,34 +94,14 @@ public class RagService {
                         .build()
         );
 
-        MessageFilterDto messageFilterDto = new MessageFilterDto();
-        messageFilterDto.setTypes(Arrays.asList(MessageType.USER.getValue(),MessageType.ASSISTANT.getValue()));
-        messageFilterDto.setPageNumber(0);
-        messageFilterDto.setPageSize(10);
-        messageFilterDto.setSortBy("id");
-        messageFilterDto.setSortDir("desc");
-
-        //Query history
-        List<RagCompletionRequestDto.Message> historyConversations = messageService.getAll(finalTopicId, messageFilterDto).getSecond()
-                .stream().map(messageResponseDto -> RagCompletionRequestDto.Message.builder()
-                        .role(messageResponseDto.getType())
-                        .content(messageResponseDto.getContent()).build()).collect(Collectors.toList());
-
-        Collections.reverse(historyConversations);
-
         // Get attachments of topic - Khoa xử lý tiếp nha
         AttachmentFilterDto attachmentFilterDto = new AttachmentFilterDto();
         attachmentFilterDto.setTopicId(finalTopicId);
 
         List<AttachmentResponseDto> attachments = attachmentService.getList(attachmentFilterDto).toList();
-
         RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
                 .model("")
-                .messages(List.of(RagCompletionRequestDto.Message.builder()
-                        .role(MessageType.USER.getValue())
-                        .content(requestDto.getMessage())
-                        .build()))
-                .history(historyConversations)
+                .messages(historyConversations)
                 .metadata(RagCompletionRequestDto.Metadata.builder()
                         .userId(JwtUtil.getUserId())
                         .organizationId(JwtUtil.getOrgId())

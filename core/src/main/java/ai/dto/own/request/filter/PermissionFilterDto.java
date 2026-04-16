@@ -43,7 +43,7 @@ public class PermissionFilterDto extends PageableFilterDto{
         });
     }
 
-    @StringValue(acceptedValues = {"createdAt","updatedAt","name"}, ignoreCase = false, message = InputValidateKey.INVALID_SORT_FIELD_VALUE)
+    @StringValue(acceptedValues = {"createdAt","updatedAt","name","resource","action","targetResource","code"}, ignoreCase = false, message = InputValidateKey.INVALID_SORT_FIELD_VALUE)
     @Override
     public String getSortBy(){
         return super.getSortBy();

@@ -63,6 +63,10 @@ public enum ApiResponseStatus {
     TOPIC_ID_NOT_EXISTS(1047, "Topic ID does not exist", HttpStatus.NOT_FOUND),
     TOPIC_TITLE_CAN_NOT_BE_NULL_OR_EMPTY(1048, "Topic title cannot be null or empty", HttpStatus.BAD_REQUEST),
     TOPIC_TYPE_CAN_NOT_BE_NULL_OR_EMPTY(1049, "Topic type cannot be null or empty", HttpStatus.BAD_REQUEST),
+
+    NOTEBOOK_ID_NOT_EXISTS(1047, "Notebook ID does not exist", HttpStatus.NOT_FOUND),
+    NOTEBOOK_TITLE_CAN_NOT_BE_NULL_OR_EMPTY(1048, "Notebook title cannot be null or empty", HttpStatus.BAD_REQUEST),
+
     MESSAGE_ID_NOT_EXISTS(1050, "Topic ID does not exist", HttpStatus.NOT_FOUND),
     MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1051, "Message cannot be null or empty", HttpStatus.BAD_REQUEST),
     RAG_SCOPE_CAN_NOT_BE_NULL_OR_EMPTY(1052, "Scope cannot be null or empty", HttpStatus.BAD_REQUEST),

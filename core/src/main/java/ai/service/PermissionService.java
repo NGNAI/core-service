@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
-public class PermissionService {
+public class  PermissionService {
     PermissionRepository permissionRepository;
     PermissionMapper permissionMapper;
 

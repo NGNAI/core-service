@@ -16,7 +16,6 @@ import java.util.UUID;
 public class RagCompletionRequestDto {
     String model;
     List<Message> messages;
-    List<Message> history;
     Metadata metadata;
     boolean stream;
 
