@@ -162,7 +162,7 @@ public class TopicFileService {
     private TopicFileResponseDto uploadSingleFileAndAttach(UUID topicId, MultipartFile file, UUID userId, UUID orgId) {
         DataIngestionUploadRequestDto requestDto = new DataIngestionUploadRequestDto();
         requestDto.setFile(file);
-        requestDto.setAccessLevel(DataScope.PERSONAL);
+        requestDto.setAccessLevel(DataScope.PERSONAL.name());
 
         UUID dataIngestionId = dataIngestionService.uploadDataIngestion(requestDto, userId, orgId, DataSource.TOPIC).getId();
         dataIngestionService.waitForIngestionCompleted(dataIngestionId);

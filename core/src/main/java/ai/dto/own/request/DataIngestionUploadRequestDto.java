@@ -26,5 +26,9 @@ public class DataIngestionUploadRequestDto {
     @Schema(description = "Mức độ truy cập/phạm vi sử dụng", exampleClasses = DataScope.class) 
     @NotNull(message = InputValidateKey.DATA_INGESTION_ACCESS_LEVEL_INVALID)
     @EnumValue(enumClass = DataScope.class, message = InputValidateKey.DATA_INGESTION_ACCESS_LEVEL_INVALID)
-    DataScope accessLevel=null;
+    String accessLevel=null;
+
+    public DataScope getAccessLevel(){
+        return DataScope.valueOf(accessLevel);
+    }
 }

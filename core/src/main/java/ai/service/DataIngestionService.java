@@ -186,7 +186,7 @@ public class DataIngestionService {
      * @return
      */
     @Transactional
-    public DataIngestionResponseDto createFolder(DataIngestionCreateFolderRequestDto requestDto) {
+    public DataIngestionResponseDto createFolder(DataIngestionCreateFolderRequestDto requestDto, DataSource fromSource) {
         UserEntity user = userService.getEntityById(JwtUtil.getUserId());
         OrganizationEntity organization = organizationService.getEntityById(JwtUtil.getOrgId());
 
@@ -196,7 +196,7 @@ public class DataIngestionService {
         dataIngestion.setContentType(null);
         dataIngestion.setFileSize(0L);
         dataIngestion.setAccessLevel(requestDto.getAccessLevel());
-        dataIngestion.setFromSource(requestDto.getFromSource());
+        dataIngestion.setFromSource(fromSource);
         dataIngestion.setOwner(user);
         dataIngestion.setOrganization(organization);
         dataIngestion.setJobId(null);
