@@ -4,7 +4,6 @@ import java.util.UUID;
 
 import ai.annotation.EnumValue;
 import ai.constant.InputValidateKey;
-import ai.enums.DataSource;
 import ai.enums.DataScope;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -26,10 +25,9 @@ public class DataIngestionCreateFolderRequestDto {
     @Schema(description = "Mức độ truy cập/phạm vi sử dụng", exampleClasses = DataScope.class) 
     @NotNull(message = InputValidateKey.DATA_INGESTION_ACCESS_LEVEL_INVALID)
     @EnumValue(enumClass = DataScope.class, message = InputValidateKey.DATA_INGESTION_ACCESS_LEVEL_INVALID)
-    DataScope accessLevel=null;
+    String accessLevel=null;
 
-    @Schema(description = "Nguồn dữ liệu", exampleClasses = DataSource.class)
-    @NotNull(message = InputValidateKey.DATA_INGESTION_FROM_SOURCE_INVALID)
-    @EnumValue(enumClass = DataSource.class, message = InputValidateKey.DATA_INGESTION_FROM_SOURCE_INVALID)
-    DataSource fromSource=null;
+    public DataScope getAccessLevel(){
+        return DataScope.valueOf(accessLevel);
+    }
 }

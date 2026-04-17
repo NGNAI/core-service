@@ -126,7 +126,7 @@ public class DataIngestionController {
                 return ResponseEntity.ok(
                                 ApiResponseModel.<DataIngestionResponseDto>builder()
                                                 .message("Create data ingestion folder successfully")
-                                                .data(dataIngestionService.createFolder(requestDto))
+                                                .data(dataIngestionService.createFolder(requestDto, DataSource.DOCUMENT))
                                                 .build());
         }
 
