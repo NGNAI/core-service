@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import ai.enums.DataSource;
 import ai.enums.DataScope;
 
 @Data
@@ -53,20 +54,25 @@ public class AppProperties {
         String endpoint;
         String accessKey;
         String secretKey;
-        String ingestionBucket;
-        String notebookBucket;
-        String attachmentBucket;
     }
 
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Integration {
         AttachmentApi attachmentApi;
+        DataIngestionApi dataIngestionApi;
     }
 
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class AttachmentApi {
+        String headerName;
+        String key;
+    }
+
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class DataIngestionApi {
         String headerName;
         String key;
     }
@@ -81,6 +87,7 @@ public class AppProperties {
         Long pollerDelayMs;
         Long fileStableSeconds;
         DataScope accessLevel;
+        DataSource fromSource;
         boolean deleteLocalAfterSuccess;
     }
 }

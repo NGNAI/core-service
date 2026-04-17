@@ -11,6 +11,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 import ai.entity.postgres.DataIngestionEntity;
+import ai.enums.DataSource;
 import ai.enums.ApiResponseStatus;
 import ai.enums.DataScope;
 import ai.exeption.AppException;
@@ -33,7 +34,8 @@ public class DataIngestionFilterDto extends PageableFilterDto {
             "createdAt",
             "updatedAt",
             "ingestionStatus",
-            "accessLevel"
+                "accessLevel",
+                "fromSource"
     );
 
     private static final Map<String, String> SORT_FIELD_MAPPING = Map.of(
@@ -49,6 +51,9 @@ public class DataIngestionFilterDto extends PageableFilterDto {
     @Schema(description = "Data scope to filter data ingestion", exampleClasses = DataScope.class)
     DataScope accessLevel;
 
+    @Schema(description = "Data source to filter data ingestion", exampleClasses = DataSource.class)
+    DataSource fromSource;
+
     public DataIngestionFilterDto() {
         super();
         setSortBy("name"); // Default sort by name
@@ -59,8 +64,9 @@ public class DataIngestionFilterDto extends PageableFilterDto {
         return (root, query, criteriaBuilder) -> {
             Predicate parentPredicate = DataIngestionEntitySpecification.buildParent(root, criteriaBuilder, parentId);
             Predicate accessLevelPredicate = DataIngestionEntitySpecification.buildAccessLevel(root, criteriaBuilder, accessLevel);
+            Predicate fromSourcePredicate = DataIngestionEntitySpecification.buildFromSource(root, criteriaBuilder, fromSource);
 
-            return criteriaBuilder.and(parentPredicate, accessLevelPredicate);
+            return criteriaBuilder.and(parentPredicate, accessLevelPredicate, fromSourcePredicate);
         };
     }
 

@@ -28,6 +28,7 @@ import ai.dto.own.response.DataIngestionDownloadData;
 import ai.dto.own.response.DataIngestionJobStatusResponseDto;
 import ai.dto.own.response.DataIngestionPresignedUrlResponseDto;
 import ai.dto.own.response.DataIngestionResponseDto;
+import ai.enums.DataSource;
 import ai.enums.DataScope;
 import ai.model.ApiResponseModel;
 import ai.service.DataIngestionService;
@@ -54,6 +55,16 @@ public class DataIngestionController {
                                 ApiResponseModel.<List<DataScope>>builder()
                                                 .message("Get data ingestion access levels successfully")
                                                 .data(Arrays.asList(DataScope.values()))
+                                                .build());
+        }
+
+        @Operation(summary = "Get list of available data ingestion sources", description = "Get list of available data ingestion sources")
+        @GetMapping("/source")
+        ResponseEntity<ApiResponseModel<List<DataSource>>> source() {
+                return ResponseEntity.ok(
+                                ApiResponseModel.<List<DataSource>>builder()
+                                                .message("Get data ingestion sources successfully")
+                                                .data(Arrays.asList(DataSource.values()))
                                                 .build());
         }
 
@@ -104,7 +115,7 @@ public class DataIngestionController {
                 return ResponseEntity.ok(
                                 ApiResponseModel.<DataIngestionResponseDto>builder()
                                                 .message("Upload data ingestion successfully")
-                                                .data(dataIngestionService.uploadDataIngestion(requestDto))
+                                                .data(dataIngestionService.uploadDataIngestion(requestDto, DataSource.DOCUMENT))
                                                 .build());
         }
 

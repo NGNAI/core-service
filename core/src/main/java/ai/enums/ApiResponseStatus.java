@@ -93,6 +93,7 @@ public enum ApiResponseStatus {
     DATA_INGESTION_NOT_EXISTS(1073, "Data ingestion not exists", HttpStatus.BAD_REQUEST),
     DATA_INGESTION_RETRY_ONLY_FAILED(1074, "Only failed data ingestion can retry ingestion", HttpStatus.BAD_REQUEST),
     DATA_INGESTION_NAME_REQUIRED(1075, "Data ingestion name is required", HttpStatus.BAD_REQUEST),
+    DATA_INGESTION_FROM_SOURCE_INVALID(1105, "Data ingestion from source is invalid", HttpStatus.BAD_REQUEST),
     DATA_INGESTION_RETRY_ONLY_INGESTION_TARGET(1076, "Only ingestion target data ingestion can retry", HttpStatus.BAD_REQUEST),
     DATA_INGESTION_SORT_BY_INVALID(1077, "Data ingestion sort field is invalid", HttpStatus.BAD_REQUEST),
     DATA_INGESTION_SORT_DIR_INVALID(1078, "Data ingestion sort direction is invalid", HttpStatus.BAD_REQUEST),
@@ -102,6 +103,7 @@ public enum ApiResponseStatus {
     DATA_INGESTION_FOLDER_UPDATE_REQUIRED(1082, "Data ingestion folder update payload is empty", HttpStatus.BAD_REQUEST),
     DATA_INGESTION_DELETE_FAILED(1083, "Data ingestion delete failed", HttpStatus.BAD_REQUEST),
     DATA_INGESTION_DELETE_IN_PROGRESS(1084, "Data ingestion deletion is in progress", HttpStatus.CONFLICT),
+    DATA_INGESTION_NOT_COMPLETED(1110, "Data ingestion must be completed before this operation", HttpStatus.CONFLICT),
     DRIVE_PARENT_NOT_EXISTS(1085, "Drive parent not exists", HttpStatus.BAD_REQUEST),
     DRIVE_FILE_REQUIRED(1086, "Drive file is required", HttpStatus.BAD_REQUEST),
     DRIVE_UPLOAD_FAILED(1087, "Drive upload failed", HttpStatus.BAD_REQUEST),
@@ -122,6 +124,11 @@ public enum ApiResponseStatus {
     ATTACHMENT_DOWNLOAD_FAILED(1102, "Attachment download failed", HttpStatus.BAD_REQUEST),
     ATTACHMENT_SORT_BY_INVALID(1103, "Attachment sort field is invalid", HttpStatus.BAD_REQUEST),
     ATTACHMENT_SORT_DIR_INVALID(1104, "Attachment sort direction is invalid", HttpStatus.BAD_REQUEST),
+
+    TOPIC_FILE_ALREADY_EXISTS(1106, "Topic file already exists", HttpStatus.CONFLICT),
+    TOPIC_FILE_NOT_EXISTS(1107, "Topic file does not exist", HttpStatus.NOT_FOUND),
+    NOTEBOOK_FILE_ALREADY_EXISTS(1108, "Notebook file already exists", HttpStatus.CONFLICT),
+    NOTEBOOK_FILE_NOT_EXISTS(1109, "Notebook file does not exist", HttpStatus.NOT_FOUND),
 
     UNEXPECTED(9999, "An unexpected error occurred!",HttpStatus.INTERNAL_SERVER_ERROR);
 

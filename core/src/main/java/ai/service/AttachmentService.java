@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import ai.AppProperties;
 import ai.dto.own.request.filter.AttachmentFilterDto;
 import ai.dto.own.response.AttachmentDownloadData;
 import ai.dto.own.response.AttachmentPresignedUrlResponseDto;
@@ -20,6 +19,7 @@ import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.TopicEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.DataSource;
 import ai.exeption.AppException;
 import ai.mapper.AttachmentMapper;
 import ai.repository.AttachmentRepository;
@@ -34,7 +34,6 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class AttachmentService {
-    static String DEFAULT_ATTACHMENT_BUCKET = "attachments";
     static int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
 
     AttachmentRepository attachmentRepository;
@@ -44,7 +43,6 @@ public class AttachmentService {
     OrganizationService organizationService;
     TopicService topicService;
     MessageService messageService;
-    AppProperties appProperties;
 
     @Transactional
     public AttachmentResponseDto uploadToTopic(UUID topicId, MultipartFile file) {
@@ -66,7 +64,7 @@ public class AttachmentService {
                     file,
                     owner.getUserName(),
                     organization.getName(),
-                    resolveAttachmentBucket());
+                    DataSource.TOPIC.name().toLowerCase());
         } catch (Exception exception) {
             throw new AppException(ApiResponseStatus.ATTACHMENT_UPLOAD_FAILED);
         }
@@ -121,7 +119,7 @@ public class AttachmentService {
 
         MinioService.MinioObjectData objectData;
         try {
-            objectData = minioService.download(attachment.getMinioPath(), resolveAttachmentBucket());
+            objectData = minioService.download(attachment.getMinioPath(), DataSource.TOPIC.name().toLowerCase());
         } catch (Exception exception) {
             throw new AppException(ApiResponseStatus.ATTACHMENT_DOWNLOAD_FAILED);
         }
@@ -149,7 +147,7 @@ public class AttachmentService {
             url = minioService.generatePresignedDownloadUrl(
                     attachment.getMinioPath(),
                     effectiveExpiry,
-                    resolveAttachmentBucket());
+                    DataSource.TOPIC.name().toLowerCase());
         } catch (Exception exception) {
             throw new AppException(ApiResponseStatus.ATTACHMENT_DOWNLOAD_FAILED);
         }
@@ -180,14 +178,6 @@ public class AttachmentService {
                 || !attachment.getOrganization().getId().equals(orgId)) {
             throw new AppException(ApiResponseStatus.ATTACHMENT_NOT_EXISTS);
         }
-    }
-
-    private String resolveAttachmentBucket() {
-        String configured = appProperties.getMinio() == null ? null : appProperties.getMinio().getAttachmentBucket();
-        if (configured == null || configured.isBlank()) {
-            return DEFAULT_ATTACHMENT_BUCKET;
-        }
-        return configured;
     }
 
     private boolean isAttachmentApiKeyRequest() {

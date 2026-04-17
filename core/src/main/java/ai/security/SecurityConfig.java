@@ -70,6 +70,7 @@ public class SecurityConfig {
                                         .jwtAuthenticationConverter(jwtAuthenticationConverter())
                         ).authenticationEntryPoint(new JwtAuthenticationEntryPoint())
                 )
+                .addFilterBefore(new DataIngestionApiKeyFilter(appProperties), BearerTokenAuthenticationFilter.class)
                 .addFilterBefore(new AttachmentApiKeyFilter(appProperties), BearerTokenAuthenticationFilter.class)
                 .addFilterAfter(new TokenTypeFilter(TokenType.ACCESS), BearerTokenAuthenticationFilter.class)
                 .cors(cors -> {})

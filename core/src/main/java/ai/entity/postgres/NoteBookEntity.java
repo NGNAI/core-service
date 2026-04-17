@@ -32,4 +32,7 @@ public class NoteBookEntity {
     @ManyToOne
     @JoinColumn(name = "owner_id")
     UserEntity owner;
+
+    @OneToMany(mappedBy = "noteBook", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<NoteBookFileEntity> noteBookFiles;
 }

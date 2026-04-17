@@ -1,9 +1,10 @@
 package ai.service;
 
 import ai.dto.outer.rag.request.RagCompletionRequestDto;
-import ai.dto.own.request.ConversationRequestDto;
+import ai.dto.own.request.TopicCreateConversationRequestDto;
 import ai.dto.own.request.MessageCreateRequestDto;
 import ai.dto.own.request.MessageUpdateRequestDto;
+import ai.dto.own.request.NoteBookCreateConversationRequestDto;
 import ai.dto.own.request.TopicCreateRequestDto;
 import ai.dto.own.request.filter.AttachmentFilterDto;
 import ai.dto.own.request.filter.MessageFilterDto;
@@ -42,7 +43,7 @@ public class RagService {
 
     ObjectMapper objectMapper;
 
-    public Flux<String> chat(UUID topicId, ConversationRequestDto requestDto) throws JsonProcessingException {
+    public Flux<String> chatTopic(UUID topicId, TopicCreateConversationRequestDto requestDto) throws JsonProcessingException {
         //If topic not exists, create new topic
         if(topicId == null)
             topicId = topicService.create(TopicCreateRequestDto.builder()
@@ -143,4 +144,12 @@ public class RagService {
                             .build());
                 });
     }
+
+
+    public Flux<String> chatNoteBook(UUID noteBookId, NoteBookCreateConversationRequestDto requestDto) throws JsonProcessingException {
+        
+        
+        return Flux.just("Token 1", "Token 2", "Token 3");
+    }
+
 }

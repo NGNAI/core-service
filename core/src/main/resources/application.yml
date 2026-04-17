@@ -64,14 +64,14 @@ minio:
   endpoint: "http://192.168.30.71:9000"
   access-key: "admin"
   secret-key: "password"
-  ingestion-bucket: "ingestions"
-  notebook-bucket: "notebookllm"
-  attachment-bucket: "attachments"
 
 integration:
   attachment-api:
     header-name: "X-API-KEY"
     key: "ATTACHMENT_API_KEY_1234567890"
+  data-ingestion-api:
+    header-name: "X-API-KEY"
+    key: "DATA_INGESTION_API_KEY_1234567890"
 
 auto-ingestion:
   enabled: true
@@ -81,5 +81,6 @@ auto-ingestion:
   poller-delay-ms: 5000
   file-stable-seconds: 20
   access-level: "GLOBAL"
+  from-source: "SYSTEM"
   delete-local-after-success: true
 

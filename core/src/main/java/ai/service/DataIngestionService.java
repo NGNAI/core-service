@@ -13,7 +13,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import ai.AppProperties;
 import ai.constant.CacheName;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
@@ -30,6 +29,7 @@ import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.DataIngestionDeleteStatus;
+import ai.enums.DataSource;
 import ai.enums.DataScope;
 import ai.enums.IngestionStatus;
 import ai.exeption.AppException;
@@ -47,8 +47,9 @@ import lombok.experimental.FieldDefaults;
 public class DataIngestionService {
     // Định nghĩa thời gian mặc định cho presigned URL là 15 phút (900 giây), có thể cấu hình lại khi gọi API để lấy presigned URL với thời gian tùy chỉnh
     static int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
+    static long DEFAULT_INGESTION_WAIT_TIMEOUT_MILLIS = 180_000;
+    static long DEFAULT_INGESTION_POLL_INTERVAL_MILLIS = 2_000;
 
-    AppProperties appProperties;
     DataIngestionRepository dataIngestionRepository;
     IngestionService ingestionService;
     MinioService minioService;
@@ -57,12 +58,12 @@ public class DataIngestionService {
     OrganizationService organizationService;
 
     /**
-     * Định nghĩa phương thức để đồng bộ trạng thái ingestion mới nhất cho tất cả data ingestion đang ở trạng thái pending, phương thức này sẽ được gọi định kỳ bởi scheduler để đảm bảo trạng thái ingestion luôn được cập nhật mới nhất, tránh trường hợp dữ liệu bị treo ở trạng thái pending mãi mãi do lỗi không nhận được callback từ ingestion service hoặc lỗi khi gọi API để lấy trạng thái ingestion
+     * Định nghĩa phương thức để đồng bộ trạng thái ingestion mới nhất cho tất cả data ingestion đang ở trạng thái chưa hoàn thành (không phải COMPLETED hay FAILED), phương thức này sẽ được gọi định kỳ bởi scheduler để đảm bảo trạng thái ingestion luôn được cập nhật mới nhất, tránh trường hợp dữ liệu bị treo ở trạng thái intermediate mãi mãi do lỗi không nhận được callback từ ingestion service hoặc lỗi khi gọi API để lấy trạng thái ingestion. Các trạng thái được đồng bộ gồm: CREATED, EXTRACTING, CHUNKING, EMBEDDING, STORING
      */
     public void syncPendingIngestionStatuses() {
-        System.out.println("Start syncing ingestion statuses for pending data ingestion items...");
-        // Lấy tất cả data ingestion có target là INGESTION và trạng thái ingestion là PENDING để đồng bộ trạng thái mới nhất từ ingestion service
-        dataIngestionRepository.findByIngestionStatus(IngestionStatus.PENDING)
+        System.out.println("Start syncing ingestion statuses for data ingestion items with non-final statuses...");
+        // Lấy tất cả data ingestion có trạng thái ingestion không phải COMPLETED hay FAILED để đồng bộ trạng thái mới nhất từ ingestion service
+        dataIngestionRepository.findByIngestionStatusNotFinal()
                 .forEach(dataIngestion -> {
                     try {
                         pollIngestionJobStatus(dataIngestion.getId());
@@ -72,7 +73,7 @@ public class DataIngestionService {
                         exception.printStackTrace();
                     }
                 });
-        System.out.println("Finished syncing ingestion statuses for pending data ingestion items.");
+        System.out.println("Finished syncing ingestion statuses for data ingestion items with non-final statuses.");
     }
 
     /**
@@ -99,14 +100,26 @@ public class DataIngestionService {
      * @return
      */
     @Transactional(noRollbackFor = AppException.class)
-    public DataIngestionResponseDto uploadDataIngestion(DataIngestionUploadRequestDto requestDto) {
-        UserEntity user = userService.getEntityById(JwtUtil.getUserId());
-        OrganizationEntity organization = organizationService.getEntityById(JwtUtil.getOrgId());
+    public DataIngestionResponseDto uploadDataIngestion(DataIngestionUploadRequestDto requestDto, DataSource fromSource) {
+        return uploadDataIngestion(requestDto, JwtUtil.getUserId(), JwtUtil.getOrgId(), fromSource);
+    }
+
+    /**
+     * Định nghĩa phương thức để upload file và tạo data ingestion mới, phương thức này sẽ được gọi khi người dùng upload file mới thông qua API, phương thức sẽ thực hiện các bước sau: 1) xác thực người dùng và tổ chức từ tham số truyền vào, 2) upload file lên MinIO trước để đảm bảo nếu có lỗi xảy ra khi upload file thì sẽ không tạo bản ghi data ingestion trong database, tránh trường hợp dữ liệu bị lỗi không thể retry được, 3) tạo bản ghi data ingestion mới trong database với thông tin về file đã upload và trạng thái ingestion là PENDING, 4) gọi API của ingestion service để đẩy file đã upload sang ingestion service để xử lý, nếu có lỗi xảy ra khi gọi API của ingestion service hoặc response trả về không hợp lệ thì sẽ cập nhật trạng thái ingestion của data ingestion này thành FAILED để tránh bị treo ở trạng thái PENDING mãi mãi, đồng thời trả về response cho client để client có thể hiển thị thông báo lỗi chính xác
+     * @param requestDto
+     * @param userId
+     * @param organizationId
+     * @return
+     */
+    @Transactional(noRollbackFor = AppException.class)
+    public DataIngestionResponseDto uploadDataIngestion(DataIngestionUploadRequestDto requestDto, UUID userId, UUID organizationId, DataSource fromSource) {
+        UserEntity user = userService.getEntityById(userId);
+        OrganizationEntity organization = organizationService.getEntityById(organizationId);
 
         // Push lên MinIO trước để tránh trường hợp đã lưu data ingestion vào database nhưng
         // upload file lên MinIO thất bại, dẫn đến dữ liệu bị lỗi không thể retry
         // ingestion được
-        String minioPath = minioService.upload(requestDto.getFile(), user.getUserName(), organization.getName(), appProperties.getMinio().getIngestionBucket());
+        String minioPath = minioService.upload(requestDto.getFile(), user.getUserName(), organization.getName(), fromSource.name().toLowerCase());
 
         DataIngestionEntity dataIngestion = new DataIngestionEntity();
         dataIngestion.setName(requestDto.getFile().getOriginalFilename());
@@ -115,9 +128,10 @@ public class DataIngestionService {
         dataIngestion.setFileSize(requestDto.getFile().getSize());
         dataIngestion.setContentType(requestDto.getFile().getContentType());
         dataIngestion.setAccessLevel(requestDto.getAccessLevel());
+        dataIngestion.setFromSource(fromSource);
         dataIngestion.setOwner(user);
         dataIngestion.setOrganization(organization);
-        dataIngestion.setIngestionStatus(IngestionStatus.PENDING);
+        dataIngestion.setIngestionStatus(IngestionStatus.CREATED);
         dataIngestion.setDeleteStatus(DataIngestionDeleteStatus.ACTIVE);
 
         if (requestDto.getFolderId() != null) {
@@ -151,9 +165,9 @@ public class DataIngestionService {
             }
 
             // Cập nhật jobId và trạng thái ingestion sau khi đã đẩy sang
-            // ingestion service thành công
+            // ingestion service thành công, khởi tạo status là CREATED
             dataIngestion.setJobId(ingestionResponse.getJobId());
-            dataIngestion.setIngestionStatus(IngestionStatus.PENDING);
+            dataIngestion.setIngestionStatus(IngestionStatus.CREATED);
             dataIngestion = dataIngestionRepository.save(dataIngestion);
 
             return dataIngestionMapper.entityToResponseDto(dataIngestion);
@@ -182,6 +196,7 @@ public class DataIngestionService {
         dataIngestion.setContentType(null);
         dataIngestion.setFileSize(0L);
         dataIngestion.setAccessLevel(requestDto.getAccessLevel());
+        dataIngestion.setFromSource(requestDto.getFromSource());
         dataIngestion.setOwner(user);
         dataIngestion.setOrganization(organization);
         dataIngestion.setJobId(null);
@@ -216,7 +231,8 @@ public class DataIngestionService {
             Path relativePath,
             UUID ownerId,
             UUID organizationId,
-            DataScope accessLevel) {
+            DataScope accessLevel,
+            DataSource fromSource) {
         if (stagedFile == null || !Files.exists(stagedFile) || !Files.isRegularFile(stagedFile)) {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_FILE_REQUIRED);
         }
@@ -228,7 +244,8 @@ public class DataIngestionService {
                 relativePath == null ? null : relativePath.getParent(),
                 owner,
                 organization,
-                accessLevel);
+            accessLevel,
+            fromSource);
 
         String fileName = stagedFile.getFileName().toString();
         String contentType;
@@ -247,7 +264,7 @@ public class DataIngestionService {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);
         }
 
-        String minioPath = minioService.upload(fileBytes, fileName, contentType, owner.getUserName(), organization.getName(), appProperties.getMinio().getIngestionBucket());
+        String minioPath = minioService.upload(fileBytes, fileName, contentType, owner.getUserName(), organization.getName(), fromSource.name().toLowerCase());
 
         DataIngestionEntity dataIngestion = new DataIngestionEntity();
         dataIngestion.setName(fileName);
@@ -256,9 +273,10 @@ public class DataIngestionService {
         dataIngestion.setFileSize(fileSize);
         dataIngestion.setContentType(contentType);
         dataIngestion.setAccessLevel(accessLevel);
+        dataIngestion.setFromSource(fromSource);
         dataIngestion.setOwner(owner);
         dataIngestion.setOrganization(organization);
-        dataIngestion.setIngestionStatus(IngestionStatus.PENDING);
+        dataIngestion.setIngestionStatus(IngestionStatus.CREATED);
         dataIngestion.setDeleteStatus(DataIngestionDeleteStatus.ACTIVE);
         dataIngestion.setParent(parent);
 
@@ -281,7 +299,7 @@ public class DataIngestionService {
             }
 
             dataIngestion.setJobId(ingestionResponse.getJobId());
-            dataIngestion.setIngestionStatus(IngestionStatus.PENDING);
+            dataIngestion.setIngestionStatus(IngestionStatus.CREATED);
             dataIngestion = dataIngestionRepository.save(dataIngestion);
             return dataIngestionMapper.entityToResponseDto(dataIngestion);
         } catch (AppException exception) {
@@ -299,10 +317,104 @@ public class DataIngestionService {
      */
     @Cacheable(value = CacheName.DATA_INGESTION_DTO_DETAILS, key = "#dataIngestionId", unless = "#result == null", condition = "#dataIngestionId != null")
     @Transactional(readOnly = true)
+    public DataIngestionEntity getEntityById(UUID dataIngestionId) {
+        return dataIngestionRepository.findById(dataIngestionId)
+                .orElseThrow(() -> new AppException(ApiResponseStatus.DATA_INGESTION_NOT_EXISTS));
+    }
+
+    /**
+     * Định nghĩa phương thức để lấy chi tiết data ingestion theo ID, phương thức này sẽ được gọi khi người dùng xem chi tiết một data ingestion cụ thể, phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion, nếu không tồn tại thì trả về lỗi, 2) ánh xạ entity sang response DTO và trả về cho client. Phương thức này sẽ không cache kết quả vì thường được gọi sau khi đã gọi getEntityById để lấy entity và thực hiện các kiểm tra liên quan đến trạng thái của data ingestion, nếu cache kết quả của phương thức này có thể dẫn đến việc trả về dữ liệu cũ không phản ánh đúng trạng thái hiện tại của data ingestion sau khi đã có sự thay đổi (ví dụ: đổi tên thư mục, di chuyển thư mục, xóa data ingestion)
+     * @param dataIngestionId
+     * @return
+     */
     public DataIngestionResponseDto getById(UUID dataIngestionId) {
         DataIngestionEntity dataIngestion = dataIngestionRepository.findById(dataIngestionId)
                 .orElseThrow(() -> new AppException(ApiResponseStatus.DATA_INGESTION_NOT_EXISTS));
         return dataIngestionMapper.entityToResponseDto(dataIngestion);
+    }
+
+    /**
+     * Định nghĩa phương thức để lấy chi tiết data ingestion đã hoàn thành theo ID, phương thức này sẽ được gọi khi người dùng muốn tải file của một data ingestion cụ thể, phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion, nếu không tồn tại thì trả về lỗi, 2) kiểm tra xem data ingestion này có hợp lệ để tải xuống hay không (ví dụ: không phải là folder, trạng thái ingestion đã thành công, không đang ở trạng thái pending delete), nếu không hợp lệ thì trả về lỗi, 3) nếu data ingestion còn ở trạng thái xử lý (CREATED, EXTRACTING, CHUNKING, EMBEDDING, STORING) thì sẽ gọi API của ingestion service để lấy trạng thái mới nhất và cập nhật vào database, sau đó kiểm tra lại trạng thái ingestion, nếu vẫn chưa hoàn thành thì trả về lỗi, 4) nếu đã hoàn thành thì trả về entity để phục vụ cho việc tải file sau đó. Phương thức này sẽ không cache kết quả vì thường được gọi trước khi tải file và cần đảm bảo luôn phản ánh đúng trạng thái hiện tại của data ingestion sau khi đã có sự thay đổi (ví dụ: đổi tên thư mục, di chuyển thư mục, xóa data ingestion)
+     * @param dataIngestionId
+     * @return
+     */
+    @Transactional
+    public DataIngestionEntity getCompletedFileEntityById(UUID dataIngestionId) {
+        DataIngestionEntity dataIngestion = getDataIngestionEntity(dataIngestionId);
+
+        if (dataIngestion.isFolder()) {
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_FOLDER_ONLY_OPERATION);
+        }
+
+        if (DataIngestionDeleteStatus.PENDING_DELETE.equals(resolveDeleteStatus(dataIngestion))) {
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_DELETE_IN_PROGRESS);
+        }
+
+        // Nếu ingestion vẫn đang ở trạng thái intermediate (CREATED, EXTRACTING, CHUNKING, EMBEDDING, STORING)
+        // thì cần poll trạng thái mới nhất từ ingestion service
+        if (dataIngestion.getJobId() != null
+                && dataIngestion.getIngestionStatus() != null
+                && !IngestionStatus.COMPLETED.equals(dataIngestion.getIngestionStatus())
+                && !IngestionStatus.FAILED.equals(dataIngestion.getIngestionStatus())) {
+            pollIngestionJobStatus(dataIngestionId);
+            dataIngestion = getDataIngestionEntity(dataIngestionId);
+        }
+
+        if (!IngestionStatus.COMPLETED.equals(dataIngestion.getIngestionStatus())) {
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_NOT_COMPLETED);
+        }
+
+        return dataIngestion;
+    }
+
+    /**
+     * Định nghĩa phương thức để đợi cho đến khi trạng thái ingestion của data ingestion được cập nhật thành COMPLETED, phương thức này sẽ được gọi khi người dùng muốn tải file của một data ingestion cụ thể nhưng trạng thái ingestion hiện tại vẫn đang ở trạng thái intermediate (CREATED, EXTRACTING, CHUNKING, EMBEDDING, STORING), phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion, nếu không tồn tại thì trả về lỗi, 2) kiểm tra xem data ingestion này có hợp lệ để tải xuống hay không (ví dụ: không phải là folder, không đang ở trạng thái pending delete), nếu không hợp lệ thì trả về lỗi, 3) nếu data ingestion đang ở trạng thái intermediate thì sẽ gọi API của ingestion service để lấy trạng thái mới nhất và cập nhật vào database, sau đó kiểm tra lại trạng thái ingestion, nếu đã hoàn thành thì trả về entity để phục vụ cho việc tải file sau đó, nếu vẫn chưa hoàn thành thì tiếp tục đợi và kiểm tra lại cho đến khi hết thời gian chờ tối đa đã định nghĩa sẵn, 4) nếu hết thời gian chờ mà vẫn chưa hoàn thành thì trả về lỗi. Phương thức này sẽ không cache kết quả vì thường được gọi trước khi tải file và cần đảm bảo luôn phản ánh đúng trạng thái hiện tại của data ingestion sau khi đã có sự thay đổi (ví dụ: đổi tên thư mục, di chuyển thư mục, xóa data ingestion)
+     * @param dataIngestionId
+     * @return
+     */
+    public DataIngestionEntity waitForIngestionCompleted(UUID dataIngestionId) {
+        long deadline = System.currentTimeMillis() + DEFAULT_INGESTION_WAIT_TIMEOUT_MILLIS;
+
+        while (System.currentTimeMillis() <= deadline) {
+            DataIngestionEntity dataIngestion = getDataIngestionEntity(dataIngestionId);
+
+            if (dataIngestion.isFolder()) {
+                throw new AppException(ApiResponseStatus.DATA_INGESTION_FOLDER_ONLY_OPERATION);
+            }
+
+            if (DataIngestionDeleteStatus.PENDING_DELETE.equals(resolveDeleteStatus(dataIngestion))) {
+                throw new AppException(ApiResponseStatus.DATA_INGESTION_DELETE_IN_PROGRESS);
+            }
+
+            if (IngestionStatus.COMPLETED.equals(dataIngestion.getIngestionStatus())) {
+                return dataIngestion;
+            }
+
+            if (IngestionStatus.FAILED.equals(dataIngestion.getIngestionStatus())) {
+                throw new AppException(ApiResponseStatus.DATA_INGESTION_NOT_COMPLETED);
+            }
+
+            if (dataIngestion.getJobId() == null) {
+                throw new AppException(ApiResponseStatus.DATA_INGESTION_JOB_ID_NOT_EXISTS);
+            }
+
+            // Nếu status vẫn ở trạng thái intermediate (CREATED, EXTRACTING, CHUNKING, EMBEDDING, STORING)
+            // thì poll trạng thái mới nhất từ ingestion service
+            if (dataIngestion.getIngestionStatus() != null
+                    && !IngestionStatus.COMPLETED.equals(dataIngestion.getIngestionStatus())
+                    && !IngestionStatus.FAILED.equals(dataIngestion.getIngestionStatus())) {
+                pollIngestionJobStatus(dataIngestionId);
+            }
+
+            try {
+                Thread.sleep(DEFAULT_INGESTION_POLL_INTERVAL_MILLIS);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new AppException(ApiResponseStatus.DATA_INGESTION_NOT_COMPLETED);
+            }
+        }
+
+        throw new AppException(ApiResponseStatus.DATA_INGESTION_NOT_COMPLETED);
     }
 
     /**
@@ -317,7 +429,7 @@ public class DataIngestionService {
 
         validateDownloadableDataIngestion(dataIngestion);
 
-            MinioService.MinioObjectData objectData = minioService.download(dataIngestion.getMinioPath(), appProperties.getMinio().getIngestionBucket());
+            MinioService.MinioObjectData objectData = minioService.download(dataIngestion.getMinioPath(), dataIngestion.getFromSource().name().toLowerCase());
         dataIngestionRepository.save(dataIngestion);
 
         return new DataIngestionDownloadData(
@@ -343,7 +455,7 @@ public class DataIngestionService {
                 ? DEFAULT_PRESIGNED_EXPIRY_SECONDS
                 : expiresInSeconds;
 
-        String url = minioService.generatePresignedDownloadUrl(dataIngestion.getMinioPath(), effectiveExpiry, appProperties.getMinio().getIngestionBucket());
+        String url = minioService.generatePresignedDownloadUrl(dataIngestion.getMinioPath(), effectiveExpiry, dataIngestion.getFromSource().name().toLowerCase());
         return DataIngestionPresignedUrlResponseDto.builder()
                 .url(url)
                 .expiresInSeconds(effectiveExpiry)
@@ -459,7 +571,7 @@ public class DataIngestionService {
         OrganizationEntity organization = dataIngestion.getOrganization();
 
         try {
-            MinioService.MinioObjectData objectData = minioService.download(dataIngestion.getMinioPath(), appProperties.getMinio().getIngestionBucket());
+            MinioService.MinioObjectData objectData = minioService.download(dataIngestion.getMinioPath(), dataIngestion.getFromSource().name().toLowerCase());
             IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
                     objectData.getBytes(),
                     dataIngestion.getName(),
@@ -479,7 +591,7 @@ public class DataIngestionService {
             }
 
             dataIngestion.setJobId(ingestionResponse.getJobId());
-            dataIngestion.setIngestionStatus(IngestionStatus.PENDING);
+            dataIngestion.setIngestionStatus(IngestionStatus.CREATED);
             dataIngestionRepository.save(dataIngestion);
 
             return dataIngestionMapper.entityToResponseDto(dataIngestion);
@@ -496,6 +608,7 @@ public class DataIngestionService {
      * @param dataIngestionId
      * @return
      */
+    @CacheEvict(value = CacheName.DATA_INGESTION_DTO_DETAILS, key = "#dataIngestionId", condition = "#dataIngestionId != null")
     @Transactional
     public DataIngestionJobStatusResponseDto pollIngestionJobStatus(UUID dataIngestionId) {
         Optional<DataIngestionEntity> dataIngestionOptional = dataIngestionRepository.findById(dataIngestionId);
@@ -515,7 +628,7 @@ public class DataIngestionService {
         IngestionStatusResponseDto ingestionStatusResponse = ingestionService.getJobStatus(dataIngestionOptional.get().getJobId());
         String resolvedStatus = ingestionStatusResponse.getStatus();
         if (resolvedStatus == null || resolvedStatus.isBlank()) {
-            resolvedStatus = IngestionStatus.PENDING.name();
+            resolvedStatus = IngestionStatus.CREATED.name();
         } else {
             resolvedStatus = resolvedStatus.trim().toUpperCase(Locale.ROOT);
         }
@@ -578,7 +691,7 @@ public class DataIngestionService {
         try {
             // Xóa bên minio trước để tránh rác file nếu xóa database thành công nhưng xóa object thất bại
             if (dataIngestion.getMinioPath() != null && !dataIngestion.getMinioPath().isBlank()) {
-                minioService.delete(dataIngestion.getMinioPath(), appProperties.getMinio().getIngestionBucket());
+                minioService.delete(dataIngestion.getMinioPath(), dataIngestion.getFromSource().name().toLowerCase());
             }
 
             // Nếu data ingestion này liên quan đến ingestion job nào đó thì gọi API của ingestion service để xóa job đó luôn, tránh trường hợp dữ liệu bị xóa nhưng job
@@ -636,6 +749,11 @@ public class DataIngestionService {
         return dataIngestion.getDeleteStatus() == null ? DataIngestionDeleteStatus.ACTIVE : dataIngestion.getDeleteStatus();
     }
 
+    private DataIngestionEntity getDataIngestionEntity(UUID dataIngestionId) {
+        return dataIngestionRepository.findById(dataIngestionId)
+                .orElseThrow(() -> new AppException(ApiResponseStatus.DATA_INGESTION_NOT_EXISTS));
+    }
+
     /**
      * Định nghĩa phương thức để resolve hoặc tạo mới cây thư mục dựa trên đường dẫn tương đối truyền vào, phương thức này sẽ được gọi khi ingest một file mới với đường dẫn tương đối chứa các thư mục cha, phương thức sẽ thực hiện các bước sau: 1) nếu đường dẫn tương đối là null thì trả về null vì không có thư mục cha nào cả, 2) nếu đường dẫn tương đối không null thì sẽ tách đường dẫn thành các segment và duyệt qua từng segment để resolve hoặc tạo mới node thư mục tương ứng trong database, 3) với mỗi segment, sẽ kiểm tra xem đã tồn tại một node thư mục nào có tên giống segment đó và cùng parentId (hoặc parentId null nếu segment đó là thư mục gốc) hay chưa, nếu đã tồn tại thì sử dụng node đó làm parent cho segment tiếp theo, nếu chưa tồn tại thì tạo mới một node thư mục với tên là segment đó, parentId là node thư mục đã resolve được ở bước trước đó (hoặc null nếu segment đó là thư mục gốc), owner và organization lấy từ tham số truyền vào, accessLevel lấy từ tham số truyền vào, sau đó lưu vào database và sử dụng node mới tạo làm parent cho segment tiếp theo. Cuối cùng sau khi duyệt hết tất cả các segment thì sẽ trả về node thư mục cuối cùng đã resolve hoặc tạo mới được để làm parent cho file cần ingest
      * @param relativeParentPath
@@ -648,7 +766,8 @@ public class DataIngestionService {
             Path relativeParentPath,
             UserEntity owner,
             OrganizationEntity organization,
-            DataScope accessLevel) {
+            DataScope accessLevel,
+            DataSource fromSource) {
         if (relativeParentPath == null) {
             return null;
         }
@@ -659,7 +778,7 @@ public class DataIngestionService {
             if (folderName.isEmpty()) {
                 continue;
             }
-            currentParent = resolveOrCreateFolderNode(folderName, currentParent, owner, organization, accessLevel);
+            currentParent = resolveOrCreateFolderNode(folderName, currentParent, owner, organization, accessLevel, fromSource);
         }
 
         return currentParent;
@@ -679,7 +798,8 @@ public class DataIngestionService {
             DataIngestionEntity parent,
             UserEntity owner,
             OrganizationEntity organization,
-            DataScope accessLevel) {
+            DataScope accessLevel,
+            DataSource fromSource) {
         Optional<DataIngestionEntity> existing = parent == null
                 ? dataIngestionRepository.findFirstByFolderTrueAndNameAndParentIsNullAndOwnerIdAndOrganizationIdAndDeleteStatus(
                         folderName,
@@ -704,6 +824,7 @@ public class DataIngestionService {
         folder.setFileSize(0L);
         folder.setMinioPath(null);
         folder.setAccessLevel(accessLevel);
+        folder.setFromSource(fromSource);
         folder.setOwner(owner);
         folder.setOrganization(organization);
         folder.setJobId(null);
