@@ -1,8 +1,11 @@
 package ai.enums;
 
 public enum IngestionStatus {
-    PENDING, // Chờ xử lý
-    IN_PROGRESS, // Đang xử lý
+    CREATED, // Mới tạo
+    EXTRACTING, // Đang trích xuất
+    CHUNKING, // Đang chia nhỏ
+    EMBEDDING, // Đang nhúng
+    STORING, // Đang lưu trữ
     COMPLETED, // Hoàn thành
     FAILED // Thất bại
 }

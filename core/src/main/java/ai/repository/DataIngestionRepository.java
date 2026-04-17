@@ -6,6 +6,7 @@ import ai.enums.DataIngestionDeleteStatus;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -18,6 +19,9 @@ public interface DataIngestionRepository extends JpaRepository<DataIngestionEnti
     Iterable<DataIngestionEntity> findByIngestionStatus(IngestionStatus ingestionStatus);
 
     Iterable<DataIngestionEntity> findByDeleteStatus(DataIngestionDeleteStatus deleteStatus);
+
+    @Query("SELECT d FROM DataIngestionEntity d WHERE d.ingestionStatus IS NOT NULL AND d.ingestionStatus NOT IN (ai.enums.IngestionStatus.COMPLETED, ai.enums.IngestionStatus.FAILED)")
+    Iterable<DataIngestionEntity> findByIngestionStatusNotFinal();
 
         Optional<DataIngestionEntity> findFirstByFolderTrueAndNameAndParentIsNullAndOwnerIdAndOrganizationIdAndDeleteStatus(
             String name,

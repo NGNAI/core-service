@@ -23,6 +23,7 @@ import org.springframework.integration.file.RecursiveDirectoryScanner;
 
 import ai.AppProperties;
 import ai.dto.own.response.DataIngestionResponseDto;
+import ai.enums.DataSource;
 import ai.enums.DataScope;
 import ai.enums.IngestionStatus;
 import ai.service.DataIngestionService;
@@ -152,13 +153,18 @@ public class DataIngestionAutoImportScheduler {
 				? DataScope.GLOBAL
 				: appProperties.getAutoIngestion().getAccessLevel();
 
+		DataSource fromSource = appProperties.getAutoIngestion().getFromSource() == null
+				? DataSource.SYSTEM
+				: appProperties.getAutoIngestion().getFromSource();
+
 		try {
 			DataIngestionResponseDto response = dataIngestionService.ingestLocalFile(
 					stagedFile,
 					relativePath,
 					ownerId,
 					orgId,
-					accessLevel);
+					accessLevel,
+					fromSource);
 
 			if (response.getIngestionStatus().equals(IngestionStatus.FAILED.name())) {
 				log.error("Auto-ingestion failed when pushing to ingestion service. file={}", originalFile);

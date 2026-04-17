@@ -17,6 +17,7 @@ import ai.dto.own.response.AttachmentPresignedUrlResponseDto;
 import ai.dto.own.response.AttachmentResponseDto;
 import ai.model.ApiResponseModel;
 import ai.service.AttachmentService;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,6 +30,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/user/attachment")
 @RestController
+@Hidden
 public class AttachmentController {
     AttachmentService attachmentService;
 

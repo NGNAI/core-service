@@ -12,8 +12,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import ai.AppProperties;
-import ai.dto.own.request.DriveCreateFolderRequestDto;
+import ai.enums.ApiResponseStatus;
 import ai.dto.own.request.DriveUpdateFolderRequestDto;
 import ai.dto.own.request.DriveUploadRequestDto;
 import ai.dto.own.request.filter.DriveFilterDto;
@@ -24,8 +23,9 @@ import ai.dto.own.response.DriveTreeResponseDto;
 import ai.entity.postgres.DriveEntity;
 import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.UserEntity;
-import ai.enums.ApiResponseStatus;
+import ai.dto.own.request.DriveCreateFolderRequestDto;
 import ai.enums.DataIngestionDeleteStatus;
+import ai.enums.DataSource;
 import ai.exeption.AppException;
 import ai.mapper.DriveMapper;
 import ai.repository.DriveRepository;
@@ -40,14 +40,12 @@ import lombok.experimental.FieldDefaults;
 @Service
 public class DriveService {
     static int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
-    static String DEFAULT_NOTEBOOK_BUCKET = "notebookllm";
 
     DriveRepository driveRepository;
     MinioService minioService;
     DriveMapper driveMapper;
     UserService userService;
     OrganizationService organizationService;
-    AppProperties appProperties;
 
     @Transactional
     public DriveResponseDto upload(DriveUploadRequestDto requestDto) {
@@ -73,7 +71,7 @@ public class DriveService {
                     requestDto.getFile(),
                     user.getUserName(),
                     organization.getName(),
-                    resolveNotebookBucket());
+                    DataSource.NOTEBOOK.name().toLowerCase());
         } catch (Exception exception) {
             throw new AppException(ApiResponseStatus.DRIVE_UPLOAD_FAILED);
         }
@@ -187,7 +185,7 @@ public class DriveService {
 
         MinioService.MinioObjectData objectData;
         try {
-            objectData = minioService.download(drive.getMinioPath(), resolveNotebookBucket());
+            objectData = minioService.download(drive.getMinioPath(), DataSource.NOTEBOOK.name().toLowerCase());
         } catch (Exception exception) {
             throw new AppException(ApiResponseStatus.DRIVE_DOWNLOAD_FAILED);
         }
@@ -208,7 +206,7 @@ public class DriveService {
 
         String url;
         try {
-            url = minioService.generatePresignedDownloadUrl(drive.getMinioPath(), effectiveExpiry, resolveNotebookBucket());
+            url = minioService.generatePresignedDownloadUrl(drive.getMinioPath(), effectiveExpiry, DataSource.NOTEBOOK.name().toLowerCase());
         } catch (Exception exception) {
             throw new AppException(ApiResponseStatus.DRIVE_DOWNLOAD_FAILED);
         }
@@ -305,7 +303,7 @@ public class DriveService {
     private void executeDelete(DriveEntity drive) {
         try {
             if (drive.getMinioPath() != null && !drive.getMinioPath().isBlank()) {
-                minioService.delete(drive.getMinioPath(), resolveNotebookBucket());
+                minioService.delete(drive.getMinioPath(), DataSource.NOTEBOOK.name().toLowerCase());
             }
             driveRepository.delete(drive);
         } catch (Exception exception) {
@@ -389,13 +387,5 @@ public class DriveService {
         for (DriveTreeResponseDto node : nodes) {
             sortTree(node.getChildren());
         }
-    }
-
-    private String resolveNotebookBucket() {
-        String configured = appProperties.getMinio() == null ? null : appProperties.getMinio().getNotebookBucket();
-        if (configured == null || configured.isBlank()) {
-            return DEFAULT_NOTEBOOK_BUCKET;
-        }
-        return configured;
     }
 }

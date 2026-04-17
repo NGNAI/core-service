@@ -66,6 +66,10 @@ public class MessageService {
      * @return
      */
     public MessageResponseDto createAttachmentMessage(UUID topicId, AttachmentResponseDto attachmentDto) {
+        return createAttachmentMessage(topicId, (Object) attachmentDto);
+    }
+
+    public MessageResponseDto createAttachmentMessage(UUID topicId, Object attachmentDto) {
         String content;
         try {
             content = objectMapper.writeValueAsString(attachmentDto);

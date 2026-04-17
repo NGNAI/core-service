@@ -2,6 +2,7 @@ package ai.dto.own.response;
 
 import java.util.UUID;
 
+import ai.enums.DataSource;
 import ai.enums.DataScope;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -22,6 +23,7 @@ public class DataIngestionResponseDto extends AuditResponseDto {
     UUID ownerId;
     UUID orgId;
     DataScope accessLevel;
+    DataSource fromSource;
     UUID jobId;
     String ingestionStatus;
     String deleteStatus;

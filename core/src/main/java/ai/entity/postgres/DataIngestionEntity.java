@@ -6,6 +6,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import ai.entity.postgres.embeddable.AuditEmbed;
 import ai.enums.DataIngestionDeleteStatus;
+import ai.enums.DataSource;
 import ai.enums.DataScope;
 import ai.enums.IngestionStatus;
 import jakarta.persistence.Column;
@@ -34,11 +35,14 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Table(name = "data_ingestion", indexes = {
-        @jakarta.persistence.Index(name = "idx_data_ingestion_folder", columnList = "folder"),
-        @jakarta.persistence.Index(name = "idx_data_ingestion_org_id", columnList = "org_id"),
-        @jakarta.persistence.Index(name = "idx_data_ingestion_owner_id", columnList = "owner_id"),
-        @jakarta.persistence.Index(name = "idx_data_ingestion_parent_id", columnList = "parent_id"),
-        @jakarta.persistence.Index(name = "idx_data_ingestion_delete_status", columnList = "delete_status")
+    @jakarta.persistence.Index(name = "idx_data_ingestion_folder", columnList = "folder"),
+    @jakarta.persistence.Index(name = "idx_data_ingestion_org_id", columnList = "org_id"),
+    @jakarta.persistence.Index(name = "idx_data_ingestion_owner_id", columnList = "owner_id"),
+    @jakarta.persistence.Index(name = "idx_data_ingestion_parent_id", columnList = "parent_id"),
+    @jakarta.persistence.Index(name = "idx_data_ingestion_ingestion_status", columnList = "ingestion_status"),
+    @jakarta.persistence.Index(name = "idx_data_ingestion_delete_status", columnList = "delete_status"),
+    @jakarta.persistence.Index(name = "idx_data_ingestion_access_level", columnList = "access_level"),
+    @jakarta.persistence.Index(name = "idx_data_ingestion_from_source", columnList = "from_source")
 })
 @EntityListeners(AuditingEntityListener.class)
 @Entity
@@ -87,6 +91,11 @@ public class DataIngestionEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "access_level", length = 20)
     DataScope accessLevel;
+
+    // Nguồn phát sinh dữ liệu ingestion này, ví dụ SYSTEM, DOCUMENT, TOPIC hoặc NOTEBOOK
+    @Enumerated(EnumType.STRING)
+    @Column(name = "from_source", length = 20)
+    DataSource fromSource;
 
     // ID của ingestion job nếu data ingestion này được upload để ingest, null nếu không liên quan đến ingestion
     @Column(name = "job_id", nullable = true)

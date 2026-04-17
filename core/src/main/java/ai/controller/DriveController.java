@@ -29,6 +29,7 @@ import ai.dto.own.response.DriveResponseDto;
 import ai.dto.own.response.DriveTreeResponseDto;
 import ai.model.ApiResponseModel;
 import ai.service.DriveService;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,6 +43,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/user/drive")
 @RestController
+@Hidden
 public class DriveController {
     DriveService driveService;
 

@@ -34,5 +34,12 @@ public class DataIngestionEntitySpecification {
         }
         return criteriaBuilder.equal(root.get("accessLevel"), accessLevel);
     }
+
+    public static Predicate buildFromSource(Path<?> root, CriteriaBuilder criteriaBuilder, Object fromSource) {
+        if (fromSource == null) {
+            return criteriaBuilder.conjunction();
+        }
+        return criteriaBuilder.equal(root.get("fromSource"), fromSource);
+    }
    
 }
