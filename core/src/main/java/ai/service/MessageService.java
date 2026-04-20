@@ -1,9 +1,17 @@
 package ai.service;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import ai.dto.own.request.MessageCreateRequestDto;
 import ai.dto.own.request.MessageUpdateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
-import ai.dto.own.response.AttachmentResponseDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.entity.postgres.MessageEntity;
 import ai.entity.postgres.TopicEntity;
@@ -14,16 +22,9 @@ import ai.mapper.MessageMapper;
 import ai.model.CustomPairModel;
 import ai.repository.MessageRepository;
 import ai.util.JwtUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.data.domain.Page;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -62,13 +63,13 @@ public class MessageService {
     /**
      * Tạo message kiểu attachment, dùng để lưu thông tin file khi user upload file lên topic. Sau đó message này sẽ được gửi vào rag để rag lưu thông tin file vào vector db cùng với nội dung message (nếu có) để phục vụ cho việc tìm kiếm sau này
      * @param topicId
-     * @param attachmentDto
+     * @param source
      * @return
      */
-    public MessageResponseDto createAttachmentMessage(UUID topicId, AttachmentResponseDto attachmentDto) {
+    public MessageResponseDto createAttachmentMessage(UUID topicId, Object source) {
         String content;
         try {
-            content = objectMapper.writeValueAsString(attachmentDto);
+            content = objectMapper.writeValueAsString(source);
         } catch (Exception e) {
             content = "{}";
         }
