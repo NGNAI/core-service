@@ -31,7 +31,6 @@ public class  PermissionService {
     PermissionRepository permissionRepository;
     PermissionMapper permissionMapper;
 
-    @PreAuthorize("@perm.canAccess(null, 'PERMISSION', 'READ', null)")
     public CustomPairModel<Long,List<PermissionResponseDto>> getAll(PermissionFilterDto filterDto){
         Page<PermissionEntity> page = permissionRepository.findAll(
                 filterDto.createSpec(),
@@ -41,7 +40,6 @@ public class  PermissionService {
         return new CustomPairModel<>(page.getTotalElements(),page.getContent().stream().map(permissionMapper::entityToResponseDto).toList());
     }
 
-    @PreAuthorize("@perm.canAccess(null, 'PERMISSION', 'CREATE', null)")
     public PermissionResponseDto create(PermissionCreateRequestDto createRequestDto){
         if(permissionRepository.existsByName(createRequestDto.getName()))
             throw new AppException(ApiResponseStatus.PERMISSION_NAME_EXISTED);
@@ -50,7 +48,6 @@ public class  PermissionService {
         return permissionMapper.entityToResponseDto(permissionRepository.save(newEntity));
     }
 
-    @PreAuthorize("@perm.canAccess(null, 'PERMISSION', 'UPDATE', null)")
     public PermissionResponseDto update(UUID id, PermissionUpdateRequestDto updateRequestDto){
         PermissionEntity entity = permissionRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.PERMISSION_ID_NOT_EXISTS));
         permissionMapper.updateEntity(entity, updateRequestDto);
@@ -58,7 +55,6 @@ public class  PermissionService {
         return permissionMapper.entityToResponseDto(permissionRepository.save(entity));
     }
 
-    @PreAuthorize("@perm.canAccess(null, 'PERMISSION', 'DELETE', null)")
     public void delete(UUID id){
         permissionRepository.deleteById(id);
     }

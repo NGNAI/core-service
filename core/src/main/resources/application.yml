@@ -13,7 +13,7 @@ spring:
       max-request-size: "100MB"
 
   datasource:
-    url: "jdbc:postgresql://192.168.30.72:5432/core_service"
+    url: "jdbc:postgresql://192.168.30.72:5432/core_service_tmp"
     username: "postgres"
     password: "P@ssw0rd"
 

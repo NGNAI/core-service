@@ -40,30 +40,30 @@ public class ApplicationInitConfig {
                 log.info("Init root organization");
 
                 UserResponseDto user = userService.create(UserCreateRequestDto.builder()
-                        .userName("admin")
-                        .password("admin")
-                        .firstName("Administrator")
-                        .email("admin@tmp.com")
+                        .userName("root")
+                        .password("root")
+                        .firstName("Root")
+                        .email("root@tmp.com")
                         .source("local")
                         .build());
 
-                log.info("Init admin/admin user");
+                log.info("Init root/root user");
 
                 RoleResponseDto role = roleService.create(RoleCreateRequestDto.builder()
-                        .name("ADMIN")
-                        .description("Role for admin")
+                        .name("ROOT")
+                        .description("Role for root")
                         .defaultAssign(false)
                         .build());
 
-                log.info("Init admin role");
+                log.info("Init root role");
 
                 ourService.assignUsers(org.getId(), OrganizationAssignUserRequestDto.builder()
                                 .userIds(Set.of(user.getId()))
                                 .roleId(role.getId())
                         .build());
-                log.info("Assign admin user to root organization with admin role");
+                log.info("Assign root user to root organization with admin role");
 
-                log.warn("Admin user has been created with default password: admin, please change it!");
+                log.warn("Admin user has been created with default password: root, please change it!");
             }
         };
     }

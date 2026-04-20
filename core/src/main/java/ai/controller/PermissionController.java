@@ -13,6 +13,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public class PermissionController {
     PermissionService permissionService;
 
     @GetMapping
+    @PreAuthorize("@perm.canAccess(null, 'PERMISSION', 'READ', null)")
     ResponseEntity<ApiResponseModel<List<PermissionResponseDto>>> getAll(@Valid @ModelAttribute PermissionFilterDto filterDto){
         CustomPairModel<Long, List<PermissionResponseDto>> result = permissionService.getAll(filterDto);
 
@@ -39,6 +41,7 @@ public class PermissionController {
     }
 
     @PostMapping
+    @PreAuthorize("@perm.canAccess(null, 'PERMISSION', 'CREATE', null)")
     ResponseEntity<ApiResponseModel<PermissionResponseDto>> create(@Valid @RequestBody PermissionCreateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<PermissionResponseDto>builder()
@@ -49,6 +52,7 @@ public class PermissionController {
     }
 
     @PutMapping("/{permissionId}")
+    @PreAuthorize("@perm.canAccess(null, 'PERMISSION', 'UPDATE', null)")
     ResponseEntity<ApiResponseModel<PermissionResponseDto>> update(@PathVariable UUID permissionId, @Valid @RequestBody PermissionUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<PermissionResponseDto>builder()
@@ -59,6 +63,7 @@ public class PermissionController {
     }
 
     @DeleteMapping("/{permissionId}")
+    @PreAuthorize("@perm.canAccess(null, 'PERMISSION', 'DELETE', null)")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID permissionId){
         permissionService.delete(permissionId);
 

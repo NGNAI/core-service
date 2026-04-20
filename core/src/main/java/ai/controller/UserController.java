@@ -12,6 +12,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class UserController {
     UserService userService;
 
     @GetMapping("/{userId}")
+    @PreAuthorize("@perm.canAccess(null, 'USER', 'READ', null)")
     ResponseEntity<ApiResponseModel<UserResponseDto>> getById(@PathVariable UUID userId){
         return ResponseEntity.ok(
                 ApiResponseModel.<UserResponseDto>builder()
@@ -35,6 +37,7 @@ public class UserController {
     }
 
     @GetMapping
+    @PreAuthorize("@perm.canAccess(null, 'USER', 'READ', null)")
     ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getAll(@Valid @ModelAttribute UserFilterDto filterDto){
         CustomPairModel<Long, List<UserResponseDto>> result = userService.getAll(filterDto);
         return ResponseEntity.ok(
@@ -47,6 +50,7 @@ public class UserController {
     }
 
     @PostMapping
+    @PreAuthorize("@perm.canAccess(null, 'USER', 'CREATE', null)")
     ResponseEntity<ApiResponseModel<UserResponseDto>> create(@Valid @RequestBody UserCreateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<UserResponseDto>builder()
@@ -57,6 +61,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}")
+    @PreAuthorize("@perm.canAccess(null, 'USER', 'UPDATE', null)")
     ResponseEntity<ApiResponseModel<UserResponseDto>> update(@PathVariable UUID userId,@Valid @RequestBody UserUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<UserResponseDto>builder()
@@ -66,8 +71,8 @@ public class UserController {
         );
     }
 
-
     @DeleteMapping("/{userId}")
+    @PreAuthorize("@perm.canAccess(null, 'USER', 'DELETE', null)")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID userId){
         userService.delete(userId);
 
