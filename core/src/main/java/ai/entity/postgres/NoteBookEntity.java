@@ -1,16 +1,27 @@
 package ai.entity.postgres;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import ai.entity.postgres.embeddable.AuditEmbed;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import java.util.List;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -26,6 +37,9 @@ public class NoteBookEntity {
 
     @Column(name = "title", nullable = false)
     String title;
+
+    @Column(name = "description", nullable = false)
+    String description;
 
     @Column(name = "instruction")
     String instruction;

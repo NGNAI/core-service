@@ -21,4 +21,6 @@ public class NoteBookCreateConversationRequestDto {
     Set<
             @EnumValue(enumClass = RagScope.class, message = InputValidateKey.INVALID_RAG_SCOPE_VALUE)
             String> scopes;
+
+    Set<String> fileIds;
 }
