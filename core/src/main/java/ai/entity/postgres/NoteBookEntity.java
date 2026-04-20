@@ -3,6 +3,7 @@ package ai.entity.postgres;
 import ai.entity.postgres.embeddable.AuditEmbed;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
@@ -25,6 +26,9 @@ public class NoteBookEntity {
 
     @Column(name = "title", nullable = false)
     String title;
+
+    @Column(name = "instruction", nullable = false)
+    String instruction;
 
     @Embedded
     AuditEmbed audit= new AuditEmbed();
