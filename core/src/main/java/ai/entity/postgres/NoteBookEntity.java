@@ -27,6 +27,9 @@ public class NoteBookEntity {
     @Column(name = "title", nullable = false)
     String title;
 
+    @Column(name = "description", nullable = false)
+    String description;
+
     @Column(name = "instruction", nullable = false)
     String instruction;
 

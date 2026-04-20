@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -69,6 +70,16 @@ public class NoteBookController {
                 ApiResponseModel.<NoteBookResponseDto>builder()
                         .message("Create notebook successfully")
                         .data(notebookService.create(requestDto))
+                        .build()
+        );
+    }
+
+    @PutMapping("/{noteBookId}")
+    ResponseEntity<ApiResponseModel<NoteBookResponseDto>> update(@PathVariable UUID noteBookId, @Valid @RequestBody NoteBookUpdateRequestDto requestDto){
+        return ResponseEntity.ok(
+                ApiResponseModel.<NoteBookResponseDto>builder()
+                        .message("Update notebook successfully")
+                        .data(notebookService.update(noteBookId, requestDto))
                         .build()
         );
     }

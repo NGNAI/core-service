@@ -10,7 +10,7 @@ import lombok.experimental.FieldDefaults;
 @Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class NoteBookCreateRequestDto {
+public class NoteBookUpdateRequestDto {
     @NotBlank(message = InputValidateKey.NOTEBOOK_TITLE_CAN_NOT_BE_NULL_OR_EMPTY)
     String title;
 

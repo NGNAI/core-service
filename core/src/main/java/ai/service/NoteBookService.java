@@ -3,6 +3,7 @@ package ai.service;
 import ai.dto.own.request.NoteBookCreateRequestDto;
 import ai.dto.own.request.NoteBookRenameTitleRequestDto;
 import ai.dto.own.request.NoteBookUpdateInstructionRequestDto;
+import ai.dto.own.request.NoteBookUpdateRequestDto;
 import ai.dto.own.request.filter.NoteBookFilterDto;
 import ai.dto.own.response.NoteBookResponseDto;
 import ai.entity.postgres.NoteBookEntity;
@@ -64,7 +65,17 @@ public class NoteBookService {
 
         return noteBookMapper.entityToResponseDto(noteBookRepository.save(newEntity));
     }
+    
+    public NoteBookResponseDto update(UUID id, NoteBookUpdateRequestDto requestDto){
+        validateNoteBookOfUser(id,JwtUtil.getUserId());
+        NoteBookEntity entity = noteBookRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.NOTEBOOK_ID_NOT_EXISTS));
+        entity.setTitle(requestDto.getTitle());
+        entity.setDescription(requestDto.getDescription());
+        entity.setInstruction(requestDto.getInstruction());
 
+        return noteBookMapper.entityToResponseDto(noteBookRepository.save(entity));
+    }
+    
     public NoteBookResponseDto renameTitle(UUID id, NoteBookRenameTitleRequestDto requestDto){
         validateNoteBookOfUser(id,JwtUtil.getUserId());
         NoteBookEntity entity = noteBookRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.NOTEBOOK_ID_NOT_EXISTS));
