@@ -27,7 +27,7 @@ public class NoteBookEntity {
     @Column(name = "title", nullable = false)
     String title;
 
-    @Column(name = "instruction", nullable = false)
+    @Column(name = "instruction")
     String instruction;
 
     @Embedded

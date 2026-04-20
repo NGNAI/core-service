@@ -12,6 +12,7 @@ import java.util.UUID;
         "id",
         "ownerId",
         "title",
+        "instruction",
 })
 @Getter
 @Setter
@@ -20,4 +21,5 @@ public class NoteBookResponseDto extends AuditResponseDto {
     UUID id;
     UUID ownerId;
     String title;
+    String instruction;
 }
