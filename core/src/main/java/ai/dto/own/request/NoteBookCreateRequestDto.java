@@ -13,4 +13,6 @@ import lombok.experimental.FieldDefaults;
 public class NoteBookCreateRequestDto {
     @NotBlank(message = InputValidateKey.NOTEBOOK_TITLE_CAN_NOT_BE_NULL_OR_EMPTY)
     String title;
+
+    String instruction;
 }

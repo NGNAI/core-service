@@ -4,4 +4,9 @@
     <option name="defaultUnitInitialized" value="true" />
     <option name="renamerInitialized" value="true" />
   </component>
+  <component name="PersistenceUnitSettings">
+    <persistence-units>
+      <persistence-unit moduleName="core" name="core" framework="JPA" ormUnit="core:core" defaultDataSourceId="bc76cf9f-4863-49a6-b5ed-11d001a7aff4" />
+    </persistence-units>
+  </component>
 </project>

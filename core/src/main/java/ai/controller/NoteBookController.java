@@ -3,6 +3,7 @@ package ai.controller;
 import java.util.List;
 import java.util.UUID;
 
+import ai.dto.own.request.*;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -20,10 +21,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import ai.dto.own.request.NoteBookCreateConversationRequestDto;
-import ai.dto.own.request.NoteBookCreateRequestDto;
-import ai.dto.own.request.NoteBookFilesAddRequestDto;
-import ai.dto.own.request.NoteBookRenameTitleRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.request.filter.NoteBookFilterDto;
 import ai.dto.own.response.DataIngestionDownloadData;
@@ -76,12 +73,22 @@ public class NoteBookController {
         );
     }
 
-    @PatchMapping("/{noteBookId}")
+    @PatchMapping("/{noteBookId}/title")
     ResponseEntity<ApiResponseModel<NoteBookResponseDto>> renameTitle(@PathVariable UUID noteBookId, @Valid @RequestBody NoteBookRenameTitleRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<NoteBookResponseDto>builder()
                         .message("Rename notebook title successfully")
                         .data(notebookService.renameTitle(noteBookId, requestDto))
+                        .build()
+        );
+    }
+
+    @PatchMapping("/{noteBookId}/instruction")
+    ResponseEntity<ApiResponseModel<NoteBookResponseDto>> updateInstruction(@PathVariable UUID noteBookId, @Valid @RequestBody NoteBookUpdateInstructionRequestDto requestDto){
+        return ResponseEntity.ok(
+                ApiResponseModel.<NoteBookResponseDto>builder()
+                        .message("Update notebook instruction successfully")
+                        .data(notebookService.updateInstruction(noteBookId, requestDto))
                         .build()
         );
     }

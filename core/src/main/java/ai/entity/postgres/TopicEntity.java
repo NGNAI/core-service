@@ -37,7 +37,7 @@ public class TopicEntity {
     UserEntity owner;
 
     @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL)
-    List<MessageEntity> messages;
+    List<TopicMessageEntity> topicMessages;
 
     @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true)
     List<TopicFileEntity> topicFiles;
