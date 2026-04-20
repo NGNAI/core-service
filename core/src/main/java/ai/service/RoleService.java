@@ -36,7 +36,6 @@ public class RoleService {
     PermissionRepository permissionRepository;
     RoleMapper roleMapper;
 
-    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'READ',null)")
     public RoleResponseDto getById(UUID roleId){
         RoleEntity role = roleRepository.findByIdWithPermissions(roleId).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
 
@@ -46,7 +45,6 @@ public class RoleService {
         return responseDto;
     }
 
-    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'READ',null)")
     public CustomPairModel<Long,List<RoleResponseDto>> getAll(RoleFilterDto filterDto){
         Page<RoleEntity> page = roleRepository.findAll(
                 filterDto.createSpec(),
@@ -62,7 +60,6 @@ public class RoleService {
         return new CustomPairModel<>(page.getTotalElements(),roles);
     }
 
-    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'CREATE', null)")
     public RoleResponseDto create(RoleCreateRequestDto createRequestDto){
         if(roleRepository.existsByName(createRequestDto.getName()))
             throw new AppException(ApiResponseStatus.ROLE_NAME_EXISTED);
@@ -75,7 +72,6 @@ public class RoleService {
         return roleMapper.entityToResponseDto(roleRepository.save(newEntity));
     }
 
-    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'UPDATE', null)")
     public RoleResponseDto update(UUID id, RoleUpdateRequestDto updateRequestDto){
         if(updateRequestDto.isDefaultAssign())
             roleRepository.deActiveAllDefaultAssign();
@@ -87,7 +83,6 @@ public class RoleService {
         return roleMapper.entityToResponseDto(roleRepository.save(entity));
     }
 
-    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'ASSIGN', 'PERMISSION')")
     public RoleResponseDto assignPermissions(UUID roleId, RolePermissionUpdateRequestDto requestDto){
         List<PermissionEntity> permissions = permissionRepository.findAllById(requestDto.getPermissions().stream().map(PermissionAssignRequestDto::getId).collect(Collectors.toSet()));
         RoleEntity roleEntity = roleRepository.findById(roleId).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
@@ -130,7 +125,6 @@ public class RoleService {
                 ));
     }
 
-    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'DELETE', null)")
     public void delete(UUID id){
         roleRepository.deleteById(id);
     }

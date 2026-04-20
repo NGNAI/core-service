@@ -87,7 +87,6 @@ public class OrganizationUserRoleService {
             .toList();
     }
 
-    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'READ',null)")
     public CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> getUsersByOrgId(UUID orgId, UserFilterDto userFilterDto) {
         if (!orgRepository.existsById(orgId)) throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
 
@@ -122,7 +121,6 @@ public class OrganizationUserRoleService {
         return new CustomPairModel<>(users.getTotalElements(), mapResult.values().stream().toList());
     }
 
-    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'READ',null)")
     public CustomPairModel<Long, List<UserResponseDto>> getUsersNotInOrg(UUID orgId, UserFilterDto userFilterDto) {
         if (!orgRepository.existsById(orgId)) throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
         Specification<UserEntity> spec = (root, query, criteriaBuilder) -> {
@@ -142,7 +140,6 @@ public class OrganizationUserRoleService {
         return new CustomPairModel<>(page.getTotalElements(), page.stream().map(userMapper::entityToResponseDto).toList());
     }
 
-    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'READ',null)")
     public CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> getUsersByOrgIdAndInRole(UUID orgId, UUID roleId,UserFilterDto userFilterDto) {
         if (!orgRepository.existsById(orgId)) throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
 
@@ -178,7 +175,6 @@ public class OrganizationUserRoleService {
         return new CustomPairModel<>(users.getTotalElements(), mapResult.values().stream().toList());
     }
 
-    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'READ',null)")
     public CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> getUsersByOrgIdAndNotInRole(UUID orgId, UUID roleId,UserFilterDto userFilterDto) {
         if (!orgRepository.existsById(orgId)) throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
 
@@ -221,7 +217,6 @@ public class OrganizationUserRoleService {
         return new CustomPairModel<>(users.getTotalElements(), mapResult.values().stream().toList());
     }
 
-    @PreAuthorize("@perm.canAccess(#id, 'ORG', 'ASSIGN', 'USER')")
     public void assignUsers(UUID id, OrganizationAssignUserRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -245,7 +240,6 @@ public class OrganizationUserRoleService {
         ourRepository.saveAll(users.stream().map(user -> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
     }
 
-    @PreAuthorize("@perm.canAccess(#id, 'ORG', 'ASSIGN', 'ROLE')")
     public void assignRole(UUID id, UUID roleId,OrganizationAssignRoleRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -270,7 +264,6 @@ public class OrganizationUserRoleService {
         ourRepository.saveAll(users.stream().map(user -> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
     }
 
-    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'REMOVE', 'USER')")
     public void removeUsers(UUID orgId, OrganizationRemoveUserRequestDto requestDto) {
         if (!orgRepository.existsById(orgId)) throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
 
@@ -287,7 +280,6 @@ public class OrganizationUserRoleService {
         ourRepository.deleteAll(ourList);
     }
 
-    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'REMOVE', 'ROLE')")
     public void removeRole(UUID orgId,UUID roleId, OrganizationRemoveRoleRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(orgId).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -310,7 +302,6 @@ public class OrganizationUserRoleService {
         ourRepository.deleteAll(users.stream().map(user -> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
     }
 
-    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'ASSIGN', 'ROLE')")
     public void replaceRole(UUID orgId, OrganizationReplaceRoleRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(orgId).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -340,7 +331,6 @@ public class OrganizationUserRoleService {
         ourRepository.saveAll(users.stream().map(user -> new OrganizationUserRoleEntity(org, user, newRole)).collect(Collectors.toSet()));
     }
 
-    @PreAuthorize("@perm.canAccess(#orgId, 'ORG', 'ASSIGN', 'ROLE')")
     public void resetRole(UUID orgId, OrganizationResetRoleRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(orgId).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 

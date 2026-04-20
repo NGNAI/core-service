@@ -14,6 +14,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +28,7 @@ public class RoleController {
     RoleService roleService;
 
     @GetMapping
+    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'READ',null)")
     ResponseEntity<ApiResponseModel<List<RoleResponseDto>>> getAll(@Valid @ModelAttribute RoleFilterDto filterDto){
         CustomPairModel<Long, List<RoleResponseDto>> result = roleService.getAll(filterDto);
         return ResponseEntity.ok(
@@ -39,6 +41,7 @@ public class RoleController {
     }
 
     @PostMapping
+    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'CREATE', null)")
     ResponseEntity<ApiResponseModel<RoleResponseDto>> create(@Valid @RequestBody RoleCreateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<RoleResponseDto>builder()
@@ -49,6 +52,7 @@ public class RoleController {
     }
 
     @PutMapping("/{roleId}")
+    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'UPDATE', null)")
     ResponseEntity<ApiResponseModel<RoleResponseDto>> update(@PathVariable UUID roleId,@Valid  @RequestBody RoleUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<RoleResponseDto>builder()
@@ -59,6 +63,7 @@ public class RoleController {
     }
 
     @PostMapping("/{roleId}/permissions")
+    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'ASSIGN', 'PERMISSION')")
     ResponseEntity<ApiResponseModel<RoleResponseDto>> assignPermission(@PathVariable UUID roleId,@Valid @RequestBody RolePermissionUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<RoleResponseDto>builder()
@@ -69,6 +74,7 @@ public class RoleController {
     }
 
     @DeleteMapping("/{roleId}")
+    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'DELETE', null)")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID roleId){
         roleService.delete(roleId);
 

@@ -13,6 +13,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public class OrganizationController {
     OrganizationService organizationService;
 
     @GetMapping("/{organizationId}")
+    @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'READ',null)")
     ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getById(@PathVariable UUID organizationId
             , @Valid @Min(value = 0, message = InputValidateKey.NESTED_CHILD_VALUE_INVALID) @RequestParam(required = false) Integer nestedChild){
         return ResponseEntity.ok(
@@ -37,6 +39,7 @@ public class OrganizationController {
     }
 
     @GetMapping
+    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
     ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getAll(@Valid @ModelAttribute OrganizationFilterDto filterDto){
         CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getAll(filterDto);
         return ResponseEntity.ok(
@@ -61,6 +64,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/root")
+    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
     ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getRoot(@Valid @Min(value = 0, message = InputValidateKey.NESTED_CHILD_VALUE_INVALID) @RequestParam(required = false) Integer nestedChild){
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationResponseDto>builder()
@@ -71,6 +75,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/{organizationId}/children")
+    @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'READ',null)")
     ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getChild(@PathVariable UUID organizationId, @Valid @Min(value = 0, message = InputValidateKey.NESTED_CHILD_VALUE_INVALID) @RequestParam(required = false) Integer nestedChild,@Valid @ModelAttribute OrganizationFilterDto filterDto){
         CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getChild(organizationId, nestedChild, filterDto);
 
@@ -84,6 +89,7 @@ public class OrganizationController {
     }
 
     @PostMapping
+    @PreAuthorize("@perm.canAccess(#requestDto.parentId, 'ORG', 'CREATE',null)")
     ResponseEntity<ApiResponseModel<OrganizationResponseDto>> create(@Valid @RequestBody OrganizationCreateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationResponseDto>builder()
@@ -94,6 +100,7 @@ public class OrganizationController {
     }
 
     @PutMapping("/{organizationId}")
+    @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'UPDATE',null)")
     ResponseEntity<ApiResponseModel<OrganizationResponseDto>> update(@PathVariable UUID organizationId,@Valid @RequestBody OrganizationUpdateRequestDto requestDto){
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationResponseDto>builder()
@@ -104,6 +111,7 @@ public class OrganizationController {
     }
 
     @DeleteMapping("/{organizationId}")
+    @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'DELETE',null)")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID organizationId){
         organizationService.delete(organizationId);
 

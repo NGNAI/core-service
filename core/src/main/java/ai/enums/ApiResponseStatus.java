@@ -29,12 +29,14 @@ public enum ApiResponseStatus {
     NESTED_CHILD_VALUE_INVALID(1014, "Invalid nested child value!", HttpStatus.NOT_FOUND),
     USER_NOT_EXISTS(1015, "User does not exist", HttpStatus.NOT_FOUND),
     USER_EXISTED(1016, "User already exists", HttpStatus.CONFLICT),
+
     ROLE_NAME_CAN_NOT_BE_NULL_OR_EMPTY(1017, "Role name cannot be null or empty", HttpStatus.BAD_REQUEST),
     ROLE_NAME_EXISTED(1018, "Role name already exists", HttpStatus.CONFLICT),
     ROLE_ID_NOT_EXISTS(1019, "Role ID does not exist", HttpStatus.NOT_FOUND),
     ROLE_DEFAULT_ASSIGN_NOT_EXISTS(1020, "No role available for default assignment", HttpStatus.NOT_FOUND),
     ROLE_PERMISSION_CAN_NOT_BE_NULL(1021, "Role permissions cannot be null", HttpStatus.BAD_REQUEST),
     ROLE_ID_CAN_NOT_BE_NULL(1022, "Role ID cannot be null", HttpStatus.BAD_REQUEST),
+
     PERMISSION_NAME_CAN_NOT_BE_NULL_OR_EMPTY(1023, "Permission name cannot be null or empty", HttpStatus.BAD_REQUEST),
     PERMISSION_RESOURCE_CAN_NOT_BE_NULL_OR_EMPTY(1024, "Permission resource cannot be null or empty", HttpStatus.BAD_REQUEST),
     INVALID_VALUE_PERMISSION_RESOURCE(1025, "Invalid permission resource", HttpStatus.BAD_REQUEST),
@@ -45,6 +47,7 @@ public enum ApiResponseStatus {
     INVALID_VALUE_PERMISSION_SCOPE(1030, "Invalid permission scope", HttpStatus.BAD_REQUEST),
     ASSIGN_PERMISSION_ID_CAN_NOT_BE_NULL(1031, "Assign permission id cannot be null or empty", HttpStatus.BAD_REQUEST),
     ASSIGN_PERMISSION_SCOPE_CAN_NOT_BE_NULL(1032, "Assign permission scope cannot be null or empty", HttpStatus.BAD_REQUEST),
+
     USER_EXISTED_IN_ORGANIZATION(1033, "User already exists in organization", HttpStatus.CONFLICT),
     USER_WITH_ROLE_EXISTED_IN_ORGANIZATION(1034, "User with role already exists in organization", HttpStatus.CONFLICT),
     USER_WITH_ROLE_NOT_EXIST_IN_ORGANIZATION(1035, "User with role does not exist in organization", HttpStatus.NOT_FOUND),
@@ -60,6 +63,8 @@ public enum ApiResponseStatus {
     USER_EMAIL_CAN_NOT_BE_NULL_OR_EMPTY(1044, "Email cannot be null or empty", HttpStatus.BAD_REQUEST),
     ONLY_LOCAL_USER_CAN_UPDATE_INFO(1045, "Only local user can update", HttpStatus.BAD_REQUEST),
     USER_IDS_CAN_NOT_BE_NULL_OR_EMPTY(1046, "User IDs cannot be null or empty", HttpStatus.BAD_REQUEST),
+    ROOT_USER_NOT_EXIST(1014, "Root user not exists!", HttpStatus.NOT_FOUND),
+
     TOPIC_ID_NOT_EXISTS(1047, "Topic ID does not exist", HttpStatus.NOT_FOUND),
     TOPIC_TITLE_CAN_NOT_BE_NULL_OR_EMPTY(1048, "Topic title cannot be null or empty", HttpStatus.BAD_REQUEST),
     TOPIC_TYPE_CAN_NOT_BE_NULL_OR_EMPTY(1049, "Topic type cannot be null or empty", HttpStatus.BAD_REQUEST),

@@ -49,7 +49,6 @@ public class OrganizationService {
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
     }
 
-    @PreAuthorize("@perm.canAccess(#id, 'ORG', 'READ',null)")
     public OrganizationResponseDto getById(UUID id, Integer nestedChild){
         OrganizationResponseDto responseDto = orgMapper.entityToResponseDto(
                 orgRepository.findById(id)
@@ -61,20 +60,17 @@ public class OrganizationService {
         return responseDto;
     }
 
-    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
     public CustomPairModel<Long,List<OrganizationResponseDto>> getAll(OrganizationFilterDto filterDto){
         Page<OrganizationEntity> page = orgRepository.findAll(filterDto.createSpec(),filterDto.createPageable());
         List<OrganizationResponseDto> organizations = page.getContent().stream().map(orgMapper::entityToResponseDto).toList();
         return new CustomPairModel<>(page.getTotalElements(),organizations);
     }
 
-    // Khoa viết chi tiết giùm anh nhé, anh chỉ viết khung thôi, phần logic anh để em tự viết nhé
     public OrganizationEntity getRoot(){
         Specification<OrganizationEntity> spec = ((root, query, criteriaBuilder) -> criteriaBuilder.isNull(root.get("parent")));
         return orgRepository.findOne(spec).orElse(null);
     }
     
-//    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
     public OrganizationResponseDto getRoot(Integer nestedChild){
         OrganizationEntity orgRoot = getRoot();
         if(getRoot()==null)
@@ -107,7 +103,6 @@ public class OrganizationService {
         throw new AppException(ApiResponseStatus.PERMISSION_DENIED);
     }
 
-    @PreAuthorize("@perm.canAccess(#parentId, 'ORG', 'READ',null)")
     public CustomPairModel<Long,List<OrganizationResponseDto>> getChild(UUID parentId, Integer nestedChild, OrganizationFilterDto filterDto){
         if(!orgRepository.existsById(parentId))
             throw new AppException(ApiResponseStatus.PARENT_ORGANIZATION_NOT_EXISTS);
@@ -125,7 +120,6 @@ public class OrganizationService {
         return new CustomPairModel<>(page.getTotalElements(),organizations);
     }
 
-    @PreAuthorize("@perm.canAccess(#requestDto.parentId, 'ORG', 'CREATE',null)")
     public OrganizationResponseDto create(OrganizationCreateRequestDto requestDto){
         OrganizationEntity org = orgMapper.createRequestDtoToEntity(requestDto);
 
@@ -137,7 +131,6 @@ public class OrganizationService {
         return orgMapper.entityToResponseDto(orgRepository.save(org));
     }
 
-    @PreAuthorize("@perm.canAccess(#id, 'ORG', 'UPDATE',null)")
     public OrganizationResponseDto update(UUID id, OrganizationUpdateRequestDto requestDto){
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -157,7 +150,6 @@ public class OrganizationService {
         return orgMapper.entityToResponseDto(orgRepository.save(org));
     }
 
-    @PreAuthorize("@perm.canAccess(#id, 'ORG', 'DELETE',null)")
     public void delete(UUID id) {
         if(orgRepository.countByParentId(id)>0)
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EMPTY);
