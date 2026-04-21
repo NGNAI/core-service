@@ -128,9 +128,9 @@ public class NoteBookController {
 
     @GetMapping("/{noteBookId}/files")
     ResponseEntity<ApiResponseModel<List<NoteBookFileResponseDto>>> getFiles(@PathVariable UUID noteBookId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        CustomPairModel<Long, List<NoteBookFileResponseDto>> result = noteBookFileService.getFiles(noteBookId, page, size);
+            @RequestParam(defaultValue = "0") int pageNumber,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        CustomPairModel<Long, List<NoteBookFileResponseDto>> result = noteBookFileService.getFiles(noteBookId, pageNumber, pageSize);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<NoteBookFileResponseDto>>builder()
                         .message("Get list notebook files successfully")
