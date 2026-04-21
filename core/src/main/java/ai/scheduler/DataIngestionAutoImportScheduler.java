@@ -106,7 +106,7 @@ public class DataIngestionAutoImportScheduler {
 			}
 		});
         // Lọc file để chỉ lấy file đã ổn định (không còn đang được ghi dữ liệu) và chưa từng được xử lý trước đó, tránh tình trạng file bị xử lý khi đang được ghi dữ liệu hoặc bị xử lý đồng thời
-		filter.addFilter(new LastModifiedFileListFilter(resolveStableFileAgeMs()));
+		filter.addFilter(new LastModifiedFileListFilter(resolveStableFileAgeMs() / 1000));
         // Lọc file để chỉ lấy file chưa từng được xử lý trước đó, tránh tình trạng file bị xử lý đồng thời bởi nhiều luồng hoặc bị xử lý lại khi đã xử lý xong nhưng chưa kịp xóa hoặc di chuyển đi
 		filter.addFilter(new AcceptOnceFileListFilter<File>());
 		return filter;
