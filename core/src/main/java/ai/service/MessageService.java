@@ -5,6 +5,8 @@ import java.util.UUID;
 
 import ai.entity.postgres.*;
 import ai.enums.MessageParentType;
+import ai.interfaces.MessageRelationEntity;
+import ai.repository.NotebookMessagesRepository;
 import ai.repository.TopicMessagesRepository;
 import jakarta.persistence.criteria.Fetch;
 import jakarta.persistence.criteria.Join;
@@ -42,9 +44,10 @@ public class MessageService {
     TopicMessagesRepository topicMessagesRepository;
     MessageMapper messageMapper;
     ObjectMapper objectMapper;
+    NotebookMessagesRepository notebookMessagesRepository;
 
     public CustomPairModel<Long,List<MessageResponseDto>> getAll(UUID parentId,MessageParentType parentType, MessageFilterDto filterDto){
-        Page<TopicMessageEntity> page = null;
+        Page<? extends MessageRelationEntity> page = null;
 
         switch (parentType) {
             case TOPIC -> {
@@ -61,16 +64,24 @@ public class MessageService {
                 page = topicMessagesRepository.findAll(spec,filterDto.createPageable());
             }
             case NOTEBOOK -> {
-//                noteBookService.validateTopicOfUser(createRequestDto.getParentId(), JwtUtil.getUserId());
-//                Note topicEntity = topicService.getEntityById(createRequestDto.getParentId());
-//                topicMessagesRepository.save(new TopicMessageEntity(topicEntity,newEntity));
+                noteBookService.validateNoteBookOfUser(parentId, JwtUtil.getUserId());
+                Specification<NotebookMessageEntity> spec = (root, query, criteriaBuilder) -> {
+                    Fetch<NotebookMessageEntity, MessageEntity> messageFetch = root.fetch("message", JoinType.INNER);
+                    Join<NotebookMessageEntity, MessageEntity> messageJoin = (Join<NotebookMessageEntity, MessageEntity>) messageFetch;
+
+                    Predicate messageSearch = filterDto.createSpec(messageJoin, criteriaBuilder);
+                    Predicate orgIdSearch = criteriaBuilder.equal(root.get("topic").get("id"), parentId);
+                    return criteriaBuilder.and(messageSearch, orgIdSearch);
+                };
+                filterDto.setSortPrefix("message");
+                page = notebookMessagesRepository.findAll(spec,filterDto.createPageable());
             }
         }
         if(page == null)
             throw new AppException(ApiResponseStatus.UNEXPECTED);
 
         List<MessageResponseDto> messages = page.getContent().stream().map(entity -> {
-            MessageResponseDto responseDto = messageMapper.entityToResponseDto(entity.getMessage());
+            MessageResponseDto responseDto = messageMapper.entityToResponseDto(entity.getMessageEntity());
             responseDto.setParentId(parentId);
             responseDto.setParentType(parentType.getValue());
             return responseDto;
@@ -89,9 +100,9 @@ public class MessageService {
                 topicMessagesRepository.save(new TopicMessageEntity(topicEntity,newEntity));
             }
             case NOTEBOOK -> {
-//                noteBookService.validateTopicOfUser(createRequestDto.getParentId(), JwtUtil.getUserId());
-//                Note topicEntity = topicService.getEntityById(createRequestDto.getParentId());
-//                topicMessagesRepository.save(new TopicMessageEntity(topicEntity,newEntity));
+                noteBookService.validateNoteBookOfUser(parentId, JwtUtil.getUserId());
+                NoteBookEntity topicEntity = noteBookService.getEntityById(parentId);
+                notebookMessagesRepository.save(new NotebookMessageEntity(topicEntity,newEntity));
             }
         }
         MessageResponseDto responseDto = messageMapper.entityToResponseDto(newEntity);

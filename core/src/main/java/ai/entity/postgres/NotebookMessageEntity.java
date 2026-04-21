@@ -1,6 +1,6 @@
 package ai.entity.postgres;
 
-import ai.entity.postgres.embeddable.TopicMessageIdEmbed;
+import ai.entity.postgres.embeddable.NoteBookMessageIdEmbed;
 import ai.interfaces.MessageRelationEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,23 +11,23 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "topic_messages")
+@Table(name = "notebook_messages")
 @Entity
-public class TopicMessageEntity implements MessageRelationEntity {
+public class NotebookMessageEntity implements MessageRelationEntity {
     @EmbeddedId
-    TopicMessageIdEmbed id;
+    NoteBookMessageIdEmbed id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("topicId")
-    TopicEntity topic;
+    @MapsId("notebookId")
+    NoteBookEntity notebook;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @MapsId("messageId")
     MessageEntity message;
 
-    public TopicMessageEntity(TopicEntity topicEntity, MessageEntity messageEntity){
-        id = new TopicMessageIdEmbed(topicEntity.getId(), messageEntity.getId());
-        topic = topicEntity;
+    public NotebookMessageEntity(NoteBookEntity notebookEntity, MessageEntity messageEntity){
+        id = new NoteBookMessageIdEmbed(notebookEntity.getId(), messageEntity.getId());
+        notebook = notebookEntity;
         message = messageEntity;
     }
 

@@ -51,6 +51,9 @@ public class NoteBookEntity {
     @JoinColumn(name = "owner_id")
     UserEntity owner;
 
+    @OneToMany(mappedBy = "notebook", cascade = CascadeType.ALL)
+    List<NotebookMessageEntity> notebookMessages;
+
     @OneToMany(mappedBy = "noteBook", cascade = CascadeType.ALL, orphanRemoval = true)
     List<NoteBookFileEntity> noteBookFiles;
 }

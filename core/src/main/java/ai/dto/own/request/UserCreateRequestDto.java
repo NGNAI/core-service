@@ -23,7 +23,6 @@ public class UserCreateRequestDto {
     String firstName;
     String lastName;
     @NotBlank(message = InputValidateKey.USER_PASSWORD_CAN_NOT_BE_NULL_OR_EMPTY)
-    @Min(value = 5, message = InputValidateKey.INVALID_PASSWORD)
     String password;
     @Min(value = 0, message = InputValidateKey.USER_GENDER_VALUE_INVALID)
     @Max(value = 1, message = InputValidateKey.USER_GENDER_VALUE_INVALID)

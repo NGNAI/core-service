@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import ai.dto.own.request.*;
+import ai.enums.MessageParentType;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -192,7 +193,7 @@ public class NoteBookController {
 
     @GetMapping("/{noteBookId}/messages")
     ResponseEntity<ApiResponseModel<List<MessageResponseDto>>> getMessageByNoteBookId(@PathVariable UUID noteBookId,@Valid @ModelAttribute MessageFilterDto filterDto){
-        CustomPairModel<Long, List<MessageResponseDto>> result = messageService.getAll(noteBookId, filterDto);
+        CustomPairModel<Long, List<MessageResponseDto>> result = messageService.getAll(noteBookId, MessageParentType.NOTEBOOK, filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<MessageResponseDto>>builder()
                         .message("Get list message of notebook successfully")
