@@ -23,7 +23,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @EnableWebSecurity
-@EnableMethodSecurity
+//@EnableMethodSecurity
 @Configuration
 public class SecurityConfig {
     CustomJwtDecoder customJWTDecoder;

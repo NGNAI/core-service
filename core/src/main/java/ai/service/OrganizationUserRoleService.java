@@ -22,10 +22,7 @@ import ai.repository.OrganizationRepository;
 import ai.repository.OrganizationUserRoleRepository;
 import ai.repository.RoleRepository;
 import ai.repository.UserRepository;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
-import jakarta.persistence.criteria.Subquery;
+import jakarta.persistence.criteria.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -146,9 +143,10 @@ public class OrganizationUserRoleService {
         Map<UUID, UserWithRoleInOrgResponseDto> mapResult = new HashMap<>();
 
         Specification<OrganizationUserRoleEntity> spec = (root, query, criteriaBuilder) -> {
-            Join<?, ?> user = root.join("user");
+            Fetch<OrganizationUserRoleEntity, UserEntity> userFetch = root.fetch("user", JoinType.INNER);
+            Join<OrganizationUserRoleEntity, UserEntity> userJoin = (Join<OrganizationUserRoleEntity, UserEntity>) userFetch;
 
-            Predicate userSearch = userFilterDto.createSpec(user, criteriaBuilder);
+            Predicate userSearch = userFilterDto.createSpec(userJoin, criteriaBuilder);
             Predicate orgIdSearch = criteriaBuilder.equal(root.get("organization").get("id"), orgId);
             Predicate roleIdSearch = criteriaBuilder.equal(root.get("role").get("id"), roleId);
             return criteriaBuilder.and(userSearch, orgIdSearch, roleIdSearch);

@@ -20,7 +20,7 @@ public class TopicMessageEntity {
     @MapsId("topicId")
     TopicEntity topic;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @MapsId("messageId")
     MessageEntity message;
 

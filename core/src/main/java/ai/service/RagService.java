@@ -10,6 +10,7 @@ import ai.dto.own.request.filter.AttachmentFilterDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.response.AttachmentResponseDto;
 import ai.dto.own.response.MessageResponseDto;
+import ai.enums.MessageParentType;
 import ai.enums.MessageType;
 import ai.enums.TopicType;
 import ai.service.api.RagApiService;
@@ -65,7 +66,7 @@ public class RagService {
         messageFilterDto.setSortDir("desc");
 
         //Query history
-        List<RagCompletionRequestDto.Message> historyConversations = messageService.getAll(finalTopicId, messageFilterDto).getSecond()
+        List<RagCompletionRequestDto.Message> historyConversations = messageService.getAll(finalTopicId,MessageParentType.TOPIC,messageFilterDto).getSecond()
                 .stream().map(messageResponseDto -> RagCompletionRequestDto.Message.builder()
                         .role(messageResponseDto.getType())
                         .content(messageResponseDto.getContent()).build()).collect(Collectors.toList());
@@ -79,19 +80,21 @@ public class RagService {
 
         //Insert user question
         messageService.create(
+                finalTopicId,
+                MessageParentType.TOPIC,
                 MessageCreateRequestDto.builder()
                         .content(requestDto.getMessage())
                         .type(MessageType.USER.getValue())
-                        .topicId(finalTopicId)
                         .build()
         );
 
         //Insert assistant question
         MessageResponseDto assistantMessage = messageService.create(
+                finalTopicId,
+                MessageParentType.TOPIC,
                 MessageCreateRequestDto.builder()
                         .content("Answering.....")
                         .type(MessageType.ASSISTANT.getValue())
-                        .topicId(finalTopicId)
                         .build()
         );
 
@@ -140,7 +143,6 @@ public class RagService {
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
                                     .content(fullAnswer.toString())
                                     .source(source.toString())
-                                    .topicId(finalTopicId)
                             .build());
                 });
     }

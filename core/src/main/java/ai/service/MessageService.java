@@ -3,6 +3,13 @@ package ai.service;
 import java.util.List;
 import java.util.UUID;
 
+import ai.entity.postgres.*;
+import ai.enums.MessageParentType;
+import ai.repository.TopicMessagesRepository;
+import jakarta.persistence.criteria.Fetch;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -13,8 +20,6 @@ import ai.dto.own.request.MessageCreateRequestDto;
 import ai.dto.own.request.MessageUpdateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.response.MessageResponseDto;
-import ai.entity.postgres.MessageEntity;
-import ai.entity.postgres.TopicEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.MessageType;
 import ai.exeption.AppException;
@@ -30,34 +35,70 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class MessageService {
-    MessageRepository messageRepository;
     TopicService topicService;
+    NoteBookService noteBookService;
+
+    MessageRepository messageRepository;
+    TopicMessagesRepository topicMessagesRepository;
     MessageMapper messageMapper;
     ObjectMapper objectMapper;
 
-    public CustomPairModel<Long,List<MessageResponseDto>> getAll(UUID topicId, MessageFilterDto filterDto){
-        topicService.validateTopicOfUser(topicId, JwtUtil.getUserId());
+    public CustomPairModel<Long,List<MessageResponseDto>> getAll(UUID parentId,MessageParentType parentType, MessageFilterDto filterDto){
+        Page<TopicMessageEntity> page = null;
 
-        Specification<MessageEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("topic").get("id"),topicId));
+        switch (parentType) {
+            case TOPIC -> {
+                topicService.validateTopicOfUser(parentId, JwtUtil.getUserId());
+                Specification<TopicMessageEntity> spec = (root, query, criteriaBuilder) -> {
+                    Fetch<TopicMessageEntity, MessageEntity> messageFetch = root.fetch("message", JoinType.INNER);
+                    Join<TopicMessageEntity, MessageEntity> messageJoin = (Join<TopicMessageEntity, MessageEntity>) messageFetch;
 
-        Page<MessageEntity> page = messageRepository.findAll(spec,filterDto.createPageable());
+                    Predicate messageSearch = filterDto.createSpec(messageJoin, criteriaBuilder);
+                    Predicate orgIdSearch = criteriaBuilder.equal(root.get("topic").get("id"), parentId);
+                    return criteriaBuilder.and(messageSearch, orgIdSearch);
+                };
+                filterDto.setSortPrefix("message");
+                page = topicMessagesRepository.findAll(spec,filterDto.createPageable());
+            }
+            case NOTEBOOK -> {
+//                noteBookService.validateTopicOfUser(createRequestDto.getParentId(), JwtUtil.getUserId());
+//                Note topicEntity = topicService.getEntityById(createRequestDto.getParentId());
+//                topicMessagesRepository.save(new TopicMessageEntity(topicEntity,newEntity));
+            }
+        }
+        if(page == null)
+            throw new AppException(ApiResponseStatus.UNEXPECTED);
 
         List<MessageResponseDto> messages = page.getContent().stream().map(entity -> {
-            MessageResponseDto responseDto = messageMapper.entityToResponseDto(entity);
-            responseDto.setTopicId(topicId);
+            MessageResponseDto responseDto = messageMapper.entityToResponseDto(entity.getMessage());
+            responseDto.setParentId(parentId);
+            responseDto.setParentType(parentType.getValue());
             return responseDto;
         }).toList();
 
         return new CustomPairModel<>(page.getTotalElements(),messages);
     }
 
-    public MessageResponseDto create(MessageCreateRequestDto createRequestDto){
-        topicService.validateTopicOfUser(createRequestDto.getTopicId(), JwtUtil.getUserId());
-        TopicEntity topicEntity = topicService.getEntityById(createRequestDto.getTopicId());
-        MessageEntity newEntity = messageMapper.createRequestDtoToEntity(createRequestDto);
-        newEntity.setTopic(topicEntity);
+    public MessageResponseDto create(UUID parentId, MessageParentType parentType, MessageCreateRequestDto createRequestDto){
+        MessageEntity newEntity = messageRepository.save(messageMapper.createRequestDtoToEntity(createRequestDto));
 
-        return messageMapper.entityToResponseDto(messageRepository.save(newEntity));
+        switch (parentType) {
+            case TOPIC -> {
+                topicService.validateTopicOfUser(parentId, JwtUtil.getUserId());
+                TopicEntity topicEntity = topicService.getEntityById(parentId);
+                topicMessagesRepository.save(new TopicMessageEntity(topicEntity,newEntity));
+            }
+            case NOTEBOOK -> {
+//                noteBookService.validateTopicOfUser(createRequestDto.getParentId(), JwtUtil.getUserId());
+//                Note topicEntity = topicService.getEntityById(createRequestDto.getParentId());
+//                topicMessagesRepository.save(new TopicMessageEntity(topicEntity,newEntity));
+            }
+        }
+        MessageResponseDto responseDto = messageMapper.entityToResponseDto(newEntity);
+        responseDto.setParentId(parentId);
+        responseDto.setParentType(parentType.getValue());
+
+        return responseDto;
     }
 
     /**
@@ -73,8 +114,10 @@ public class MessageService {
         } catch (Exception e) {
             content = "{}";
         }
-        return create(MessageCreateRequestDto.builder()
-                .topicId(topicId)
+        return create(
+                topicId,
+                MessageParentType.TOPIC,
+                MessageCreateRequestDto.builder()
                 .type(MessageType.FILE.getValue())
                 .content(content)
                 .build());
@@ -85,8 +128,4 @@ public class MessageService {
         messageMapper.updateEntity(entity,updateRequestDto);
         return messageMapper.entityToResponseDto(messageRepository.save(entity));
     }
-
-//    public void delete(UUID id){
-//        messageRepository.deleteById(id);
-//    }
 }

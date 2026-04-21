@@ -71,6 +71,12 @@ public enum ApiResponseStatus {
 
     NOTEBOOK_ID_NOT_EXISTS(1047, "Notebook ID does not exist", HttpStatus.NOT_FOUND),
     NOTEBOOK_TITLE_CAN_NOT_BE_NULL_OR_EMPTY(1048, "Notebook title cannot be null or empty", HttpStatus.BAD_REQUEST),
+    INVALID_MESSAGE_PARENT_VALUE(1049, "Invalid message parent value", HttpStatus.BAD_REQUEST),
+
+    MESSAGE_PARENT_TYPE_CAN_NOT_BE_NULL_OR_EMPTY(1049, "Message parent type cannot be null or empty", HttpStatus.BAD_REQUEST),
+    MESSAGE_PARENT_ID_CAN_NOT_BE_NULL_OR_EMPTY(1049, "Message parent id cannot be null or empty", HttpStatus.BAD_REQUEST),
+    MESSAGE_TYPE_CAN_NOT_BE_NULL_OR_EMPTY(1049, "Message type cannot be null or empty", HttpStatus.BAD_REQUEST),
+    MESSAGE_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY(1049, "Message content cannot be null or empty", HttpStatus.BAD_REQUEST),
 
     MESSAGE_ID_NOT_EXISTS(1050, "Topic ID does not exist", HttpStatus.NOT_FOUND),
     MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1051, "Message cannot be null or empty", HttpStatus.BAD_REQUEST),

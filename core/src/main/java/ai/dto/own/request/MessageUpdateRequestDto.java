@@ -13,5 +13,4 @@ import java.util.UUID;
 public class MessageUpdateRequestDto {
     String content;
     String source;
-    UUID topicId;
 }

@@ -1,5 +1,6 @@
 package ai.entity.postgres;
 
+import ai.annotation.UuidV7;
 import ai.entity.postgres.embeddable.AuditEmbed;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -18,7 +19,7 @@ import java.util.UUID;
 @Entity
 public class MessageEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @UuidV7
     @Column(name = "id", nullable = false)
     UUID id;
 
@@ -33,8 +34,4 @@ public class MessageEntity {
 
     @Embedded
     AuditEmbed audit= new AuditEmbed();
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "topic_id")
-    TopicEntity topic;
 }

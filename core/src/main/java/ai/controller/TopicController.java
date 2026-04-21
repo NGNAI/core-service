@@ -3,6 +3,7 @@ package ai.controller;
 import java.util.List;
 import java.util.UUID;
 
+import ai.enums.MessageParentType;
 import org.springframework.data.util.Pair;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -108,7 +109,7 @@ public class TopicController {
 
     @GetMapping("/{topicId}/messages")
     ResponseEntity<ApiResponseModel<List<MessageResponseDto>>> getMessageByTopicId(@PathVariable UUID topicId,@Valid @ModelAttribute MessageFilterDto filterDto){
-        CustomPairModel<Long, List<MessageResponseDto>> result = messageService.getAll(topicId, filterDto);
+        CustomPairModel<Long, List<MessageResponseDto>> result = messageService.getAll(topicId, MessageParentType.TOPIC, filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<MessageResponseDto>>builder()
                         .message("Get list message of topic successfully")

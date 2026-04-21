@@ -6,13 +6,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import ai.annotation.EnumValue;
-import ai.enums.DataScope;
-import ai.enums.DataSource;
-import ai.enums.PermissionAction;
-import ai.enums.PermissionResource;
-import ai.enums.PermissionScope;
-import ai.enums.RagScope;
-import ai.enums.UserSource;
+import ai.enums.*;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import lombok.AccessLevel;
@@ -38,6 +32,8 @@ public class EnumValuesValidator implements ConstraintValidator<EnumValue, CharS
             acceptedValues.addAll(Stream.of(DataScope.values()).map(DataScope::name).toList());
         }else if (annotation.enumClass() == DataSource.class) {
             acceptedValues.addAll(Stream.of(DataSource.values()).map(DataSource::name).toList());
+        }else if (annotation.enumClass() == MessageParentType.class) {
+            acceptedValues.addAll(Stream.of(DataSource.values()).map(DataSource::getValue).toList());
         } else {
             acceptedValues.addAll(Arrays.stream(annotation.enumClass().getEnumConstants()).map(e -> {
                 try {

@@ -12,18 +12,21 @@ import java.util.UUID;
 
 @JsonPropertyOrder({
         "id",
-        "topicId",
+        "parentId",
         "content",
-        "type"
+        "source",
+        "type",
+        "parentType"
 })
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class MessageResponseDto extends AuditResponseDto {
     UUID id;
-    UUID topicId;
+    UUID parentId;
     String content;
     @JsonRawValue
     String source;
     String type;
+    String parentType;
 }
