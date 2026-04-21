@@ -66,6 +66,11 @@ public class NoteBookService {
         return noteBookMapper.entityToResponseDto(noteBookRepository.save(newEntity));
     }
     
+    public NoteBookResponseDto getById(UUID id){
+        validateNoteBookOfUser(id,JwtUtil.getUserId());
+        return noteBookMapper.entityToResponseDto(noteBookRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.NOTEBOOK_ID_NOT_EXISTS)));
+    }
+    
     public NoteBookResponseDto update(UUID id, NoteBookUpdateRequestDto requestDto){
         validateNoteBookOfUser(id,JwtUtil.getUserId());
         NoteBookEntity entity = noteBookRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.NOTEBOOK_ID_NOT_EXISTS));
