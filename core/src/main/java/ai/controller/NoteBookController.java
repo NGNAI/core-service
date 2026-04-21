@@ -74,6 +74,16 @@ public class NoteBookController {
         );
     }
 
+    @GetMapping("/{noteBookId}")
+    ResponseEntity<ApiResponseModel<NoteBookResponseDto>> getById(@PathVariable UUID noteBookId){
+        return ResponseEntity.ok(
+                ApiResponseModel.<NoteBookResponseDto>builder()
+                        .message("Get notebook successfully")
+                        .data(notebookService.getById(noteBookId))
+                        .build()
+        );
+    }
+
     @PutMapping("/{noteBookId}")
     ResponseEntity<ApiResponseModel<NoteBookResponseDto>> update(@PathVariable UUID noteBookId, @Valid @RequestBody NoteBookUpdateRequestDto requestDto){
         return ResponseEntity.ok(
