@@ -30,6 +30,7 @@ import ai.dto.own.response.DataIngestionJobStatusResponseDto;
 import ai.dto.own.response.DataIngestionPresignedUrlResponseDto;
 import ai.dto.own.response.DataIngestionResponseDto;
 import ai.enums.DataSource;
+import ai.enums.IngestionStatus;
 import ai.enums.DataScope;
 import ai.model.ApiResponseModel;
 import ai.service.DataIngestionService;
@@ -68,6 +69,19 @@ public class DataIngestionController {
                                                 .data(Arrays.asList(DataSource.values()))
                                                 .build());
         }
+
+        @Operation(summary = "Get list of available data ingestion statuses", description = "Get list of available data ingestion statuses")
+        @GetMapping("/ingestion_status")
+        ResponseEntity<ApiResponseModel<List<String>>> ingestionStatus() {
+                List<String> ingestionStatuses = Arrays.asList(IngestionStatus.values()).stream()
+                                .map(Enum::name)
+                                .toList();
+                return ResponseEntity.ok(
+                                ApiResponseModel.<List<String>>builder()
+                                                .message("Get data ingestion statuses successfully")
+                                                .data(ingestionStatuses)
+                                                .build());
+        }      
 
         @Operation(summary = "Get details info by id (folder or file)", description = "Get detail of a single data ingestion item")
         @GetMapping("/{dataIngestionId}")

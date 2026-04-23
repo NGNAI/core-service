@@ -782,14 +782,14 @@ public class DataIngestionService {
                 .message(ingestionStatusResponse.getMessage())
                 .build();
 
+        // Chỉ publish event khi trạng thái ingestion có sự thay đổi và đã có owner và organization để đảm bảo rằng event được publish có đầy đủ thông tin cần thiết và tránh trường hợp publish event không cần thiết khi trạng thái ingestion không thay đổi hoặc thiếu thông tin về owner và organization
         if (emitEvent && dataIngestion.getOwner() != null && dataIngestion.getOrganization() != null) {
             systemEventSseService.publish(
                 dataIngestion.getOrganization().getId(),
                 dataIngestion.getOwner().getId(),
                 resolveSystemEventType(resolvedStatus),
                 SystemEventSource.DATA_INGESTION,
-                dataIngestion.getId().toString(),
-                response);
+                dataIngestionMapper.entityToResponseDto(dataIngestion));
         }
 
         return response;
