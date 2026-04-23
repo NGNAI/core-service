@@ -13,7 +13,6 @@ import lombok.experimental.FieldDefaults;
 public class SystemSseEventResponseDto {
     SystemEventType type;
     SystemEventSource source;
-    String sourceId;
     Object data;
     long timestamp;
 }

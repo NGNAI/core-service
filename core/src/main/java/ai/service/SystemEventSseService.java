@@ -42,7 +42,7 @@ public class SystemEventSseService {
         emitter.onTimeout(() -> removeEmitter(key, emitter));
         emitter.onError(exception -> removeEmitter(key, emitter));
 
-        publishToSingleEmitter(key, emitter, SystemEventType.SYSTEM_CONNECTED, SystemEventSource.SYSTEM, "connected", null);
+        publishToSingleEmitter(key, emitter, SystemEventType.SYSTEM_CONNECTED, SystemEventSource.SYSTEM, "connected");
         return emitter;
     }
 
@@ -52,10 +52,9 @@ public class SystemEventSseService {
      * @param userId
      * @param type
      * @param source
-     * @param sourceId
      * @param data
      */
-    public void publish(UUID orgId, UUID userId, SystemEventType type, SystemEventSource source, String sourceId, Object data) {
+    public void publish(UUID orgId, UUID userId, SystemEventType type, SystemEventSource source, Object data) {
         if (orgId == null || userId == null) {
             return;
         }
@@ -70,7 +69,7 @@ public class SystemEventSseService {
         SystemEventSource eventSource = source == null ? SystemEventSource.SYSTEM : source;
 
         for (SseEmitter emitter : keyEmitters) {
-            publishToSingleEmitter(key, emitter, eventType, eventSource, sourceId, data);
+            publishToSingleEmitter(key, emitter, eventType, eventSource, data);
         }
     }
 
@@ -80,15 +79,13 @@ public class SystemEventSseService {
      * @param emitter
      * @param type
      * @param source
-     * @param sourceId
      * @param data
      */
-    private void publishToSingleEmitter(String key, SseEmitter emitter, SystemEventType type, SystemEventSource source, String sourceId, Object data) {
+    private void publishToSingleEmitter(String key, SseEmitter emitter, SystemEventType type, SystemEventSource source, Object data) {
         try {
             SystemSseEventResponseDto payload = SystemSseEventResponseDto.builder()
                     .type(type)
                     .source(source)
-                    .sourceId(sourceId)
                     .data(data)
                     .timestamp(System.currentTimeMillis())
                     .build();
