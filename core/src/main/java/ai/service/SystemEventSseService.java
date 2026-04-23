@@ -42,7 +42,7 @@ public class SystemEventSseService {
         emitter.onTimeout(() -> removeEmitter(key, emitter));
         emitter.onError(exception -> removeEmitter(key, emitter));
 
-        publishToSingleEmitter(key, emitter, SystemEventType.SYSTEM_CONNECTED, SystemEventSource.SYSTEM, "connected", null);
+        publishToSingleEmitter(key, emitter, SystemEventType.SYSTEM_CONNECTED, SystemEventSource.SYSTEM, null, "connected");
         return emitter;
     }
 
