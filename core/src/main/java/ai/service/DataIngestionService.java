@@ -1,6 +1,5 @@
 package ai.service;
 
-import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.nio.file.Files;
@@ -13,6 +12,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import ai.AppProperties;
 import ai.constant.CacheName;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
@@ -32,6 +32,8 @@ import ai.enums.DataIngestionDeleteStatus;
 import ai.enums.DataSource;
 import ai.enums.DataScope;
 import ai.enums.IngestionStatus;
+import ai.enums.SystemEventSource;
+import ai.enums.SystemEventType;
 import ai.exeption.AppException;
 import ai.mapper.DataIngestionMapper;
 import ai.repository.DataIngestionRepository;
@@ -56,6 +58,8 @@ public class DataIngestionService {
     DataIngestionMapper dataIngestionMapper;
     UserService userService;
     OrganizationService organizationService;
+    SystemEventSseService systemEventSseService;
+    AppProperties appProperties;
 
     /**
      * Định nghĩa phương thức để đồng bộ trạng thái ingestion mới nhất cho tất cả data ingestion đang ở trạng thái chưa hoàn thành (không phải COMPLETED hay FAILED), phương thức này sẽ được gọi định kỳ bởi scheduler để đảm bảo trạng thái ingestion luôn được cập nhật mới nhất, tránh trường hợp dữ liệu bị treo ở trạng thái intermediate mãi mãi do lỗi không nhận được callback từ ingestion service hoặc lỗi khi gọi API để lấy trạng thái ingestion. Các trạng thái được đồng bộ gồm: CREATED, EXTRACTING, CHUNKING, EMBEDDING, STORING
@@ -146,13 +150,15 @@ public class DataIngestionService {
         dataIngestion = dataIngestionRepository.save(dataIngestion);
 
         try {
+            String callbackUrl = resolveCallbackUrl(requestDto.getCallbackUrl());
             IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
                     requestDto.getFile(),
                     dataIngestion.getId().toString(),
                     user.getUserName(),
                     organization.getId().toString(),
                     organization.getName(),
-                    dataIngestion.getAccessLevel());
+                dataIngestion.getAccessLevel(),
+                callbackUrl);
 
             // Nếu response từ ingestion service không hợp lệ thì đánh dấu data ingestion này là
             // failed để tránh trường hợp dữ liệu bị treo ở trạng thái pending mãi mãi, đồng
@@ -283,6 +289,7 @@ public class DataIngestionService {
         dataIngestion = dataIngestionRepository.save(dataIngestion);
 
         try {
+            String callbackUrl = resolveCallbackUrl(null);
             IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
                     fileBytes,
                     fileName,
@@ -290,7 +297,8 @@ public class DataIngestionService {
                     owner.getUserName(),
                     organization.getId().toString(),
                     organization.getName(),
-                    accessLevel);
+                accessLevel,
+                callbackUrl);
 
             if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
                 dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
@@ -572,6 +580,7 @@ public class DataIngestionService {
 
         try {
             MinioService.MinioObjectData objectData = minioService.download(dataIngestion.getMinioPath(), dataIngestion.getFromSource().name().toLowerCase());
+            String callbackUrl = resolveCallbackUrl(null);
             IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
                     objectData.getBytes(),
                     dataIngestion.getName(),
@@ -579,7 +588,8 @@ public class DataIngestionService {
                     owner.getUserName(),
                     organization.getId().toString(),
                     organization.getName(),
-                    dataIngestion.getAccessLevel());
+                dataIngestion.getAccessLevel(),
+                callbackUrl);
             System.out.println("Ingestion response after retrying ingestion for data ingestion with ID " + dataIngestionId + ": " + ingestionResponse);
 
              // Nếu response từ ingestion service không hợp lệ thì đánh dấu dữ liệu này là failed để tránh bị treo ở trạng thái pending mãi mãi
@@ -624,27 +634,33 @@ public class DataIngestionService {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_JOB_ID_NOT_EXISTS);
         }
 
-        // Lấy trạng thái ingestion mới nhất từ ingestion service
         IngestionStatusResponseDto ingestionStatusResponse = ingestionService.getJobStatus(dataIngestionOptional.get().getJobId());
-        String resolvedStatus = ingestionStatusResponse.getStatus();
-        if (resolvedStatus == null || resolvedStatus.isBlank()) {
-            resolvedStatus = IngestionStatus.CREATED.name();
+        return updateStatusAndBuildResponse(dataIngestionOptional.get(), ingestionStatusResponse, true);
+    }
+
+    @CacheEvict(value = CacheName.DATA_INGESTION_DTO_DETAILS, key = "#result.dataIngestionId", condition = "#result != null && #result.dataIngestionId != null")
+    @Transactional
+    public DataIngestionJobStatusResponseDto handleIngestionCallback(IngestionStatusResponseDto callbackDto) {
+        if (callbackDto == null) {
+            throw new AppException(ApiResponseStatus.INVALID_REQUEST_INFORMATION);
+        }
+
+        DataIngestionEntity dataIngestion;
+        if (callbackDto.getDataIngestionId() != null) {
+            dataIngestion = dataIngestionRepository.findById(callbackDto.getDataIngestionId())
+                    .orElseThrow(() -> new AppException(ApiResponseStatus.DATA_INGESTION_NOT_EXISTS));
+        } else if (callbackDto.getJobId() != null) {
+            dataIngestion = dataIngestionRepository.findByJobId(callbackDto.getJobId())
+                    .orElseThrow(() -> new AppException(ApiResponseStatus.DATA_INGESTION_NOT_EXISTS));
         } else {
-            resolvedStatus = resolvedStatus.trim().toUpperCase(Locale.ROOT);
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_JOB_ID_NOT_EXISTS);
         }
 
-        DataIngestionEntity dataIngestion = dataIngestionOptional.get();
-        if(dataIngestion.getIngestionStatus() == null || !dataIngestion.getIngestionStatus().name().equals(resolvedStatus)) {
-            dataIngestion.setIngestionStatus(IngestionStatus.valueOf(resolvedStatus));
-            dataIngestionRepository.save(dataIngestion);
+        if (DataIngestionDeleteStatus.PENDING_DELETE.equals(resolveDeleteStatus(dataIngestion))) {
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_DELETE_IN_PROGRESS);
         }
 
-        return DataIngestionJobStatusResponseDto.builder()
-                .dataIngestionId(dataIngestion.getId())
-                .jobId(dataIngestion.getJobId())
-                .ingestionStatus(resolvedStatus)
-                .message(ingestionStatusResponse.getMessage())
-                .build();
+        return updateStatusAndBuildResponse(dataIngestion, callbackDto, true);
     }
 
     /**
@@ -747,6 +763,87 @@ public class DataIngestionService {
      */
     private DataIngestionDeleteStatus resolveDeleteStatus(DataIngestionEntity dataIngestion) {
         return dataIngestion.getDeleteStatus() == null ? DataIngestionDeleteStatus.ACTIVE : dataIngestion.getDeleteStatus();
+    }
+
+    private DataIngestionJobStatusResponseDto updateStatusAndBuildResponse(
+            DataIngestionEntity dataIngestion,
+            IngestionStatusResponseDto ingestionStatusResponse,
+            boolean emitEvent) {
+        IngestionStatus resolvedStatus = resolveStatus(ingestionStatusResponse.getStatus(), dataIngestion.getIngestionStatus());
+        if (dataIngestion.getIngestionStatus() == null || !resolvedStatus.equals(dataIngestion.getIngestionStatus())) {
+            dataIngestion.setIngestionStatus(resolvedStatus);
+            dataIngestion = dataIngestionRepository.save(dataIngestion);
+        }
+
+        DataIngestionJobStatusResponseDto response = DataIngestionJobStatusResponseDto.builder()
+                .dataIngestionId(dataIngestion.getId())
+                .jobId(dataIngestion.getJobId())
+                .ingestionStatus(resolvedStatus.name())
+                .message(ingestionStatusResponse.getMessage())
+                .build();
+
+        if (emitEvent && dataIngestion.getOwner() != null && dataIngestion.getOrganization() != null) {
+            systemEventSseService.publish(
+                dataIngestion.getOrganization().getId(),
+                dataIngestion.getOwner().getId(),
+                resolveSystemEventType(resolvedStatus),
+                SystemEventSource.DATA_INGESTION,
+                dataIngestion.getId().toString(),
+                response);
+        }
+
+        return response;
+    }
+
+    private IngestionStatus resolveStatus(String rawStatus, IngestionStatus fallbackStatus) {
+        if (rawStatus == null || rawStatus.trim().isEmpty()) {
+            return fallbackStatus == null ? IngestionStatus.CREATED : fallbackStatus;
+        }
+
+        String normalized = rawStatus.trim().toUpperCase();
+        if ("SUCCESS".equals(normalized) || "DONE".equals(normalized)) {
+            return IngestionStatus.COMPLETED;
+        }
+        if ("ERROR".equals(normalized)) {
+            return IngestionStatus.FAILED;
+        }
+
+        try {
+            return IngestionStatus.valueOf(normalized);
+        } catch (Exception exception) {
+            return fallbackStatus == null ? IngestionStatus.CREATED : fallbackStatus;
+        }
+    }
+
+    private SystemEventType resolveSystemEventType(IngestionStatus status) {
+        if (status == null) {
+            return SystemEventType.DATA_INGESTION_STATUS_UPDATED;
+        }
+
+        if (IngestionStatus.COMPLETED.equals(status)) {
+            return SystemEventType.DATA_INGESTION_COMPLETED;
+        }
+
+        if (IngestionStatus.FAILED.equals(status)) {
+            return SystemEventType.DATA_INGESTION_FAILED;
+        }
+
+        return SystemEventType.DATA_INGESTION_STATUS_UPDATED;
+    }
+
+    private String resolveCallbackUrl(String requestCallbackUrl) {
+        if (requestCallbackUrl != null && !requestCallbackUrl.trim().isEmpty()) {
+            return requestCallbackUrl.trim();
+        }
+
+        if (appProperties.getIntegration() == null
+                || appProperties.getIntegration().getDataIngestionCallback() == null
+                || appProperties.getIntegration().getDataIngestionCallback().getUrl() == null
+                || appProperties.getIntegration().getDataIngestionCallback().getUrl().trim().isEmpty()) {
+            return null;
+        }
+
+        return appProperties.getIntegration().getDataIngestionCallback().getUrl().trim();
     }
 
     private DataIngestionEntity getDataIngestionEntity(UUID dataIngestionId) {

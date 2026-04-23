@@ -43,6 +43,10 @@ public class IngestionService {
      * @return
      */
     public IngestionUploadResponseDto pushToVector(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility) {
+        return pushToVector(file, fileId, username, uniId, unitName, visibility, null);
+    }
+
+    public IngestionUploadResponseDto pushToVector(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility, String callbackUrl) {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", file.getResource());
         body.add("file_id", fileId);
@@ -50,6 +54,9 @@ public class IngestionService {
         body.add("unit_id", uniId);
         body.add("unit_name", unitName);
         body.add("visibility", visibility.name());
+        if (callbackUrl != null && !callbackUrl.trim().isEmpty()) {
+            body.add("callback_url", callbackUrl.trim());
+        }
 
         try {
             return ingestionRestClient.post()
@@ -76,6 +83,10 @@ public class IngestionService {
      * @return
      */
     public IngestionUploadResponseDto pushToVector(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility) {
+        return pushToVector(fileBytes, fileName, fileId, username, unitId, unitName, visibility, null);
+    }
+
+    public IngestionUploadResponseDto pushToVector(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility, String callbackUrl) {
         ByteArrayResource fileResource = new ByteArrayResource(fileBytes) {
             @Override
             public String getFilename() {
@@ -90,6 +101,9 @@ public class IngestionService {
         body.add("unit_id", unitId);
         body.add("unit_name", unitName);
         body.add("visibility", visibility.name());
+        if (callbackUrl != null && !callbackUrl.trim().isEmpty()) {
+            body.add("callback_url", callbackUrl.trim());
+        }
 
         try {
             return ingestionRestClient.post()

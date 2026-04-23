@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.own.request.DataIngestionCreateFolderRequestDto;
 import ai.dto.own.request.DataIngestionUpdateFolderRequestDto;
 import ai.dto.own.request.DataIngestionUploadRequestDto;
@@ -174,6 +175,17 @@ public class DataIngestionController {
                                 ApiResponseModel.<DataIngestionJobStatusResponseDto>builder()
                                                 .message("Get data ingestion job status successfully")
                                                 .data(dataIngestionService.pollIngestionJobStatus(dataIngestionId))
+                                                .build());
+        }
+
+        @Operation(summary = "Receive ingestion callback status", description = "Webhook endpoint để ingestion service callback trạng thái job")
+        @PostMapping(value = "/ingestion/webhook/status", consumes = MediaType.APPLICATION_JSON_VALUE)
+        ResponseEntity<ApiResponseModel<DataIngestionJobStatusResponseDto>> ingestionWebhookStatus(
+                        @RequestBody IngestionStatusResponseDto callbackPayload) {
+                return ResponseEntity.ok(
+                                ApiResponseModel.<DataIngestionJobStatusResponseDto>builder()
+                                                .message("Receive ingestion callback successfully")
+                                                .data(dataIngestionService.handleIngestionCallback(callbackPayload))
                                                 .build());
         }
 

@@ -1,0 +1,16 @@
+package ai.enums;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@Getter
+@RequiredArgsConstructor
+public enum SystemEventType {
+    SYSTEM_CONNECTED("Sent once immediately after the SSE connection is established successfully"),
+    SYSTEM_EVENT("Generic system-level event not tied to a specific domain"),
+    DATA_INGESTION_STATUS_UPDATED("Fired when a data ingestion job transitions to an intermediate status (e.g. PROCESSING)"),
+    DATA_INGESTION_COMPLETED("Fired when a data ingestion job finishes successfully"),
+    DATA_INGESTION_FAILED("Fired when a data ingestion job encounters an error and cannot proceed");
+
+    private final String description;
+}
