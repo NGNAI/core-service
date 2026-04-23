@@ -61,6 +61,7 @@ public class AppProperties {
     public static class Integration {
         AttachmentApi attachmentApi;
         DataIngestionApi dataIngestionApi;
+        DataIngestionCallback dataIngestionCallback;
     }
 
     @Data
@@ -75,6 +76,15 @@ public class AppProperties {
     public static class DataIngestionApi {
         String headerName;
         String key;
+    }
+
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class DataIngestionCallback {
+        String url;
+        String signature;
+        String signatureParamName;
+        String signatureHeaderName;
     }
 
     @Data

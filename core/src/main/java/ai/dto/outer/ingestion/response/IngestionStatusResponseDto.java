@@ -14,6 +14,9 @@ public class IngestionStatusResponseDto {
     @JsonAlias({"id", "job_id"})
     UUID jobId;
 
+    @JsonAlias({"file_id", "data_ingestion_id"})
+    UUID dataIngestionId;
+
     String filename;
 
     Meta meta;

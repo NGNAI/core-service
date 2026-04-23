@@ -28,6 +28,9 @@ public class DataIngestionUploadRequestDto {
     @EnumValue(enumClass = DataScope.class, message = InputValidateKey.DATA_INGESTION_ACCESS_LEVEL_INVALID)
     String accessLevel=null;
 
+    @Schema(description = "URL callback để ingestion service gọi về khi có cập nhật trạng thái job", example = "https://api.example.com/api/v1/user/data-ingestion/ingestion/webhook/status")
+    String callbackUrl=null;
+
     public DataScope getAccessLevel(){
         return DataScope.valueOf(accessLevel);
     }
