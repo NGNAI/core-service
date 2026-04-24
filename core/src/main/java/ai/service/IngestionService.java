@@ -1,5 +1,6 @@
 package ai.service;
 
+import ai.dto.outer.ingestion.response.IngestionDeleteResponseDto;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
 import ai.enums.ApiResponseStatus;
@@ -140,12 +141,12 @@ public class IngestionService {
      * @param fileId
      * @return
      */
-    public IngestionStatusResponseDto deleteFile(String fileId) {
+    public IngestionDeleteResponseDto deleteFile(String fileId) {
         try {
             return ingestionRestClient.delete()
                     .uri(INGESTION_DELETE_PATH + "/{fileId}", fileId)
                     .retrieve()
-                    .body(IngestionStatusResponseDto.class);
+                    .body(IngestionDeleteResponseDto.class);
         } catch (RestClientException exception) {
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
         }

@@ -646,8 +646,8 @@ public class DataIngestionService {
         }
 
         DataIngestionEntity dataIngestion;
-        if (callbackDto.getDataIngestionId() != null) {
-            dataIngestion = dataIngestionRepository.findById(callbackDto.getDataIngestionId())
+        if (callbackDto.getMeta() != null) {
+            dataIngestion = dataIngestionRepository.findById(callbackDto.getMeta().getFile_id())
                     .orElseThrow(() -> new AppException(ApiResponseStatus.DATA_INGESTION_NOT_EXISTS));
         } else if (callbackDto.getJobId() != null) {
             dataIngestion = dataIngestionRepository.findByJobId(callbackDto.getJobId())

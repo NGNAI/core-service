@@ -14,11 +14,10 @@ public class IngestionStatusResponseDto {
     @JsonAlias({"id", "job_id"})
     UUID jobId;
 
-    @JsonAlias({"file_id", "data_ingestion_id"})
-    UUID dataIngestionId;
-
+    @JsonProperty("filename")
     String filename;
 
+    @JsonProperty("meta")
     Meta meta;
 
     @JsonAlias({"status", "rag_status", "ingestion_status"})
@@ -35,12 +34,14 @@ public class IngestionStatusResponseDto {
 
     @JsonProperty("total_chunks")
     Integer totalChunks;
-
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Meta {
-        String username;
-        String unit;
+        String user_name;
+        UUID file_id;
+        UUID unit_id;
+        String unit_name;
         String visibility;
+        String callback_url;
     }
 }
