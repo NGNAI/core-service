@@ -145,10 +145,14 @@ public class DataIngestionController {
                                                 .build());
         }
 
-        @Operation(summary = "Get data ingestion list (folders and files)", description = "Get paginated list of data ingestion items with optional filters")
+        @Operation(summary = "Get data ingestion list (folders and files)", description = "Get paginated list of data ingestion items with optional filters. Use formSources to filter by multiple sources (e.g. formSources=SYSTEM&formSources=DOCUMENT)")
         @GetMapping
         ResponseEntity<ApiResponseModel<List<DataIngestionResponseDto>>> list(
                         @ModelAttribute DataIngestionFilterDto filterDto) {
+
+                // Lấy formSource là SYSTEM và DOCUMENT
+                filterDto.setFormSources(Arrays.asList(DataSource.SYSTEM, DataSource.DOCUMENT));
+
                 Page<DataIngestionResponseDto> page = dataIngestionService.getAll(filterDto);
                 return ResponseEntity.ok(
                                 ApiResponseModel.<List<DataIngestionResponseDto>>builder()

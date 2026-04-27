@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,6 +20,8 @@ public interface DataIngestionRepository extends JpaRepository<DataIngestionEnti
     Iterable<DataIngestionEntity> findByIngestionStatus(IngestionStatus ingestionStatus);
 
     Iterable<DataIngestionEntity> findByDeleteStatus(DataIngestionDeleteStatus deleteStatus);
+
+    Iterable<DataIngestionEntity> findByDeleteStatusIn(Collection<DataIngestionDeleteStatus> deleteStatuses);
 
     @Query("SELECT d FROM DataIngestionEntity d WHERE d.ingestionStatus IS NOT NULL AND d.ingestionStatus NOT IN (ai.enums.IngestionStatus.COMPLETED, ai.enums.IngestionStatus.FAILED)")
     Iterable<DataIngestionEntity> findByIngestionStatusNotFinal();

@@ -10,7 +10,10 @@ public enum SystemEventType {
     SYSTEM_EVENT("Generic system-level event not tied to a specific domain"),
     DATA_INGESTION_STATUS_UPDATED("Fired when a data ingestion job transitions to an intermediate status (e.g. PROCESSING)"),
     DATA_INGESTION_COMPLETED("Fired when a data ingestion job finishes successfully"),
-    DATA_INGESTION_FAILED("Fired when a data ingestion job encounters an error and cannot proceed");
+    DATA_INGESTION_FAILED("Fired when a data ingestion job encounters an error and cannot proceed"),
+    DATA_INGESTION_DELETE_QUEUED("Fired when a delete request is accepted and queued for processing"),
+    DATA_INGESTION_DELETED("Fired when a data ingestion item is deleted successfully"),
+    DATA_INGESTION_DELETE_FAILED("Fired when delete processing fails and will be retried by scheduler");
 
     private final String description;
 }
