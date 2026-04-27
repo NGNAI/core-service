@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -85,7 +86,9 @@ public class DataIngestionService {
      */
     public void processPendingDeleteQueue() {
         System.out.println("Start processing pending data ingestion deletions...");
-        dataIngestionRepository.findByDeleteStatus(DataIngestionDeleteStatus.PENDING_DELETE)
+        dataIngestionRepository.findByDeleteStatusIn(List.of(
+                        DataIngestionDeleteStatus.PENDING_DELETE,
+                        DataIngestionDeleteStatus.DELETE_FAILED))
                 .forEach(dataIngestion -> {
                     try {
                         executeDelete(dataIngestion);
@@ -685,6 +688,15 @@ public class DataIngestionService {
         dataIngestion.setDeleteStatus(DataIngestionDeleteStatus.PENDING_DELETE);
         dataIngestion = dataIngestionRepository.save(dataIngestion);
 
+        publishDeleteEvent(dataIngestion, SystemEventType.DATA_INGESTION_DELETE_QUEUED, dataIngestionMapper.entityToResponseDto(dataIngestion));
+
+        try {
+            executeDelete(dataIngestion);
+        } catch (Exception exception) {
+            System.err.println("Immediate delete failed for data ingestion with ID: " + dataIngestion.getId());
+            exception.printStackTrace();
+        }
+
         return dataIngestionMapper.entityToResponseDto(dataIngestion);
     }
 
@@ -704,6 +716,8 @@ public class DataIngestionService {
      * @param dataIngestion
      */
     private void executeDelete(DataIngestionEntity dataIngestion) {
+        DataIngestionResponseDto deletingData = dataIngestionMapper.entityToResponseDto(dataIngestion);
+
         try {
             // Xóa bên minio trước để tránh rác file nếu xóa database thành công nhưng xóa object thất bại
             if (dataIngestion.getMinioPath() != null && !dataIngestion.getMinioPath().isBlank()) {
@@ -716,10 +730,12 @@ public class DataIngestionService {
             }
 
             dataIngestionRepository.delete(dataIngestion);
+            publishDeleteEvent(dataIngestion, SystemEventType.DATA_INGESTION_DELETED, deletingData);
         } catch (Exception exception) {
             dataIngestionRepository.findById(dataIngestion.getId()).ifPresent(entity -> {
                 entity.setDeleteStatus(DataIngestionDeleteStatus.DELETE_FAILED);
-                dataIngestionRepository.save(entity);
+                DataIngestionEntity savedEntity = dataIngestionRepository.save(entity);
+                publishDeleteEvent(savedEntity, SystemEventType.DATA_INGESTION_DELETE_FAILED, dataIngestionMapper.entityToResponseDto(savedEntity));
             });
             throw exception;
         }
@@ -829,6 +845,19 @@ public class DataIngestionService {
         }
 
         return SystemEventType.DATA_INGESTION_STATUS_UPDATED;
+    }
+
+    private void publishDeleteEvent(DataIngestionEntity dataIngestion, SystemEventType type, Object payload) {
+        if (dataIngestion == null || dataIngestion.getOwner() == null || dataIngestion.getOrganization() == null) {
+            return;
+        }
+
+        systemEventSseService.publish(
+                dataIngestion.getOrganization().getId(),
+                dataIngestion.getOwner().getId(),
+                type,
+                SystemEventSource.DATA_INGESTION,
+                payload);
     }
 
     private String resolveCallbackUrl(String requestCallbackUrl) {

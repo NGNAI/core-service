@@ -1,5 +1,6 @@
 package ai.dto.own.request.filter;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +55,9 @@ public class DataIngestionFilterDto extends PageableFilterDto {
     @Schema(description = "Data source to filter data ingestion", exampleClasses = DataSource.class)
     DataSource fromSource;
 
+    @Schema(description = "List of data sources to filter data ingestion (supports multiple values)")
+    List<DataSource> formSources;
+
     public DataIngestionFilterDto() {
         super();
         setSortBy("name"); // Default sort by name
@@ -64,7 +68,9 @@ public class DataIngestionFilterDto extends PageableFilterDto {
         return (root, query, criteriaBuilder) -> {
             Predicate parentPredicate = DataIngestionEntitySpecification.buildParent(root, criteriaBuilder, parentId);
             Predicate accessLevelPredicate = DataIngestionEntitySpecification.buildAccessLevel(root, criteriaBuilder, accessLevel);
-            Predicate fromSourcePredicate = DataIngestionEntitySpecification.buildFromSource(root, criteriaBuilder, fromSource);
+            Predicate fromSourcePredicate = (formSources != null && !formSources.isEmpty())
+                    ? DataIngestionEntitySpecification.buildFromSources(root, criteriaBuilder, formSources)
+                    : DataIngestionEntitySpecification.buildFromSource(root, criteriaBuilder, fromSource);
 
             return criteriaBuilder.and(parentPredicate, accessLevelPredicate, fromSourcePredicate);
         };

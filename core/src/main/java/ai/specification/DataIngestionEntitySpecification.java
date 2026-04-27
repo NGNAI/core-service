@@ -1,5 +1,6 @@
 package ai.specification;
 
+import java.util.List;
 import java.util.UUID;
 
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -40,6 +41,13 @@ public class DataIngestionEntitySpecification {
             return criteriaBuilder.conjunction();
         }
         return criteriaBuilder.equal(root.get("fromSource"), fromSource);
+    }
+
+    public static Predicate buildFromSources(Path<?> root, CriteriaBuilder criteriaBuilder, List<?> fromSources) {
+        if (fromSources == null || fromSources.isEmpty()) {
+            return criteriaBuilder.conjunction();
+        }
+        return root.get("fromSource").in(fromSources);
     }
    
 }
