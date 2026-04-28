@@ -1,6 +1,7 @@
 package ai.dto.own.response;
 
 import ai.entity.postgres.NoteBookSourceEntity;
+import ai.enums.DataIngestionDeleteStatus;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,4 +26,8 @@ public class NoteBookSourceResponseDto extends AuditResponseDto {
     String summary;
     String metadata;
     NoteBookSourceEntity.VectorStatus vectorStatus;
+    UUID jobId;
+    UUID ownerId;
+    UUID organizationId;
+    DataIngestionDeleteStatus deleteStatus;
 }

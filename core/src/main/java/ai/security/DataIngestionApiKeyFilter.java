@@ -28,6 +28,7 @@ public class DataIngestionApiKeyFilter extends OncePerRequestFilter {
     static Pattern DATA_INGESTION_DOWNLOAD_PATTERN = Pattern.compile("^/user/data-ingestion/[^/]+/download$");
     static Pattern DATA_INGESTION_DOWNLOAD_URL_PATTERN = Pattern.compile("^/user/data-ingestion/[^/]+/download-url$");
     static Pattern DATA_INGESTION_WEBHOOK_PATTERN = Pattern.compile("^/user/data-ingestion/ingestion/webhook/status$");
+    static Pattern NOTEBOOK_SOURCE_WEBHOOK_PATTERN = Pattern.compile("^/user/notebooks/sources/ingestion/webhook/status$");
 
     AppProperties appProperties;
 
@@ -40,7 +41,8 @@ public class DataIngestionApiKeyFilter extends OncePerRequestFilter {
             || DATA_INGESTION_DOWNLOAD_URL_PATTERN.matcher(servletPath).matches());
 
         boolean isWebhookPath = "POST".equalsIgnoreCase(request.getMethod())
-            && DATA_INGESTION_WEBHOOK_PATTERN.matcher(servletPath).matches();
+            && (DATA_INGESTION_WEBHOOK_PATTERN.matcher(servletPath).matches()
+            || NOTEBOOK_SOURCE_WEBHOOK_PATTERN.matcher(servletPath).matches());
 
         return !isGetProtectedPath && !isWebhookPath;
     }
@@ -50,14 +52,17 @@ public class DataIngestionApiKeyFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String servletPath = request.getServletPath();
         boolean isWebhookPath = "POST".equalsIgnoreCase(request.getMethod())
-                && DATA_INGESTION_WEBHOOK_PATTERN.matcher(servletPath).matches();
+            && (DATA_INGESTION_WEBHOOK_PATTERN.matcher(servletPath).matches()
+            || NOTEBOOK_SOURCE_WEBHOOK_PATTERN.matcher(servletPath).matches());
+        boolean isNotebookWebhookPath = "POST".equalsIgnoreCase(request.getMethod())
+            && NOTEBOOK_SOURCE_WEBHOOK_PATTERN.matcher(servletPath).matches();
 
         if (hasBearerToken(request)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        if (isWebhookPath && authenticateBySignatureIfValid(request)) {
+        if (isWebhookPath && authenticateBySignatureIfValid(request, isNotebookWebhookPath)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -97,13 +102,13 @@ public class DataIngestionApiKeyFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private boolean authenticateBySignatureIfValid(HttpServletRequest request) {
-        String expectedSignature = resolveWebhookSignature();
+    private boolean authenticateBySignatureIfValid(HttpServletRequest request, boolean notebookWebhook) {
+        String expectedSignature = resolveWebhookSignature(notebookWebhook);
         if (expectedSignature == null || expectedSignature.isBlank()) {
             return false;
         }
 
-        String providedSignature = resolveProvidedWebhookSignature(request);
+        String providedSignature = resolveProvidedWebhookSignature(request, notebookWebhook);
         if (providedSignature == null || providedSignature.isBlank()) {
             return false;
         }
@@ -144,7 +149,15 @@ public class DataIngestionApiKeyFilter extends OncePerRequestFilter {
         return configuredHeader == null || configuredHeader.isBlank() ? "X-API-KEY" : configuredHeader;
     }
 
-    private String resolveWebhookSignature() {
+    private String resolveWebhookSignature(boolean notebookWebhook) {
+        if (notebookWebhook
+                && appProperties.getIntegration() != null
+                && appProperties.getIntegration().getNotebookSourceCallback() != null
+                && appProperties.getIntegration().getNotebookSourceCallback().getSignature() != null
+                && !appProperties.getIntegration().getNotebookSourceCallback().getSignature().isBlank()) {
+            return appProperties.getIntegration().getNotebookSourceCallback().getSignature();
+        }
+
         if (appProperties.getIntegration() == null || appProperties.getIntegration().getDataIngestionCallback() == null) {
             return null;
         }
@@ -152,14 +165,14 @@ public class DataIngestionApiKeyFilter extends OncePerRequestFilter {
         return appProperties.getIntegration().getDataIngestionCallback().getSignature();
     }
 
-    private String resolveProvidedWebhookSignature(HttpServletRequest request) {
-        String headerName = resolveWebhookSignatureHeaderName();
+    private String resolveProvidedWebhookSignature(HttpServletRequest request, boolean notebookWebhook) {
+        String headerName = resolveWebhookSignatureHeaderName(notebookWebhook);
         String fromHeader = request.getHeader(headerName);
         if (fromHeader != null && !fromHeader.isBlank()) {
             return fromHeader.trim();
         }
 
-        String paramName = resolveWebhookSignatureParamName();
+        String paramName = resolveWebhookSignatureParamName(notebookWebhook);
         String fromParam = request.getParameter(paramName);
         if (fromParam != null && !fromParam.isBlank()) {
             return fromParam.trim();
@@ -168,7 +181,15 @@ public class DataIngestionApiKeyFilter extends OncePerRequestFilter {
         return null;
     }
 
-    private String resolveWebhookSignatureParamName() {
+    private String resolveWebhookSignatureParamName(boolean notebookWebhook) {
+        if (notebookWebhook
+                && appProperties.getIntegration() != null
+                && appProperties.getIntegration().getNotebookSourceCallback() != null
+                && appProperties.getIntegration().getNotebookSourceCallback().getSignatureParamName() != null
+                && !appProperties.getIntegration().getNotebookSourceCallback().getSignatureParamName().isBlank()) {
+            return appProperties.getIntegration().getNotebookSourceCallback().getSignatureParamName();
+        }
+
         if (appProperties.getIntegration() == null
                 || appProperties.getIntegration().getDataIngestionCallback() == null
                 || appProperties.getIntegration().getDataIngestionCallback().getSignatureParamName() == null
@@ -179,7 +200,15 @@ public class DataIngestionApiKeyFilter extends OncePerRequestFilter {
         return appProperties.getIntegration().getDataIngestionCallback().getSignatureParamName();
     }
 
-    private String resolveWebhookSignatureHeaderName() {
+    private String resolveWebhookSignatureHeaderName(boolean notebookWebhook) {
+        if (notebookWebhook
+                && appProperties.getIntegration() != null
+                && appProperties.getIntegration().getNotebookSourceCallback() != null
+                && appProperties.getIntegration().getNotebookSourceCallback().getSignatureHeaderName() != null
+                && !appProperties.getIntegration().getNotebookSourceCallback().getSignatureHeaderName().isBlank()) {
+            return appProperties.getIntegration().getNotebookSourceCallback().getSignatureHeaderName();
+        }
+
         if (appProperties.getIntegration() == null
                 || appProperties.getIntegration().getDataIngestionCallback() == null
                 || appProperties.getIntegration().getDataIngestionCallback().getSignatureHeaderName() == null

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import ai.dto.own.request.*;
+import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.enums.MessageParentType;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -27,6 +28,7 @@ import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.request.filter.NoteBookFilterDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.dto.own.response.NoteBookSourceDownloadData;
+import ai.dto.own.response.NoteBookSourceJobStatusResponseDto;
 import ai.dto.own.response.NoteBookSourcePresignedUrlResponseDto;
 import ai.dto.own.response.NoteBookSourceResponseDto;
 import ai.dto.own.response.NoteBookResponseDto;
@@ -54,7 +56,7 @@ import reactor.core.publisher.Flux;
 public class NoteBookController {
     NoteBookService notebookService;
     MessageService messageService;
-        NoteBookSourceService noteBookSourceService;
+    NoteBookSourceService noteBookSourceService;
     RagService ragService;
 
     @Operation(summary = "Get notebooks", description = "Lấy danh sách notebook của người dùng với phân trang và bộ lọc")
@@ -229,6 +231,31 @@ public class NoteBookController {
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Remove source from notebook successfully")
+                        .build()
+        );
+    }
+
+    @Operation(summary = "Get notebook source ingestion job status", description = "Poll trạng thái embedding của notebook source")
+    @GetMapping("/{noteBookId}/sources/{sourceId}/ingestion/job-status")
+    ResponseEntity<ApiResponseModel<NoteBookSourceJobStatusResponseDto>> ingestionJobStatus(
+            @PathVariable UUID noteBookId,
+            @PathVariable UUID sourceId) {
+        return ResponseEntity.ok(
+                ApiResponseModel.<NoteBookSourceJobStatusResponseDto>builder()
+                        .message("Get notebook source job status successfully")
+                    .data(noteBookSourceService.pollIngestionJobStatus(noteBookId, sourceId))
+                        .build()
+        );
+    }
+
+    @Operation(summary = "Receive notebook source ingestion callback status", description = "Webhook endpoint để ingestion service callback trạng thái embedding notebook source")
+    @PostMapping(value = "/sources/ingestion/webhook/status", consumes = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<ApiResponseModel<NoteBookSourceJobStatusResponseDto>> ingestionWebhookStatus(
+            @RequestBody IngestionStatusResponseDto callbackPayload) {
+        return ResponseEntity.ok(
+                ApiResponseModel.<NoteBookSourceJobStatusResponseDto>builder()
+                        .message("Receive notebook source ingestion callback successfully")
+                    .data(noteBookSourceService.handleIngestionCallback(callbackPayload))
                         .build()
         );
     }
