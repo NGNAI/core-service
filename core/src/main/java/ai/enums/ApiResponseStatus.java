@@ -136,11 +136,12 @@ public enum ApiResponseStatus {
     ATTACHMENT_SORT_BY_INVALID(1103, "Attachment sort field is invalid", HttpStatus.BAD_REQUEST),
     ATTACHMENT_SORT_DIR_INVALID(1104, "Attachment sort direction is invalid", HttpStatus.BAD_REQUEST),
 
-    TOPIC_FILE_ALREADY_EXISTS(1106, "Topic file already exists", HttpStatus.CONFLICT),
-    TOPIC_FILE_NOT_EXISTS(1107, "Topic file does not exist", HttpStatus.NOT_FOUND),
+    TOPIC_SOURCE_ALREADY_EXISTS(1106, "Topic source already exists", HttpStatus.CONFLICT),
+    TOPIC_SOURCE_NOT_EXISTS(1107, "Topic source does not exist", HttpStatus.NOT_FOUND),
     NOTEBOOK_SOURCE_ALREADY_EXISTS(1108, "Notebook source already exists", HttpStatus.CONFLICT),
     NOTEBOOK_SOURCE_NOT_EXISTS(1109, "Notebook source does not exist", HttpStatus.NOT_FOUND),
     NOTEBOOK_SOURCE_PAYLOAD_REQUIRED(1110, "Notebook source payload must include file(s), textContent, or noteId", HttpStatus.BAD_REQUEST),
+    TOPIC_SOURCE_PAYLOAD_REQUIRED(1120, "Topic source payload must include file(s)", HttpStatus.BAD_REQUEST),
 
     NOTE_NOT_EXISTS(1111, "Note does not exist", HttpStatus.NOT_FOUND),
     NOTE_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY(1112, "Note content cannot be null or empty", HttpStatus.BAD_REQUEST),

@@ -1,36 +1,36 @@
 package ai.service;
 
-import ai.dto.outer.rag.request.RagCompletionRequestDto;
-import ai.dto.own.request.TopicCreateConversationRequestDto;
-import ai.dto.own.request.MessageCreateRequestDto;
-import ai.dto.own.request.MessageUpdateRequestDto;
-import ai.dto.own.request.NoteBookCreateConversationRequestDto;
-import ai.dto.own.request.TopicCreateRequestDto;
-import ai.dto.own.request.filter.AttachmentFilterDto;
-import ai.dto.own.request.filter.MessageFilterDto;
-import ai.dto.own.response.AttachmentResponseDto;
-import ai.dto.own.response.MessageResponseDto;
-import ai.enums.MessageParentType;
-import ai.enums.MessageType;
-import ai.enums.TopicType;
-import ai.service.api.RagApiService;
-import ai.util.JwtUtil;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import ai.dto.outer.rag.request.RagCompletionRequestDto;
+import ai.dto.own.request.MessageCreateRequestDto;
+import ai.dto.own.request.MessageUpdateRequestDto;
+import ai.dto.own.request.NoteBookCreateConversationRequestDto;
+import ai.dto.own.request.TopicCreateConversationRequestDto;
+import ai.dto.own.request.TopicCreateRequestDto;
+import ai.dto.own.request.filter.MessageFilterDto;
+import ai.dto.own.response.MessageResponseDto;
+import ai.dto.own.response.TopicSourceResponseDto;
+import ai.enums.MessageParentType;
+import ai.enums.MessageType;
+import ai.enums.TopicType;
+import ai.service.api.RagApiService;
+import ai.util.JwtUtil;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -39,8 +39,8 @@ import java.util.stream.Collectors;
 public class RagService {
     RagApiService ragApiService;
     TopicService topicService;
+    TopicSourceService topicSourceService;
     MessageService messageService;
-    AttachmentService attachmentService;
 
     ObjectMapper objectMapper;
 
@@ -99,10 +99,8 @@ public class RagService {
         );
 
         // Get attachments of topic - Khoa xử lý tiếp nha
-        AttachmentFilterDto attachmentFilterDto = new AttachmentFilterDto();
-        attachmentFilterDto.setTopicId(finalTopicId);
+        List<TopicSourceResponseDto> attachments = topicSourceService.getAllSources(finalTopicId);
 
-        List<AttachmentResponseDto> attachments = attachmentService.getList(attachmentFilterDto).toList();
         RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
                 .model("")
                 .messages(historyConversations)
@@ -110,7 +108,7 @@ public class RagService {
                         .userId(JwtUtil.getUserId())
                         .organizationId(JwtUtil.getOrgId())
                         .scopes(requestDto.getScopes())
-                        .fileIds(attachments.stream().map(AttachmentResponseDto::getId).collect(Collectors.toSet()))
+                        .fileIds(attachments.stream().map(TopicSourceResponseDto::getId).collect(Collectors.toSet()))
                         .build())
                 .stream(true)
                 .build();

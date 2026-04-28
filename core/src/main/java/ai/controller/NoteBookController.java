@@ -36,6 +36,7 @@ import ai.service.MessageService;
 import ai.service.NoteBookSourceService;
 import ai.service.NoteBookService;
 import ai.service.RagService;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -151,6 +152,7 @@ public class NoteBookController {
         );
     }
 
+    @Hidden
         @Operation(summary = "Download notebook source", description = "Tải file nguồn của notebook khi source là FILE")
         @GetMapping("/{noteBookId}/sources/{sourceId}/download")
         ResponseEntity<byte[]> downloadSource(@PathVariable UUID noteBookId, @PathVariable UUID sourceId) {
@@ -168,6 +170,7 @@ public class NoteBookController {
                                 .body(fileData.bytes());
     }
 
+    @Hidden
     @Operation(summary = "Get notebook source download URL", description = "Lấy presigned URL để tải file nguồn của notebook")
     @GetMapping("/{noteBookId}/sources/{sourceId}/download-url")
     ResponseEntity<ApiResponseModel<NoteBookSourcePresignedUrlResponseDto>> getDownloadUrl(
@@ -183,14 +186,38 @@ public class NoteBookController {
         );
     }
 
-    @Operation(summary = "Add notebook sources", description = "Thêm nguồn vào notebook từ file upload, text content hoặc note đã tồn tại")
-    @PostMapping(value = "/{noteBookId}/sources", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ResponseEntity<ApiResponseModel<List<NoteBookSourceResponseDto>>> addSources(@PathVariable UUID noteBookId,
-            @Valid @ModelAttribute NoteBookFilesAddRequestDto requestDto) {
+        @Operation(summary = "Add notebook file sources", description = "Thêm một hoặc nhiều nguồn FILE vào notebook từ file upload")
+        @PostMapping(value = "/{noteBookId}/sources/add-files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        ResponseEntity<ApiResponseModel<List<NoteBookSourceResponseDto>>> addFileSources(@PathVariable UUID noteBookId,
+            @Valid @ModelAttribute NoteBookSourceAddFilesRequestDto requestDto) {
         return ResponseEntity.ok(
                 ApiResponseModel.<List<NoteBookSourceResponseDto>>builder()
-                        .message("Add source to notebook successfully")
-            .data(noteBookSourceService.uploadSources(noteBookId, requestDto))
+                .message("Add file sources to notebook successfully")
+            .data(noteBookSourceService.addFileSources(noteBookId, requestDto))
+                .build()
+        );
+        }
+
+        @Operation(summary = "Add notebook text source", description = "Thêm một nguồn TEXT vào notebook từ nội dung text thô")
+        @PostMapping(value = "/{noteBookId}/sources/add-text")
+        ResponseEntity<ApiResponseModel<NoteBookSourceResponseDto>> addTextSource(@PathVariable UUID noteBookId,
+            @Valid @RequestBody NoteBookSourceAddTextRequestDto requestDto) {
+        return ResponseEntity.ok(
+            ApiResponseModel.<NoteBookSourceResponseDto>builder()
+                .message("Add text source to notebook successfully")
+                .data(noteBookSourceService.addTextSource(noteBookId, requestDto))
+                .build()
+        );
+        }
+
+        @Operation(summary = "Add notebook note sources", description = "Thêm một hoặc nhiều nguồn NOTE vào notebook từ các note đã tồn tại")
+        @PostMapping(value = "/{noteBookId}/sources/add-notes")
+        ResponseEntity<ApiResponseModel<List<NoteBookSourceResponseDto>>> addNoteSources(@PathVariable UUID noteBookId,
+            @Valid @RequestBody NoteBookSourceAddNotesRequestDto requestDto) {
+        return ResponseEntity.ok(
+            ApiResponseModel.<List<NoteBookSourceResponseDto>>builder()
+                .message("Add note sources to notebook successfully")
+                .data(noteBookSourceService.addNoteSources(noteBookId, requestDto))
                         .build()
         );
     }

@@ -1,6 +1,8 @@
 package ai.service;
 
-import ai.dto.own.request.NoteBookFilesAddRequestDto;
+import ai.dto.own.request.NoteBookSourceAddFilesRequestDto;
+import ai.dto.own.request.NoteBookSourceAddNotesRequestDto;
+import ai.dto.own.request.NoteBookSourceAddTextRequestDto;
 import ai.dto.own.response.NoteBookSourceDownloadData;
 import ai.dto.own.response.NoteBookSourcePresignedUrlResponseDto;
 import ai.dto.own.response.NoteBookSourceResponseDto;
@@ -23,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -52,7 +53,7 @@ public class NoteBookSourceService {
                 result.getContent().stream().map(noteBookSourceMapper::entityToResponseDto).toList());
     }
 
-    public List<NoteBookSourceResponseDto> uploadSources(UUID noteBookId, NoteBookFilesAddRequestDto requestDto) {
+    public List<NoteBookSourceResponseDto> addFileSources(UUID noteBookId, NoteBookSourceAddFilesRequestDto requestDto) {
         UUID userId = JwtUtil.getUserId();
         noteBookService.validateNoteBookOfUser(noteBookId, userId);
 
@@ -61,27 +62,8 @@ public class NoteBookSourceService {
                 .filter(file -> file != null && !file.isEmpty())
                 .toList();
 
-        String textContent = requestDto == null ? null : normalizeText(requestDto.getTextContent());
-        String textDisplayName = requestDto == null ? null : normalizeText(requestDto.getTextDisplayName());
-        UUID noteId = requestDto == null ? null : requestDto.getNoteId();
-        String noteDisplayName = requestDto == null ? null : normalizeText(requestDto.getNoteDisplayName());
-
-        if (validFiles.isEmpty() && textContent == null && noteId == null) {
-            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_PAYLOAD_REQUIRED);
-        }
-
-        List<NoteBookSourceResponseDto> sources = new ArrayList<>();
-
-        if (textContent != null) {
-            sources.add(createTextSource(noteBookId, textContent, textDisplayName));
-        }
-
-        if (noteId != null) {
-            sources.add(createNoteSource(noteBookId, noteId, noteDisplayName));
-        }
-
         if (validFiles.isEmpty()) {
-            return sources;
+            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_PAYLOAD_REQUIRED);
         }
 
         int poolSize = Math.min(validFiles.size(), Math.max(1, Runtime.getRuntime().availableProcessors()));
@@ -94,23 +76,25 @@ public class NoteBookSourceService {
                             executorService))
                     .toList();
 
-            sources.addAll(futures.stream().map(future -> {
+            return futures.stream().map(future -> {
                 try {
                     return future.join();
                 } catch (CompletionException exception) {
                     throw unwrapCompletionException(exception);
                 }
-            }).toList());
-            return sources;
+            }).toList();
         } finally {
             executorService.shutdown();
         }
     }
 
     @Transactional
-    protected NoteBookSourceResponseDto createTextSource(UUID noteBookId, String textContent, String textDisplayName) {
+    public NoteBookSourceResponseDto addTextSource(UUID noteBookId, NoteBookSourceAddTextRequestDto requestDto) {
         UUID userId = JwtUtil.getUserId();
         noteBookService.validateNoteBookOfUser(noteBookId, userId);
+
+        String textContent = normalizeText(requestDto.getTextContent());
+        String textDisplayName = normalizeText(requestDto.getDisplayName());
 
         String displayName = textDisplayName != null
                 ? textDisplayName
@@ -140,8 +124,19 @@ public class NoteBookSourceService {
     }
 
     @Transactional
-    protected NoteBookSourceResponseDto createNoteSource(UUID noteBookId, UUID noteId, String noteDisplayName) {
+    public List<NoteBookSourceResponseDto> addNoteSources(UUID noteBookId, NoteBookSourceAddNotesRequestDto requestDto) {
         UUID userId = JwtUtil.getUserId();
+        noteBookService.validateNoteBookOfUser(noteBookId, userId);
+
+        return requestDto.getNoteIds().stream()
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .map(noteId -> createNoteSource(noteBookId, noteId, userId))
+                .toList();
+    }
+
+    @Transactional
+    protected NoteBookSourceResponseDto createNoteSource(UUID noteBookId, UUID noteId, UUID userId) {
         noteBookService.validateNoteBookOfUser(noteBookId, userId);
         noteService.validateNoteOfUser(noteId, userId);
 
@@ -153,10 +148,7 @@ public class NoteBookSourceService {
         }
 
         NoteEntity note = noteService.getEntityById(noteId);
-        String displayName = noteDisplayName;
-        if (displayName == null) {
-            displayName = normalizeText(note.getTitle());
-        }
+        String displayName = normalizeText(note.getTitle());
         if (displayName == null) {
             displayName = "note-source-" + note.getId().toString().substring(0, 8);
         }

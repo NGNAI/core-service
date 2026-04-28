@@ -55,4 +55,5 @@ public class InputValidateKey {
     public final static String NOTE_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY = "NOTE_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY";
     public final static String NOTE_SOURCE_TYPE_CAN_NOT_BE_NULL_OR_EMPTY = "NOTE_SOURCE_TYPE_CAN_NOT_BE_NULL_OR_EMPTY";
     public final static String NOTE_SOURCE_TYPE_INVALID = "NOTE_SOURCE_TYPE_INVALID";
+    public final static String NOTE_IDS_CAN_NOT_BE_NULL_OR_EMPTY = "NOTE_IDS_CAN_NOT_BE_NULL_OR_EMPTY";
 }

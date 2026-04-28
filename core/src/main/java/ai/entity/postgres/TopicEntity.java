@@ -40,5 +40,5 @@ public class TopicEntity {
     List<TopicMessageEntity> topicMessages;
 
     @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<TopicFileEntity> topicFiles;
+    List<TopicSourceEntity> topicSources;
 }
