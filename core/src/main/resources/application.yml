@@ -81,6 +81,15 @@ integration:
     signature-param-name: "signature"
     # Hoặc gửi qua header, ví dụ: X-Webhook-Signature: YOUR_WEBHOOK_SHARED_SECRET
     signature-header-name: "X-Webhook-Signature"
+  notebook-source-callback:
+    # URL để ingestion service callback trạng thái notebook source về core service
+    url: "http://192.168.30.71:8080/api/v1/user/notebooks/sources/ingestion/webhook/status"
+    # Shared secret dùng để xác thực webhook callback notebook source
+    signature: "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+    # Có thể gửi signature qua query param, ví dụ: ?signature=YOUR_WEBHOOK_SHARED_SECRET
+    signature-param-name: "signature"
+    # Hoặc gửi qua header, ví dụ: X-Webhook-Signature: YOUR_WEBHOOK_SHARED_SECRET
+    signature-header-name: "X-Webhook-Signature"
 
 auto-ingestion:
   enabled: true

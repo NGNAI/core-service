@@ -141,6 +141,9 @@ public enum ApiResponseStatus {
     NOTEBOOK_SOURCE_ALREADY_EXISTS(1108, "Notebook source already exists", HttpStatus.CONFLICT),
     NOTEBOOK_SOURCE_NOT_EXISTS(1109, "Notebook source does not exist", HttpStatus.NOT_FOUND),
     NOTEBOOK_SOURCE_PAYLOAD_REQUIRED(1110, "Notebook source payload must include file(s), textContent, or noteId", HttpStatus.BAD_REQUEST),
+    NOTEBOOK_SOURCE_JOB_ID_NOT_EXISTS(1121, "Notebook source job id not exists", HttpStatus.BAD_REQUEST),
+    NOTEBOOK_SOURCE_DELETE_IN_PROGRESS(1122, "Notebook source deletion is in progress", HttpStatus.CONFLICT),
+    NOTEBOOK_SOURCE_DELETE_FAILED(1123, "Notebook source delete failed", HttpStatus.BAD_REQUEST),
     TOPIC_SOURCE_PAYLOAD_REQUIRED(1120, "Topic source payload must include file(s)", HttpStatus.BAD_REQUEST),
 
     NOTE_NOT_EXISTS(1111, "Note does not exist", HttpStatus.NOT_FOUND),

@@ -1,6 +1,7 @@
 package ai.entity.postgres;
 
 import ai.entity.postgres.embeddable.AuditEmbed;
+import ai.enums.DataIngestionDeleteStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -22,7 +23,11 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Table(name = "notebook_sources", indexes = {
     @Index(name = "idx_notebook_sources_notebook_id", columnList = "notebook_id"),
-    @Index(name = "idx_notebook_sources_note_id", columnList = "note_id")
+    @Index(name = "idx_notebook_sources_note_id", columnList = "note_id"),
+    @Index(name = "idx_notebook_sources_job_id", columnList = "job_id"),
+    @Index(name = "idx_notebook_sources_delete_status", columnList = "delete_status"),
+    @Index(name = "idx_notebook_sources_owner_id", columnList = "owner_id"),
+    @Index(name = "idx_notebook_sources_org_id", columnList = "org_id")
 })
 @EntityListeners(AuditingEntityListener.class)
 @Entity
@@ -72,6 +77,20 @@ public class NoteBookSourceEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "vector_status", nullable = false)
     VectorStatus vectorStatus;
+
+    @Column(name = "job_id")
+    UUID jobId;
+
+    @Column(name = "owner_id")
+    UUID ownerId;
+
+    @Column(name = "org_id")
+    UUID organizationId;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delete_status", length = 20, nullable = false)
+    DataIngestionDeleteStatus deleteStatus = DataIngestionDeleteStatus.ACTIVE;
 
     @Builder.Default
     @Embedded

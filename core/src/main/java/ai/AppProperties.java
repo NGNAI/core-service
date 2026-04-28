@@ -62,6 +62,7 @@ public class AppProperties {
         AttachmentApi attachmentApi;
         DataIngestionApi dataIngestionApi;
         DataIngestionCallback dataIngestionCallback;
+        NotebookSourceCallback notebookSourceCallback;
     }
 
     @Data
@@ -81,6 +82,15 @@ public class AppProperties {
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class DataIngestionCallback {
+        String url;
+        String signature;
+        String signatureParamName;
+        String signatureHeaderName;
+    }
+
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class NotebookSourceCallback {
         String url;
         String signature;
         String signatureParamName;
