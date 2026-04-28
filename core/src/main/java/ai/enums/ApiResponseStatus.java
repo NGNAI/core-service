@@ -138,8 +138,19 @@ public enum ApiResponseStatus {
 
     TOPIC_FILE_ALREADY_EXISTS(1106, "Topic file already exists", HttpStatus.CONFLICT),
     TOPIC_FILE_NOT_EXISTS(1107, "Topic file does not exist", HttpStatus.NOT_FOUND),
-    NOTEBOOK_FILE_ALREADY_EXISTS(1108, "Notebook file already exists", HttpStatus.CONFLICT),
-    NOTEBOOK_FILE_NOT_EXISTS(1109, "Notebook file does not exist", HttpStatus.NOT_FOUND),
+    NOTEBOOK_SOURCE_ALREADY_EXISTS(1108, "Notebook source already exists", HttpStatus.CONFLICT),
+    NOTEBOOK_SOURCE_NOT_EXISTS(1109, "Notebook source does not exist", HttpStatus.NOT_FOUND),
+    NOTEBOOK_SOURCE_PAYLOAD_REQUIRED(1110, "Notebook source payload must include file(s), textContent, or noteId", HttpStatus.BAD_REQUEST),
+
+    NOTE_NOT_EXISTS(1111, "Note does not exist", HttpStatus.NOT_FOUND),
+    NOTE_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY(1112, "Note content cannot be null or empty", HttpStatus.BAD_REQUEST),
+    NOTE_SOURCE_TYPE_CAN_NOT_BE_NULL_OR_EMPTY(1113, "Note source type cannot be null or empty", HttpStatus.BAD_REQUEST),
+    NOTE_SOURCE_TYPE_INVALID(1114, "Invalid note source type", HttpStatus.BAD_REQUEST),
+    NOTE_SOURCE_TARGET_INVALID(1115, "Note source target is invalid", HttpStatus.BAD_REQUEST),
+    NOTE_TOPIC_ID_REQUIRED(1116, "Topic id is required for TOPIC note source", HttpStatus.BAD_REQUEST),
+    NOTE_NOTEBOOK_ID_REQUIRED(1117, "Notebook id is required for NOTEBOOK note source", HttpStatus.BAD_REQUEST),
+    NOTE_SORT_BY_INVALID(1118, "Note sort field is invalid", HttpStatus.BAD_REQUEST),
+    NOTE_SORT_DIR_INVALID(1119, "Note sort direction is invalid", HttpStatus.BAD_REQUEST),
 
     UNEXPECTED(9999, "An unexpected error occurred!",HttpStatus.INTERNAL_SERVER_ERROR);
 

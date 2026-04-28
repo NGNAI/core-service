@@ -25,24 +25,27 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.request.filter.NoteBookFilterDto;
-import ai.dto.own.response.DataIngestionDownloadData;
-import ai.dto.own.response.DataIngestionPresignedUrlResponseDto;
 import ai.dto.own.response.MessageResponseDto;
-import ai.dto.own.response.NoteBookFileResponseDto;
+import ai.dto.own.response.NoteBookSourceDownloadData;
+import ai.dto.own.response.NoteBookSourcePresignedUrlResponseDto;
+import ai.dto.own.response.NoteBookSourceResponseDto;
 import ai.dto.own.response.NoteBookResponseDto;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.MessageService;
-import ai.service.NoteBookFileService;
+import ai.service.NoteBookSourceService;
 import ai.service.NoteBookService;
 import ai.service.RagService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import reactor.core.publisher.Flux;
 
+@Tag(name = "NoteBook", description = "Notebook management APIs including sources and notebook chat")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/user/notebooks")
@@ -50,9 +53,10 @@ import reactor.core.publisher.Flux;
 public class NoteBookController {
     NoteBookService notebookService;
     MessageService messageService;
-    NoteBookFileService noteBookFileService;
+        NoteBookSourceService noteBookSourceService;
     RagService ragService;
 
+    @Operation(summary = "Get notebooks", description = "Lấy danh sách notebook của người dùng với phân trang và bộ lọc")
     @GetMapping()
     ResponseEntity<ApiResponseModel<List<NoteBookResponseDto>>> getAllByUserId(@Valid @ModelAttribute NoteBookFilterDto filterDto){
         CustomPairModel<Long, List<NoteBookResponseDto>> result = notebookService.getAll(filterDto);
@@ -65,6 +69,7 @@ public class NoteBookController {
         );
     }
 
+    @Operation(summary = "Create notebook", description = "Tạo mới một notebook")
     @PostMapping()
     ResponseEntity<ApiResponseModel<NoteBookResponseDto>> create(@Valid @RequestBody NoteBookCreateRequestDto requestDto){
         return ResponseEntity.ok(
@@ -75,6 +80,7 @@ public class NoteBookController {
         );
     }
 
+    @Operation(summary = "Get notebook detail", description = "Lấy chi tiết một notebook theo id")
     @GetMapping("/{noteBookId}")
     ResponseEntity<ApiResponseModel<NoteBookResponseDto>> getById(@PathVariable UUID noteBookId){
         return ResponseEntity.ok(
@@ -85,6 +91,7 @@ public class NoteBookController {
         );
     }
 
+    @Operation(summary = "Update notebook", description = "Cập nhật thông tin notebook gồm title, description và instruction")
     @PutMapping("/{noteBookId}")
     ResponseEntity<ApiResponseModel<NoteBookResponseDto>> update(@PathVariable UUID noteBookId, @Valid @RequestBody NoteBookUpdateRequestDto requestDto){
         return ResponseEntity.ok(
@@ -95,6 +102,7 @@ public class NoteBookController {
         );
     }
 
+    @Operation(summary = "Rename notebook title", description = "Cập nhật riêng tiêu đề của notebook")
     @PatchMapping("/{noteBookId}/title")
     ResponseEntity<ApiResponseModel<NoteBookResponseDto>> renameTitle(@PathVariable UUID noteBookId, @Valid @RequestBody NoteBookRenameTitleRequestDto requestDto){
         return ResponseEntity.ok(
@@ -105,6 +113,7 @@ public class NoteBookController {
         );
     }
 
+    @Operation(summary = "Update notebook instruction", description = "Cập nhật riêng instruction của notebook")
     @PatchMapping("/{noteBookId}/instruction")
     ResponseEntity<ApiResponseModel<NoteBookResponseDto>> updateInstruction(@PathVariable UUID noteBookId, @Valid @RequestBody NoteBookUpdateInstructionRequestDto requestDto){
         return ResponseEntity.ok(
@@ -115,6 +124,7 @@ public class NoteBookController {
         );
     }
 
+    @Operation(summary = "Delete notebook", description = "Xóa một notebook theo id")
     @DeleteMapping("/{noteBookId}")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID noteBookId){
         notebookService.delete(noteBookId);
@@ -126,23 +136,25 @@ public class NoteBookController {
         );
     }
 
-    @GetMapping("/{noteBookId}/files")
-    ResponseEntity<ApiResponseModel<List<NoteBookFileResponseDto>>> getFiles(@PathVariable UUID noteBookId,
+        @Operation(summary = "Get notebook sources", description = "Lấy danh sách nguồn dữ liệu đã gắn vào notebook")
+        @GetMapping("/{noteBookId}/sources")
+        ResponseEntity<ApiResponseModel<List<NoteBookSourceResponseDto>>> getSources(@PathVariable UUID noteBookId,
             @RequestParam(defaultValue = "0") int pageNumber,
             @RequestParam(defaultValue = "20") int pageSize) {
-        CustomPairModel<Long, List<NoteBookFileResponseDto>> result = noteBookFileService.getFiles(noteBookId, pageNumber, pageSize);
+                CustomPairModel<Long, List<NoteBookSourceResponseDto>> result = noteBookSourceService.getSources(noteBookId, pageNumber, pageSize);
         return ResponseEntity.ok(
-                ApiResponseModel.<List<NoteBookFileResponseDto>>builder()
-                        .message("Get list notebook files successfully")
+                ApiResponseModel.<List<NoteBookSourceResponseDto>>builder()
+                                                .message("Get list notebook sources successfully")
                         .count(result.getFirst())
                         .data(result.getSecond())
                         .build()
         );
     }
 
-    @GetMapping("/{noteBookId}/files/{fileId}/download")
-    ResponseEntity<byte[]> downloadFile(@PathVariable UUID noteBookId, @PathVariable UUID fileId) {
-        DataIngestionDownloadData fileData = noteBookFileService.downloadFile(noteBookId, fileId);
+        @Operation(summary = "Download notebook source", description = "Tải file nguồn của notebook khi source là FILE")
+        @GetMapping("/{noteBookId}/sources/{sourceId}/download")
+        ResponseEntity<byte[]> downloadSource(@PathVariable UUID noteBookId, @PathVariable UUID sourceId) {
+                NoteBookSourceDownloadData fileData = noteBookSourceService.downloadSource(noteBookId, sourceId);
 
         HttpHeaders headers = new HttpHeaders();
                 String contentType = (fileData.contentType() == null || fileData.contentType().isBlank())
@@ -156,41 +168,45 @@ public class NoteBookController {
                                 .body(fileData.bytes());
     }
 
-    @GetMapping("/{noteBookId}/files/{fileId}/download-url")
-    ResponseEntity<ApiResponseModel<DataIngestionPresignedUrlResponseDto>> getDownloadUrl(
+    @Operation(summary = "Get notebook source download URL", description = "Lấy presigned URL để tải file nguồn của notebook")
+    @GetMapping("/{noteBookId}/sources/{sourceId}/download-url")
+    ResponseEntity<ApiResponseModel<NoteBookSourcePresignedUrlResponseDto>> getDownloadUrl(
         @PathVariable UUID noteBookId, 
-        @PathVariable UUID fileId,
+        @PathVariable UUID sourceId,
         @Parameter(description = "URL expiration in seconds, default 900", example = "900") @RequestParam(required = false) Integer expiresInSeconds ) {
-        DataIngestionPresignedUrlResponseDto downloadUrl = noteBookFileService.getDownloadUrl(noteBookId, fileId, expiresInSeconds);
+        NoteBookSourcePresignedUrlResponseDto downloadUrl = noteBookSourceService.getSourceDownloadUrl(noteBookId, sourceId, expiresInSeconds);
         return ResponseEntity.ok(
-                ApiResponseModel.<DataIngestionPresignedUrlResponseDto>builder()
-                        .message("Get file download URL successfully")
+                ApiResponseModel.<NoteBookSourcePresignedUrlResponseDto>builder()
+                        .message("Get source download URL successfully")
                         .data(downloadUrl)
                         .build()
         );
     }
 
-    @PostMapping(value = "/{noteBookId}/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ResponseEntity<ApiResponseModel<List<NoteBookFileResponseDto>>> addFiles(@PathVariable UUID noteBookId,
+    @Operation(summary = "Add notebook sources", description = "Thêm nguồn vào notebook từ file upload, text content hoặc note đã tồn tại")
+    @PostMapping(value = "/{noteBookId}/sources", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    ResponseEntity<ApiResponseModel<List<NoteBookSourceResponseDto>>> addSources(@PathVariable UUID noteBookId,
             @Valid @ModelAttribute NoteBookFilesAddRequestDto requestDto) {
         return ResponseEntity.ok(
-                ApiResponseModel.<List<NoteBookFileResponseDto>>builder()
-                        .message("Add file to notebook successfully")
-                .data(noteBookFileService.uploadFilesAndWaitForCompletion(noteBookId, requestDto.getFiles()))
+                ApiResponseModel.<List<NoteBookSourceResponseDto>>builder()
+                        .message("Add source to notebook successfully")
+            .data(noteBookSourceService.uploadSources(noteBookId, requestDto))
                         .build()
         );
     }
 
-    @DeleteMapping("/{noteBookId}/files/{fileId}")
-    ResponseEntity<ApiResponseModel<Void>> removeFile(@PathVariable UUID noteBookId, @PathVariable UUID fileId) {
-        noteBookFileService.removeFile(noteBookId, fileId);
+    @Operation(summary = "Remove notebook source", description = "Gỡ một nguồn dữ liệu khỏi notebook")
+    @DeleteMapping("/{noteBookId}/sources/{sourceId}")
+    ResponseEntity<ApiResponseModel<Void>> removeSource(@PathVariable UUID noteBookId, @PathVariable UUID sourceId) {
+        noteBookSourceService.removeSource(noteBookId, sourceId);
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
-                        .message("Remove file from notebook successfully")
+                        .message("Remove source from notebook successfully")
                         .build()
         );
     }
 
+    @Operation(summary = "Get notebook messages", description = "Lấy lịch sử message của notebook")
     @GetMapping("/{noteBookId}/messages")
     ResponseEntity<ApiResponseModel<List<MessageResponseDto>>> getMessageByNoteBookId(@PathVariable UUID noteBookId,@Valid @ModelAttribute MessageFilterDto filterDto){
         CustomPairModel<Long, List<MessageResponseDto>> result = messageService.getAll(noteBookId, MessageParentType.NOTEBOOK, filterDto);
@@ -203,6 +219,7 @@ public class NoteBookController {
         );
     }
 
+    @Operation(summary = "Chat with notebook", description = "Gửi câu hỏi vào notebook và nhận phản hồi dạng SSE stream")
     @PostMapping(value = "/{noteBookId}/messages", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> postMessageByNoteBookIdFlux(
             @PathVariable UUID noteBookId,

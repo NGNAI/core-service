@@ -11,7 +11,7 @@ public interface NoteBookMapper extends GeneralMapper{
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "audit", ignore = true)
     @Mapping(target = "owner", ignore = true)
-    @Mapping(target = "noteBookFiles", ignore = true)
+    @Mapping(target = "noteBookSources", ignore = true)
     NoteBookEntity createRequestDtoToEntity(NoteBookCreateRequestDto entity);
 
     @Mapping(target = "createdAt", expression = "java(createdAtFromAudit(entity.getAudit()))")
@@ -19,6 +19,6 @@ public interface NoteBookMapper extends GeneralMapper{
     @Mapping(target = "updatedAt", expression = "java(updatedAtFromAudit(entity.getAudit()))")
     @Mapping(target = "updatedBy", expression = "java(updatedByFromAudit(entity.getAudit()))")
     @Mapping(target = "ownerId", source = "owner.id")
-    @Mapping(target = "fileCount", expression = "java(entity.getNoteBookFiles() != null ? entity.getNoteBookFiles().size() : 0)")
+    @Mapping(target = "fileCount", expression = "java(entity.getNoteBookSources() != null ? entity.getNoteBookSources().size() : 0)")
     NoteBookResponseDto entityToResponseDto(NoteBookEntity entity);
 }
