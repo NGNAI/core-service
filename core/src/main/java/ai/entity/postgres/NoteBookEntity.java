@@ -55,5 +55,5 @@ public class NoteBookEntity {
     List<NotebookMessageEntity> notebookMessages;
 
     @OneToMany(mappedBy = "noteBook", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<NoteBookFileEntity> noteBookFiles;
+    List<NoteBookSourceEntity> noteBookSources;
 }

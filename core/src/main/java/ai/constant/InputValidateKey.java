@@ -51,4 +51,8 @@ public class InputValidateKey {
 
     public final static String DRIVE_NAME_REQUIRED = "DRIVE_NAME_REQUIRED";
     public final static String DRIVE_FILE_REQUIRED = "DRIVE_FILE_REQUIRED";
+
+    public final static String NOTE_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY = "NOTE_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY";
+    public final static String NOTE_SOURCE_TYPE_CAN_NOT_BE_NULL_OR_EMPTY = "NOTE_SOURCE_TYPE_CAN_NOT_BE_NULL_OR_EMPTY";
+    public final static String NOTE_SOURCE_TYPE_INVALID = "NOTE_SOURCE_TYPE_INVALID";
 }
