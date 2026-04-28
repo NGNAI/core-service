@@ -3,8 +3,14 @@ package ai.controller;
 import java.util.List;
 import java.util.UUID;
 
+import ai.dto.own.request.TopicSourcesAddRequestDto;
+import ai.dto.own.response.TopicSourceDownloadData;
+import ai.dto.own.response.TopicSourcePresignedUrlResponseDto;
+import ai.dto.own.response.TopicSourceResponseDto;
 import ai.enums.MessageParentType;
 import org.springframework.data.util.Pair;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,13 +32,13 @@ import ai.dto.own.request.TopicRenameTitleRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.request.filter.TopicFilterDto;
 import ai.dto.own.response.MessageResponseDto;
-import ai.dto.own.response.TopicFileResponseDto;
 import ai.dto.own.response.TopicResponseDto;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.MessageService;
 import ai.service.RagService;
-import ai.service.TopicFileService;
+import ai.service.TopicSourceService;
+import io.swagger.v3.oas.annotations.Hidden;
 import ai.service.TopicService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -47,7 +53,7 @@ import reactor.core.publisher.Flux;
 public class TopicController {
     TopicService topicService;
     MessageService messageService;
-    TopicFileService topicFileService;
+    TopicSourceService topicSourceService;
     RagService ragService;
 
     @GetMapping()
@@ -93,16 +99,72 @@ public class TopicController {
         );
     }
 
-    @GetMapping("/{topicId}/files")
-    ResponseEntity<ApiResponseModel<List<TopicFileResponseDto>>> getFiles(@PathVariable UUID topicId,
+    @Hidden
+    @GetMapping("/{topicId}/sources")
+    ResponseEntity<ApiResponseModel<List<TopicSourceResponseDto>>> getSources(@PathVariable UUID topicId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Pair<Long, List<TopicFileResponseDto>> result = topicFileService.getFiles(topicId, page, size);
+        Pair<Long, List<TopicSourceResponseDto>> result = topicSourceService.getSources(topicId, page, size);
         return ResponseEntity.ok(
-                ApiResponseModel.<List<TopicFileResponseDto>>builder()
-                        .message("Get list topic files successfully")
+                ApiResponseModel.<List<TopicSourceResponseDto>>builder()
+                        .message("Get list topic sources successfully")
                         .count(result.getFirst())
                         .data(result.getSecond())
+                        .build()
+        );
+    }
+
+    @Hidden
+    @GetMapping("/{topicId}/sources/{sourceId}/download")
+    ResponseEntity<byte[]> downloadSource(@PathVariable UUID topicId, @PathVariable UUID sourceId) {
+        TopicSourceDownloadData fileData = topicSourceService.downloadSource(topicId, sourceId);
+
+        HttpHeaders headers = new HttpHeaders();
+        String contentType = (fileData.contentType() == null || fileData.contentType().isBlank())
+            ? MediaType.APPLICATION_OCTET_STREAM_VALUE
+            : fileData.contentType();
+        headers.setContentType(MediaType.parseMediaType(contentType));
+        headers.setContentDisposition(ContentDisposition.attachment().filename(fileData.fileName()).build());
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(fileData.bytes());
+    }
+
+    @Hidden
+    @GetMapping("/{topicId}/sources/{sourceId}/download-url")
+    ResponseEntity<ApiResponseModel<TopicSourcePresignedUrlResponseDto>> getDownloadUrl(
+            @PathVariable UUID topicId,
+            @PathVariable UUID sourceId,
+            @RequestParam(required = false) Integer expiresInSeconds) {
+        TopicSourcePresignedUrlResponseDto downloadUrl = topicSourceService.getSourceDownloadUrl(topicId, sourceId, expiresInSeconds);
+        return ResponseEntity.ok(
+                ApiResponseModel.<TopicSourcePresignedUrlResponseDto>builder()
+                        .message("Get source download URL successfully")
+                        .data(downloadUrl)
+                        .build()
+        );
+    }
+
+    @Hidden
+    @PostMapping(value = "/{topicId}/sources", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    ResponseEntity<ApiResponseModel<List<TopicSourceResponseDto>>> addSources(@PathVariable UUID topicId,
+            @Valid @ModelAttribute TopicSourcesAddRequestDto requestDto) {
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<TopicSourceResponseDto>>builder()
+                        .message("Add source to topic successfully")
+                        .data(topicSourceService.uploadSources(topicId, requestDto))
+                        .build()
+        );
+    }
+
+    @Hidden
+    @DeleteMapping("/{topicId}/sources/{sourceId}")
+    ResponseEntity<ApiResponseModel<Void>> removeSource(@PathVariable UUID topicId, @PathVariable UUID sourceId) {
+        topicSourceService.removeSource(topicId, sourceId);
+        return ResponseEntity.ok(
+                ApiResponseModel.<Void>builder()
+                        .message("Remove source from topic successfully")
                         .build()
         );
     }
@@ -123,14 +185,11 @@ public class TopicController {
     public Flux<String> postMessageByTopicIdFlux(
             @PathVariable UUID topicId,
             @Valid @ModelAttribute TopicCreateConversationRequestDto requestDto) throws JsonProcessingException {
-        
-        // Nếu có file đính kèm thì sẽ upload file lên MinIO trước để đảm bảo nếu có lỗi xảy ra khi upload file thì sẽ không tạo bản ghi topic file trong database, tránh trường hợp dữ liệu bị lỗi không thể retry được, sau khi upload file xong sẽ tạo bản ghi topic file mới trong database với thông tin về file đã upload và trạng thái ingestion là PENDING, sau đó gọi API của ingestion service để đẩy file đã upload sang ingestion service để xử lý, nếu có lỗi xảy ra khi gọi API của ingestion service hoặc response trả về không hợp lệ thì sẽ cập nhật trạng thái ingestion của topic file này thành FAILED để tránh bị treo ở trạng thái PENDING mãi mãi, đồng thời trả về response cho client để client có thể hiển thị thông báo lỗi chính xác
         if (requestDto.getFiles() != null && requestDto.getFiles().length > 0) {
-            List<TopicFileResponseDto> uploadedFiles = topicFileService.uploadFilesAndWaitForCompletion(topicId, requestDto.getFiles());
-            uploadedFiles.forEach(uploadedFile -> {
-                MessageResponseDto attachmentMessage = messageService.createAttachmentMessage(topicId, uploadedFile.getDataIngestion());
-                topicFileService.updateMessageId(uploadedFile.getId(), attachmentMessage.getId());
-            });
+            TopicSourcesAddRequestDto sourceRequest = new TopicSourcesAddRequestDto();
+            sourceRequest.setFiles(requestDto.getFiles());
+            List<TopicSourceResponseDto> uploadedSources = topicSourceService.uploadSources(topicId, sourceRequest);
+            uploadedSources.forEach(uploadedSource -> messageService.createAttachmentMessage(topicId, uploadedSource));
         }
 
         return ragService.chatTopic(topicId, requestDto);

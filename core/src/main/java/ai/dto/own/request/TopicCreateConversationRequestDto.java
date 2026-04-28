@@ -2,8 +2,6 @@ package ai.dto.own.request;
 
 import java.util.Set;
 
-import org.springframework.web.multipart.MultipartFile;
-
 import ai.annotation.EnumValue;
 import ai.constant.InputValidateKey;
 import ai.enums.RagScope;
@@ -13,6 +11,7 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -25,6 +24,6 @@ public class TopicCreateConversationRequestDto {
             @EnumValue(enumClass = RagScope.class, message = InputValidateKey.INVALID_RAG_SCOPE_VALUE)
             String> scopes;
 
-    @Schema(description = "Optional attachment files for the conversation topic")
+    @Schema(description = "Optional attachment files for inline upload while posting a message")
     MultipartFile[] files;
 }

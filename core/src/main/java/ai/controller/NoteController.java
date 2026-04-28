@@ -4,6 +4,7 @@ import ai.dto.own.request.NoteCreateRequestDto;
 import ai.dto.own.request.NoteUpdateRequestDto;
 import ai.dto.own.request.filter.NoteFilterDto;
 import ai.dto.own.response.NoteResponseDto;
+import ai.enums.NoteSourceType;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.NoteService;
@@ -16,6 +17,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +28,16 @@ import java.util.UUID;
 @RestController
 public class NoteController {
     NoteService noteService;
+
+    @Operation(summary = "Get note source types", description = "Lấy danh sách source type khả dụng của note")
+    @GetMapping("/source")
+    ResponseEntity<ApiResponseModel<List<NoteSourceType>>> source() {
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<NoteSourceType>>builder()
+                        .message("Get note source types successfully")
+                        .data(Arrays.asList(NoteSourceType.values()))
+                        .build());
+    }
 
         @Operation(summary = "Get notes", description = "Lấy danh sách ghi chú của người dùng với các bộ lọc theo source type, topicId, notebookId và keyword")
     @GetMapping
