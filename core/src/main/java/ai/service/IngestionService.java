@@ -23,9 +23,13 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class IngestionService {
-    private static final String INGESTION_UPLOAD_PATH = "/upload";
+    private static final String INGESTION_UPLOAD_RAG_PATH = "/upload_rag";
+    private static final String INGESTION_UPLOAD_CHAT_PATH = "/upload_chat";
+    private static final String INGESTION_UPLOAD_NOTEBOOK_PATH = "/upload_notebook";
     private static final String INGESTION_STATUS_PATH = "/job";
-    private static final String INGESTION_DELETE_PATH = "/file";
+    private static final String INGESTION_DELETE_FILE_RAG_PATH = "/file_rag";
+    private static final String INGESTION_DELETE_FILE_CHAT_PATH = "/file_chat";
+    private static final String INGESTION_DELETE_FILE_NOTEBOOK_PATH = "/file_notebook";
 
     RestClient ingestionRestClient;
 
@@ -43,11 +47,11 @@ public class IngestionService {
      * @param visibility
      * @return
      */
-    public IngestionUploadResponseDto pushToVector(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility) {
-        return pushToVector(file, fileId, username, uniId, unitName, visibility, null);
+    public IngestionUploadResponseDto uploadRag(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility) {
+        return uploadRag(file, fileId, username, uniId, unitName, visibility, null);
     }
 
-    public IngestionUploadResponseDto pushToVector(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility, String callbackUrl) {
+    public IngestionUploadResponseDto uploadRag(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility, String callbackUrl) {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", file.getResource());
         body.add("file_id", fileId);
@@ -61,7 +65,7 @@ public class IngestionService {
 
         try {
             return ingestionRestClient.post()
-                    .uri(INGESTION_UPLOAD_PATH)
+                    .uri(INGESTION_UPLOAD_RAG_PATH)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body)
                     .retrieve()
@@ -83,11 +87,11 @@ public class IngestionService {
      * @param visibility
      * @return
      */
-    public IngestionUploadResponseDto pushToVector(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility) {
-        return pushToVector(fileBytes, fileName, fileId, username, unitId, unitName, visibility, null);
+    public IngestionUploadResponseDto uploadRag(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility) {
+        return uploadRag(fileBytes, fileName, fileId, username, unitId, unitName, visibility, null);
     }
 
-    public IngestionUploadResponseDto pushToVector(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility, String callbackUrl) {
+    public IngestionUploadResponseDto uploadRag(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility, String callbackUrl) {
         ByteArrayResource fileResource = new ByteArrayResource(fileBytes) {
             @Override
             public String getFilename() {
@@ -108,7 +112,7 @@ public class IngestionService {
 
         try {
             return ingestionRestClient.post()
-                    .uri(INGESTION_UPLOAD_PATH)
+                    .uri(INGESTION_UPLOAD_RAG_PATH)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body)
                     .retrieve()
@@ -118,6 +122,146 @@ public class IngestionService {
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
         }
     }
+
+
+    public IngestionUploadResponseDto uploadChat(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility, String topicId) {
+        return uploadChat(file, fileId, username, uniId, unitName, visibility, topicId, null);
+    }
+
+    public IngestionUploadResponseDto uploadChat(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility, String topicId, String callbackUrl) {
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", file.getResource());
+        body.add("file_id", fileId);
+        body.add("user_name", username);
+        body.add("unit_id", uniId);
+        body.add("unit_name", unitName);
+        body.add("visibility", visibility.name());
+        body.add("topic_id", topicId);
+        if (callbackUrl != null && !callbackUrl.trim().isEmpty()) {
+            body.add("callback_url", callbackUrl.trim());
+        }
+
+        try {
+            return ingestionRestClient.post()
+                    .uri(INGESTION_UPLOAD_CHAT_PATH)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .body(IngestionUploadResponseDto.class);
+        } catch (RestClientException exception) {
+            exception.printStackTrace();
+            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    public IngestionUploadResponseDto uploadChat(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility, String topicId) {
+        return uploadChat(fileBytes, fileName, fileId, username, unitId, unitName, visibility, topicId, null);
+    }
+
+    public IngestionUploadResponseDto uploadChat(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility, String topicId, String callbackUrl) {
+        ByteArrayResource fileResource = new ByteArrayResource(fileBytes) {
+            @Override
+            public String getFilename() {
+                return fileName;
+            }
+        };
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", fileResource);
+        body.add("file_id", fileId);
+        body.add("user_name", username);
+        body.add("unit_id", unitId);
+        body.add("unit_name", unitName);
+        body.add("visibility", visibility.name());
+        body.add("topic_id", topicId);
+        if (callbackUrl != null && !callbackUrl.trim().isEmpty()) {
+            body.add("callback_url", callbackUrl.trim());
+        }
+
+        try {
+            return ingestionRestClient.post()
+                    .uri(INGESTION_UPLOAD_CHAT_PATH)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .body(IngestionUploadResponseDto.class);
+        } catch (RestClientException exception) {
+            exception.printStackTrace();
+            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        }
+    }  
+
+    public IngestionUploadResponseDto uploadNoteBook(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility, String notebookId) {
+        return uploadNoteBook(file, fileId, username, uniId, unitName, visibility, notebookId, null);
+    }
+
+    public IngestionUploadResponseDto uploadNoteBook(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility, String notebookId, String callbackUrl) {
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", file.getResource());
+        body.add("file_id", fileId);
+        body.add("user_name", username);
+        body.add("unit_id", uniId);
+        body.add("unit_name", unitName);
+        body.add("visibility", visibility.name());
+        body.add("notebook_id", notebookId);
+        if (callbackUrl != null && !callbackUrl.trim().isEmpty()) {
+            body.add("callback_url", callbackUrl.trim());
+        }
+
+        try {
+            return ingestionRestClient.post()
+                    .uri(INGESTION_UPLOAD_NOTEBOOK_PATH)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .body(IngestionUploadResponseDto.class);
+        } catch (RestClientException exception) {
+            exception.printStackTrace();
+            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    public IngestionUploadResponseDto uploadNoteBook(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility, String notebookId) {
+        return uploadNoteBook(fileBytes, fileName, fileId, username, unitId, unitName, visibility, notebookId, null);
+    }
+
+    public IngestionUploadResponseDto uploadNoteBook(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility, String notebookId, String callbackUrl) {
+        ByteArrayResource fileResource = new ByteArrayResource(fileBytes) {
+            @Override
+            public String getFilename() {
+                return fileName;
+            }
+        };
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", fileResource);
+        body.add("file_id", fileId);
+        body.add("user_name", username);
+        body.add("unit_id", unitId);
+        body.add("unit_name", unitName);
+        body.add("visibility", visibility.name());
+        body.add("notebook_id", notebookId);
+        if (callbackUrl != null && !callbackUrl.trim().isEmpty()) {
+            body.add("callback_url", callbackUrl.trim());
+        }
+
+        try {
+            return ingestionRestClient.post()
+                    .uri(INGESTION_UPLOAD_NOTEBOOK_PATH)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .body(IngestionUploadResponseDto.class);
+        } catch (RestClientException exception) {
+            exception.printStackTrace();
+            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        }
+    }
+
+
+
+
+
 
     /**
      * Poll trạng thái xử lý ingestion job bằng jobId trả về từ phương thức pushToVector. Thông thường sẽ cần gọi phương thức này nhiều lần sau khi gọi pushToVector để theo dõi tiến độ xử lý của ingestion job, cho đến khi trạng thái trả về là success hoặc failed thì thôi
@@ -141,10 +285,32 @@ public class IngestionService {
      * @param fileId
      * @return
      */
-    public IngestionDeleteResponseDto deleteFile(String fileId) {
+    public IngestionDeleteResponseDto deleteFileRag(String fileId) {
         try {
             return ingestionRestClient.delete()
-                    .uri(INGESTION_DELETE_PATH + "/{fileId}", fileId)
+                    .uri(INGESTION_DELETE_FILE_RAG_PATH + "/{fileId}", fileId)
+                    .retrieve()
+                    .body(IngestionDeleteResponseDto.class);
+        } catch (RestClientException exception) {
+            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    public IngestionDeleteResponseDto deleteFileChat(String fileId) {
+        try {
+            return ingestionRestClient.delete()
+                    .uri(INGESTION_DELETE_FILE_CHAT_PATH + "/{fileId}", fileId)
+                    .retrieve()
+                    .body(IngestionDeleteResponseDto.class);
+        } catch (RestClientException exception) {
+            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    public IngestionDeleteResponseDto deleteFileNotebook(String fileId) {
+        try {
+            return ingestionRestClient.delete()
+                    .uri(INGESTION_DELETE_FILE_NOTEBOOK_PATH + "/{fileId}", fileId)
                     .retrieve()
                     .body(IngestionDeleteResponseDto.class);
         } catch (RestClientException exception) {

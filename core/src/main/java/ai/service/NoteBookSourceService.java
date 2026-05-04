@@ -152,7 +152,7 @@ public class NoteBookSourceService {
                 .filePath(null)
                 .summary(null)
                 .metadata(null)
-                .vectorStatus(NoteBookSourceEntity.VectorStatus.NOT_PROCESSED)
+                .vectorStatus(NoteBookSourceEntity.VectorStatus.CREATED)
                 .jobId(null)
                 .ownerId(userId)
                 .organizationId(orgId)
@@ -218,7 +218,7 @@ public class NoteBookSourceService {
                 .filePath(null)
                 .summary(null)
                 .metadata(null)
-                .vectorStatus(NoteBookSourceEntity.VectorStatus.NOT_PROCESSED)
+                .vectorStatus(NoteBookSourceEntity.VectorStatus.CREATED)
                 .jobId(null)
                 .ownerId(userId)
                 .organizationId(orgId)
@@ -349,7 +349,7 @@ public class NoteBookSourceService {
                     : source.getNoteBook().getId().toString();
             String unitName = resolveUnitName(source);
 
-            IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
+            IngestionUploadResponseDto ingestionResponse = ingestionService.uploadNoteBook(
                     payloadBytes,
                     fileName,
                     source.getId().toString(),
@@ -357,24 +357,25 @@ public class NoteBookSourceService {
                     unitId,
                     unitName,
                     DataScope.LOCAL,
+                    source.getNoteBook().getId().toString(),
                     callbackUrl);
 
             if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
-                source.setVectorStatus(NoteBookSourceEntity.VectorStatus.ERROR);
+                source.setVectorStatus(NoteBookSourceEntity.VectorStatus.FAILED);
                 source = noteBookSourceRepository.save(source);
-                publishStatusEvent(source, NoteBookSourceEntity.VectorStatus.ERROR);
+                publishStatusEvent(source, NoteBookSourceEntity.VectorStatus.FAILED);
                 return noteBookSourceMapper.entityToResponseDto(source);
             }
 
             source.setJobId(ingestionResponse.getJobId());
-            source.setVectorStatus(NoteBookSourceEntity.VectorStatus.PROCESSING);
+            source.setVectorStatus(NoteBookSourceEntity.VectorStatus.CREATED);
             source = noteBookSourceRepository.save(source);
-            publishStatusEvent(source, NoteBookSourceEntity.VectorStatus.PROCESSING);
+            publishStatusEvent(source, NoteBookSourceEntity.VectorStatus.CREATED);
             return noteBookSourceMapper.entityToResponseDto(source);
         } catch (Exception exception) {
-            source.setVectorStatus(NoteBookSourceEntity.VectorStatus.ERROR);
+            source.setVectorStatus(NoteBookSourceEntity.VectorStatus.FAILED);
             source = noteBookSourceRepository.save(source);
-            publishStatusEvent(source, NoteBookSourceEntity.VectorStatus.ERROR);
+            publishStatusEvent(source, NoteBookSourceEntity.VectorStatus.FAILED);
             return noteBookSourceMapper.entityToResponseDto(source);
         }
     }
@@ -476,7 +477,7 @@ public class NoteBookSourceService {
             }
 
             if (source.getJobId() != null) {
-                ingestionService.deleteFile(source.getId().toString());
+                ingestionService.deleteFileNotebook(source.getId().toString());
             }
 
             noteBookSourceRepository.delete(source);
@@ -585,23 +586,39 @@ public class NoteBookSourceService {
             String rawStatus,
             NoteBookSourceEntity.VectorStatus fallbackStatus) {
         if (rawStatus == null || rawStatus.trim().isEmpty()) {
-            return fallbackStatus == null ? NoteBookSourceEntity.VectorStatus.PROCESSING : fallbackStatus;
+            return fallbackStatus == null ? NoteBookSourceEntity.VectorStatus.CREATED : fallbackStatus;
         }
 
         String normalized = rawStatus.trim().toUpperCase();
-        if ("SUCCESS".equals(normalized) || "DONE".equals(normalized) || "COMPLETED".equals(normalized) || "PROCESSED".equals(normalized)) {
-            return NoteBookSourceEntity.VectorStatus.PROCESSED;
+        if ("SUCCESS".equals(normalized) || "DONE".equals(normalized) || "COMPLETED".equals(normalized)) {
+            return NoteBookSourceEntity.VectorStatus.COMPLETED;
         }
 
         if ("ERROR".equals(normalized) || "FAILED".equals(normalized)) {
-            return NoteBookSourceEntity.VectorStatus.ERROR;
+            return NoteBookSourceEntity.VectorStatus.FAILED;
         }
 
-        if ("NOT_PROCESSED".equals(normalized)) {
-            return NoteBookSourceEntity.VectorStatus.NOT_PROCESSED;
+        if ("EXTRACTING".equals(normalized)) {
+            return NoteBookSourceEntity.VectorStatus.EXTRACTING;
         }
 
-        return NoteBookSourceEntity.VectorStatus.PROCESSING;
+        if ("CHUNKING".equals(normalized)) {
+            return NoteBookSourceEntity.VectorStatus.CHUNKING;
+        }
+
+        if ("EMBEDDING".equals(normalized)) {
+            return NoteBookSourceEntity.VectorStatus.EMBEDDING;
+        }
+
+        if ("STORING".equals(normalized)) {
+            return NoteBookSourceEntity.VectorStatus.STORING;
+        }
+
+        if ("CREATED".equals(normalized)) {
+            return NoteBookSourceEntity.VectorStatus.CREATED;
+        }
+
+        return NoteBookSourceEntity.VectorStatus.CREATED;
     }
 
     /**
@@ -655,11 +672,11 @@ public class NoteBookSourceService {
             return SystemEventType.NOTEBOOK_SOURCE_STATUS_UPDATED;
         }
 
-        if (NoteBookSourceEntity.VectorStatus.PROCESSED.equals(vectorStatus)) {
+        if (NoteBookSourceEntity.VectorStatus.COMPLETED.equals(vectorStatus)) {
             return SystemEventType.NOTEBOOK_SOURCE_COMPLETED;
         }
 
-        if (NoteBookSourceEntity.VectorStatus.ERROR.equals(vectorStatus)) {
+        if (NoteBookSourceEntity.VectorStatus.FAILED.equals(vectorStatus)) {
             return SystemEventType.NOTEBOOK_SOURCE_FAILED;
         }
 
@@ -779,7 +796,7 @@ public class NoteBookSourceService {
                 .filePath(objectPath)
                 .summary(null)
                 .metadata(null)
-                .vectorStatus(NoteBookSourceEntity.VectorStatus.NOT_PROCESSED)
+                .vectorStatus(NoteBookSourceEntity.VectorStatus.CREATED)
                 .jobId(null)
                 .ownerId(userId)
                 .organizationId(orgId)

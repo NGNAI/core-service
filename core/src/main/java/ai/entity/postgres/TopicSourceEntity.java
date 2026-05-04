@@ -42,7 +42,13 @@ public class TopicSourceEntity {
     }
 
     public enum VectorStatus {
-        NOT_PROCESSED, PROCESSING, PROCESSED, ERROR
+        CREATED, // Mới tạo
+        EXTRACTING, // Đang trích xuất
+        CHUNKING, // Đang chia nhỏ
+        EMBEDDING, // Đang nhúng
+        STORING, // Đang lưu trữ
+        COMPLETED, // Hoàn thành
+        FAILED
     }
 
     @Id

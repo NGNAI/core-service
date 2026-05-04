@@ -32,9 +32,15 @@ public interface NoteBookSourceRepository extends JpaRepository<NoteBookSourceEn
                 SELECT ns FROM NoteBookSourceEntity ns
                 WHERE ns.deleteStatus = ai.enums.DataIngestionDeleteStatus.ACTIVE
                     AND (
-                        (ns.jobId IS NULL AND ns.vectorStatus IN (ai.entity.postgres.NoteBookSourceEntity.VectorStatus.NOT_PROCESSED, ai.entity.postgres.NoteBookSourceEntity.VectorStatus.ERROR))
+                        (ns.jobId IS NULL AND ns.vectorStatus IN (ai.entity.postgres.NoteBookSourceEntity.VectorStatus.CREATED, ai.entity.postgres.NoteBookSourceEntity.VectorStatus.FAILED))
                         OR
-                        (ns.jobId IS NOT NULL AND ns.vectorStatus IN (ai.entity.postgres.NoteBookSourceEntity.VectorStatus.NOT_PROCESSED, ai.entity.postgres.NoteBookSourceEntity.VectorStatus.PROCESSING))
+                        (ns.jobId IS NOT NULL AND ns.vectorStatus IN (
+                            ai.entity.postgres.NoteBookSourceEntity.VectorStatus.CREATED,
+                            ai.entity.postgres.NoteBookSourceEntity.VectorStatus.EXTRACTING,
+                            ai.entity.postgres.NoteBookSourceEntity.VectorStatus.CHUNKING,
+                            ai.entity.postgres.NoteBookSourceEntity.VectorStatus.EMBEDDING,
+                            ai.entity.postgres.NoteBookSourceEntity.VectorStatus.STORING
+                        ))
                     )
         """)
         List<NoteBookSourceEntity> findSourcesForIngestionMaintenance();

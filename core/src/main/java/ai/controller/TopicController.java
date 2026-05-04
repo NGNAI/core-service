@@ -188,7 +188,7 @@ public class TopicController {
         if (requestDto.getFiles() != null && requestDto.getFiles().length > 0) {
             TopicSourcesAddRequestDto sourceRequest = new TopicSourcesAddRequestDto();
             sourceRequest.setFiles(requestDto.getFiles());
-            List<TopicSourceResponseDto> uploadedSources = topicSourceService.uploadSources(topicId, sourceRequest);
+            List<TopicSourceResponseDto> uploadedSources = topicSourceService.uploadSourcesAndWaitForVectorReady(topicId, sourceRequest);
             uploadedSources.forEach(uploadedSource -> messageService.createAttachmentMessage(topicId, uploadedSource));
         }
 
