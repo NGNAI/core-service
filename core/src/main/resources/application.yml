@@ -39,7 +39,7 @@ logging:
   level:
     org.springframework.jdbc.core: "DEBUG"
   file:
-    name: "application.log"
+    name: "logs/application.log"
     path: "logs"
 
 sql:

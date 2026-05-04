@@ -154,7 +154,7 @@ public class DataIngestionService {
 
         try {
             String callbackUrl = resolveCallbackUrl(requestDto.getCallbackUrl());
-            IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
+            IngestionUploadResponseDto ingestionResponse = ingestionService.uploadRag(
                     requestDto.getFile(),
                     dataIngestion.getId().toString(),
                     user.getUserName(),
@@ -293,7 +293,7 @@ public class DataIngestionService {
 
         try {
             String callbackUrl = resolveCallbackUrl(null);
-            IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
+            IngestionUploadResponseDto ingestionResponse = ingestionService.uploadRag(
                     fileBytes,
                     fileName,
                     dataIngestion.getId().toString(),
@@ -584,7 +584,7 @@ public class DataIngestionService {
         try {
             MinioService.MinioObjectData objectData = minioService.download(dataIngestion.getMinioPath(), dataIngestion.getFromSource().name().toLowerCase());
             String callbackUrl = resolveCallbackUrl(null);
-            IngestionUploadResponseDto ingestionResponse = ingestionService.pushToVector(
+            IngestionUploadResponseDto ingestionResponse = ingestionService.uploadRag(
                     objectData.getBytes(),
                     dataIngestion.getName(),
                     dataIngestion.getId().toString(),
@@ -726,7 +726,7 @@ public class DataIngestionService {
 
             // Nếu data ingestion này liên quan đến ingestion job nào đó thì gọi API của ingestion service để xóa job đó luôn, tránh trường hợp dữ liệu bị xóa nhưng job
             if (dataIngestion.getJobId() != null) {
-                ingestionService.deleteFile(dataIngestion.getId().toString());
+                ingestionService.deleteFileRag(dataIngestion.getId().toString());
             }
 
             dataIngestionRepository.delete(dataIngestion);

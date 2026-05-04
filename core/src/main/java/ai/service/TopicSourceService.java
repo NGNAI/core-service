@@ -1,12 +1,17 @@
 package ai.service;
 
 import ai.dto.own.request.TopicSourcesAddRequestDto;
+import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
+import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
 import ai.dto.own.response.TopicSourceDownloadData;
 import ai.dto.own.response.TopicSourcePresignedUrlResponseDto;
 import ai.dto.own.response.TopicSourceResponseDto;
+import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.TopicEntity;
 import ai.entity.postgres.TopicSourceEntity;
+import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.DataScope;
 import ai.exeption.AppException;
 import ai.mapper.TopicSourceMapper;
 import ai.repository.TopicSourceRepository;
@@ -36,11 +41,16 @@ import java.util.concurrent.Executors;
 public class TopicSourceService {
     static final String TOPIC_BUCKET = "knowledgetopics";
     static final int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
+    static final long DEFAULT_INGESTION_WAIT_TIMEOUT_MILLIS = 180_000;
+    static final long DEFAULT_INGESTION_POLL_INTERVAL_MILLIS = 2_000;
 
     TopicSourceRepository topicSourceRepository;
     TopicSourceMapper topicSourceMapper;
     TopicService topicService;
     MinioService minioService;
+    IngestionService ingestionService;
+    UserService userService;
+    OrganizationService organizationService;
 
     
     public Pair<Long, List<TopicSourceResponseDto>> getSources(UUID topicId, int page, int size) {
@@ -89,6 +99,26 @@ public class TopicSourceService {
         } finally {
             executorService.shutdown();
         }
+    }
+
+    public List<TopicSourceResponseDto> uploadSourcesAndWaitForVectorReady(UUID topicId, TopicSourcesAddRequestDto requestDto) {
+        List<TopicSourceResponseDto> uploadedSources = uploadSources(topicId, requestDto);
+
+        if (uploadedSources.isEmpty()) {
+            return uploadedSources;
+        }
+
+        UserEntity user = userService.getEntityById(JwtUtil.getUserId());
+        OrganizationEntity organization = organizationService.getEntityById(JwtUtil.getOrgId());
+
+        for (TopicSourceResponseDto uploadedSource : uploadedSources) {
+            TopicSourceEntity sourceEntity = getSourceEntity(topicId, uploadedSource.getId());
+            ingestChatSourceAndWaitUntilReady(topicId, sourceEntity, user, organization);
+        }
+
+        return uploadedSources.stream()
+                .map(source -> topicSourceMapper.entityToResponseDto(getSourceEntity(topicId, source.getId())))
+                .toList();
     }
 
     @Transactional
@@ -151,7 +181,7 @@ public class TopicSourceService {
                 .filePath(objectPath)
                 .summary(null)
                 .metadata(null)
-                .vectorStatus(TopicSourceEntity.VectorStatus.NOT_PROCESSED)
+                .vectorStatus(TopicSourceEntity.VectorStatus.CREATED)
                 .build();
 
         return topicSourceMapper.entityToResponseDto(topicSourceRepository.save(entity));
@@ -160,6 +190,106 @@ public class TopicSourceService {
     private TopicSourceEntity getSourceEntity(UUID topicId, UUID sourceId) {
         return topicSourceRepository.findByTopicIdAndId(topicId, sourceId)
                 .orElseThrow(() -> new AppException(ApiResponseStatus.TOPIC_SOURCE_NOT_EXISTS));
+    }
+
+    private void ingestChatSourceAndWaitUntilReady(
+            UUID topicId,
+            TopicSourceEntity source,
+            UserEntity user,
+            OrganizationEntity organization) {
+        if (source == null
+                || !TopicSourceEntity.SourceType.FILE.equals(source.getSourceType())
+                || source.getFilePath() == null
+                || source.getFilePath().isBlank()) {
+            throw new AppException(ApiResponseStatus.TOPIC_SOURCE_NOT_EXISTS);
+        }
+
+        source.setVectorStatus(TopicSourceEntity.VectorStatus.CREATED);
+        source = topicSourceRepository.save(source);
+
+        MinioService.MinioObjectData objectData = minioService.download(source.getFilePath(), TOPIC_BUCKET);
+        IngestionUploadResponseDto ingestionResponse = ingestionService.uploadChat(
+                objectData.getBytes(),
+                resolveFileName(source),
+                source.getId().toString(),
+                user.getUserName(),
+                organization.getId().toString(),
+                organization.getName(),
+                DataScope.LOCAL,
+                topicId.toString());
+
+        if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
+            source.setVectorStatus(TopicSourceEntity.VectorStatus.FAILED);
+            topicSourceRepository.save(source);
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_NOT_COMPLETED);
+        }
+
+        long deadline = System.currentTimeMillis() + DEFAULT_INGESTION_WAIT_TIMEOUT_MILLIS;
+        while (System.currentTimeMillis() <= deadline) {
+            IngestionStatusResponseDto statusResponse = ingestionService.getJobStatus(ingestionResponse.getJobId());
+            TopicSourceEntity.VectorStatus resolvedStatus = resolveVectorStatus(
+                    statusResponse == null ? null : statusResponse.getStatus(),
+                    source.getVectorStatus());
+
+            if (!resolvedStatus.equals(source.getVectorStatus())) {
+                source.setVectorStatus(resolvedStatus);
+                source = topicSourceRepository.save(source);
+            }
+
+            if (TopicSourceEntity.VectorStatus.COMPLETED.equals(resolvedStatus)) {
+                return;
+            }
+
+            if (TopicSourceEntity.VectorStatus.FAILED.equals(resolvedStatus)) {
+                throw new AppException(ApiResponseStatus.DATA_INGESTION_NOT_COMPLETED);
+            }
+
+            try {
+                Thread.sleep(DEFAULT_INGESTION_POLL_INTERVAL_MILLIS);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new AppException(ApiResponseStatus.DATA_INGESTION_NOT_COMPLETED);
+            }
+        }
+
+        throw new AppException(ApiResponseStatus.DATA_INGESTION_NOT_COMPLETED);
+    }
+
+    private TopicSourceEntity.VectorStatus resolveVectorStatus(
+            String rawStatus,
+            TopicSourceEntity.VectorStatus fallbackStatus) {
+        if (rawStatus == null || rawStatus.trim().isEmpty()) {
+            return fallbackStatus == null ? TopicSourceEntity.VectorStatus.CREATED : fallbackStatus;
+        }
+
+        String normalized = rawStatus.trim().toUpperCase();
+        if ("SUCCESS".equals(normalized)
+                || "DONE".equals(normalized)
+                || "COMPLETED".equals(normalized)) {
+            return TopicSourceEntity.VectorStatus.COMPLETED;
+        }
+
+        if ("ERROR".equals(normalized) || "FAILED".equals(normalized)) {
+            return TopicSourceEntity.VectorStatus.FAILED;
+        }
+
+        if ("EXTRACTING".equals(normalized)) {
+            return TopicSourceEntity.VectorStatus.EXTRACTING;
+        }
+
+        if ("CHUNKING".equals(normalized)) {
+            return TopicSourceEntity.VectorStatus.CHUNKING;
+        }
+
+        if ("EMBEDDING".equals(normalized)) {
+            return TopicSourceEntity.VectorStatus.EMBEDDING;
+        }
+
+        if ("STORING".equals(normalized)) {
+            return TopicSourceEntity.VectorStatus.STORING;
+        }
+
+        return TopicSourceEntity.VectorStatus.CREATED;
     }
 
     private RuntimeException unwrapCompletionException(CompletionException exception) {
