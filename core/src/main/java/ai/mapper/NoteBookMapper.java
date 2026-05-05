@@ -12,6 +12,7 @@ public interface NoteBookMapper extends GeneralMapper{
     @Mapping(target = "audit", ignore = true)
     @Mapping(target = "owner", ignore = true)
     @Mapping(target = "noteBookSources", ignore = true)
+    @Mapping(target = "notebookMessages", ignore = true)
     NoteBookEntity createRequestDtoToEntity(NoteBookCreateRequestDto entity);
 
     @Mapping(target = "createdAt", expression = "java(createdAtFromAudit(entity.getAudit()))")
