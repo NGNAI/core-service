@@ -2,6 +2,7 @@ package ai.service;
 
 import ai.dto.outer.ingestion.response.IngestionDeleteResponseDto;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
+import ai.dto.outer.ingestion.response.IngestionSummaryResponseDto;
 import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
 import ai.enums.ApiResponseStatus;
 import ai.enums.DataScope;
@@ -30,6 +31,7 @@ public class IngestionService {
     private static final String INGESTION_DELETE_FILE_RAG_PATH = "/file_rag";
     private static final String INGESTION_DELETE_FILE_CHAT_PATH = "/file_chat";
     private static final String INGESTION_DELETE_FILE_NOTEBOOK_PATH = "/file_notebook";
+    private static final String INGESTION_SUMMARY_FILE_NOTEBOOK_PATH = "/file_notebook/summary";
 
     RestClient ingestionRestClient;
 
@@ -296,6 +298,11 @@ public class IngestionService {
         }
     }
 
+    /**
+     * Xóa một file chat đã được gửi lên ingestion service bằng fileId. Thông thường sẽ cần gọi phương thức này khi muốn hủy một job đang chờ xử lý hoặc đang xử lý trên ingestion service, hoặc muốn xóa một file đã được xử lý xong trên ingestion service nhưng không muốn giữ lại kết quả vector của file đó nữa
+     * @param fileId
+     * @return
+     */
     public IngestionDeleteResponseDto deleteFileChat(String fileId) {
         try {
             return ingestionRestClient.delete()
@@ -307,6 +314,11 @@ public class IngestionService {
         }
     }
 
+    /**
+     * Xóa một file notebook đã được gửi lên ingestion service bằng fileId. Thông thường sẽ cần gọi phương thức này khi muốn hủy một job đang chờ xử lý hoặc đang xử lý trên ingestion service, hoặc muốn xóa một file đã được xử lý xong trên ingestion service nhưng không muốn giữ lại kết quả vector của file đó nữa
+     * @param fileId
+     * @return
+     */
     public IngestionDeleteResponseDto deleteFileNotebook(String fileId) {
         try {
             return ingestionRestClient.delete()
@@ -314,6 +326,23 @@ public class IngestionService {
                     .retrieve()
                     .body(IngestionDeleteResponseDto.class);
         } catch (RestClientException exception) {
+            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    /**
+     * Lấy thông tin tóm tắt (summary) của một file notebook đã được gửi lên ingestion service bằng fileId. Thông thường sẽ cần gọi phương thức này sau khi đã nhận được jobId từ phương thức uploadNoteBook và poll trạng thái xử lý của job đó bằng phương thức getJobStatus, khi thấy trạng thái xử lý đã hoàn thành thành công (success) thì sẽ gọi phương thức này để lấy thông tin tóm tắt của file notebook đó, thông tin tóm tắt này có thể bao gồm các trường như số lượng chunk đã được chia nhỏ từ file gốc, số lượng vector đã được tạo ra, v.v. Tóm tắt này sẽ giúp người dùng có cái nhìn tổng quan về kết quả xử lý của file notebook trên ingestion service mà không cần phải truy cập trực tiếp vào database vector store để kiểm tra
+     * @param fileId
+     * @return
+     */
+    public IngestionSummaryResponseDto getIngestionSummary(String fileId) {
+        try {
+            return ingestionRestClient.get()
+                    .uri(INGESTION_SUMMARY_FILE_NOTEBOOK_PATH + "/{fileId}", fileId)
+                    .retrieve()
+                    .body(IngestionSummaryResponseDto.class);
+        } catch (RestClientException exception) {
+            exception.printStackTrace();
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
         }
     }

@@ -1,6 +1,7 @@
 package ai.service;
 
 import ai.AppProperties;
+import ai.dto.outer.ingestion.response.IngestionSummaryResponseDto;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
 import ai.dto.own.request.NoteBookSourceAddFilesRequestDto;
@@ -28,12 +29,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -142,14 +147,21 @@ public class NoteBookSourceService {
             throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_ALREADY_EXISTS);
         }
 
+        // Để đảm bảo tính nhất quán và dễ dàng quản lý file, tất cả source dù là file upload hay text input đều sẽ được lưu dưới dạng file trên MinIO. Đối với text input, hệ thống sẽ tạo một file tạm thời chứa nội dung text, sau đó upload file này lên MinIO và lưu đường dẫn file vào database. Cách làm này giúp đồng nhất cách thức lưu trữ và xử lý các source notebook, đồng thời tận dụng được các tính năng của MinIO như quản lý lifecycle, bảo mật truy cập, v.v.
+        String objectPath = uploadTemporaryTextFileAndStore(
+            noteBookId,
+            userId,
+            displayName,
+            textContent);
+
         NoteBookEntity noteBook = noteBookService.getEntityById(noteBookId);
         NoteBookSourceEntity entity = NoteBookSourceEntity.builder()
                 .noteBook(noteBook)
-            .note(null)
+                .note(null)
                 .sourceType(NoteBookSourceEntity.SourceType.TEXT)
                 .displayName(displayName)
                 .rawContent(textContent)
-                .filePath(null)
+                .filePath(objectPath)
                 .summary(null)
                 .metadata(null)
                 .vectorStatus(NoteBookSourceEntity.VectorStatus.CREATED)
@@ -178,7 +190,7 @@ public class NoteBookSourceService {
         return requestDto.getNoteIds().stream()
                 .filter(java.util.Objects::nonNull)
                 .distinct()
-            .map(noteId -> createNoteSource(noteBookId, noteId, userId, orgId))
+                .map(noteId -> createNoteSource(noteBookId, noteId, userId, orgId))
                 .toList();
     }
 
@@ -191,7 +203,7 @@ public class NoteBookSourceService {
      * @return
      */
     @Transactional
-        protected NoteBookSourceResponseDto createNoteSource(UUID noteBookId, UUID noteId, UUID userId, UUID orgId) {
+    protected NoteBookSourceResponseDto createNoteSource(UUID noteBookId, UUID noteId, UUID userId, UUID orgId) {
         noteBookService.validateNoteBookOfUser(noteBookId, userId);
         noteService.validateNoteOfUser(noteId, userId);
 
@@ -208,14 +220,26 @@ public class NoteBookSourceService {
             displayName = "note-source-" + note.getId().toString().substring(0, 8);
         }
 
+        String rawContent = normalizeText(note.getContent());
+        if (rawContent == null) {
+            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_PAYLOAD_REQUIRED);
+        }
+
+        // Tương tự như source từ text input, source từ note cũng sẽ được lưu dưới dạng file trên MinIO để đảm bảo tính nhất quán trong cách thức lưu trữ và xử lý. Hệ thống sẽ tạo một file tạm thời chứa nội dung của note, sau đó upload file này lên MinIO và lưu đường dẫn file vào database. Cách làm này giúp đồng nhất cách thức lưu trữ và xử lý các source notebook, đồng thời tận dụng được các tính năng của MinIO như quản lý lifecycle, bảo mật truy cập, v.v.
+        String objectPath = uploadTemporaryTextFileAndStore(
+                noteBookId,
+                userId,
+                displayName,
+                rawContent);
+
         NoteBookEntity noteBook = noteBookService.getEntityById(noteBookId);
         NoteBookSourceEntity entity = NoteBookSourceEntity.builder()
                 .noteBook(noteBook)
                 .note(note)
                 .sourceType(NoteBookSourceEntity.SourceType.NOTE)
                 .displayName(displayName)
-                .rawContent(note.getContent())
-                .filePath(null)
+                .rawContent(rawContent)
+                .filePath(objectPath)
                 .summary(null)
                 .metadata(null)
                 .vectorStatus(NoteBookSourceEntity.VectorStatus.CREATED)
@@ -356,7 +380,7 @@ public class NoteBookSourceService {
                     userName,
                     unitId,
                     unitName,
-                    DataScope.LOCAL,
+                    DataScope.PERSONAL,
                     source.getNoteBook().getId().toString(),
                     callbackUrl);
 
@@ -470,8 +494,7 @@ public class NoteBookSourceService {
         NoteBookSourceResponseDto deletingData = noteBookSourceMapper.entityToResponseDto(source);
 
         try {
-            if (NoteBookSourceEntity.SourceType.FILE.equals(source.getSourceType())
-                    && source.getFilePath() != null
+            if (source.getFilePath() != null
                     && !source.getFilePath().isBlank()) {
                 minioService.delete(source.getFilePath(), NOTEBOOK_BUCKET);
             }
@@ -503,19 +526,33 @@ public class NoteBookSourceService {
             NoteBookSourceEntity source,
             IngestionStatusResponseDto ingestionStatusResponse,
             boolean emitEvent) {
+        boolean shouldSave = false;
         NoteBookSourceEntity.VectorStatus resolvedStatus = resolveVectorStatus(
                 ingestionStatusResponse == null ? null : ingestionStatusResponse.getStatus(),
                 source.getVectorStatus());
 
         if (source.getVectorStatus() == null || !resolvedStatus.equals(source.getVectorStatus())) {
             source.setVectorStatus(resolvedStatus);
+            shouldSave = true;
 
             if (ingestionStatusResponse != null
                     && ingestionStatusResponse.getMeta() != null
                     && ingestionStatusResponse.getMeta().getUnit_id() != null) {
                 source.setOrganizationId(ingestionStatusResponse.getMeta().getUnit_id());
+                shouldSave = true;
             }
+        }
 
+        if (NoteBookSourceEntity.VectorStatus.COMPLETED.equals(resolvedStatus)
+                && (source.getSummary() == null || source.getSummary().isBlank())) {
+            String summary = fetchNotebookSourceSummary(source.getId());
+            if (summary != null) {
+                source.setSummary(summary);
+                shouldSave = true;
+            }
+        }
+
+        if (shouldSave) {
             source = noteBookSourceRepository.save(source);
         }
 
@@ -542,10 +579,7 @@ public class NoteBookSourceService {
             throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_NOT_EXISTS);
         }
 
-        if (NoteBookSourceEntity.SourceType.FILE.equals(source.getSourceType())) {
-            if (source.getFilePath() == null || source.getFilePath().isBlank()) {
-                throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_NOT_EXISTS);
-            }
+        if (source.getFilePath() != null && !source.getFilePath().isBlank()) {
             MinioService.MinioObjectData objectData = minioService.download(source.getFilePath(), NOTEBOOK_BUCKET);
             return objectData.getBytes();
         }
@@ -857,5 +891,71 @@ public class NoteBookSourceService {
 
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /**
+     * Lấy tóm tắt (summary) của source notebook từ ingestion service sau khi hoàn thành xử lý embedding. Phương thức này sẽ được gọi sau khi nhận được trạng thái COMPLETED từ ingestion service, nhằm mục đích lấy tóm tắt đã được tạo ra trong quá trình xử lý embedding để lưu vào trường summary của NoteBookSourceEntity. Nếu không lấy được tóm tắt hoặc có lỗi xảy ra trong quá trình gọi ingestion service, phương thức sẽ trả về null để đảm bảo hệ thống vẫn hoạt động ổn định mà không bị lỗi do việc không có tóm tắt.
+     * @param sourceId
+     * @return
+     */
+    private String fetchNotebookSourceSummary(UUID sourceId) {
+        try {
+            IngestionSummaryResponseDto summaryResponse = ingestionService.getIngestionSummary(sourceId.toString());
+            return normalizeText(summaryResponse == null ? null : summaryResponse.getSummary());
+        } catch (Exception exception) {
+            System.err.println("Failed to fetch ingestion summary for notebook source ID: " + sourceId);
+            exception.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Xử lý upload một chuỗi văn bản dưới dạng file và tạo source notebook tương ứng. Phương thức này sẽ được gọi khi người dùng muốn thêm một chuỗi văn bản làm nguồn dữ liệu cho notebook. Hệ thống sẽ tạo một file tạm thời chứa nội dung của chuỗi văn bản, sau đó thực hiện upload file này lên MinIO, cuối cùng tạo một bản ghi NoteBookSourceEntity với thông tin liên quan đến file đã upload và gửi source notebook mới tạo lên ingestion service để xử lý embedding. Kết quả trả về là đường dẫn của file đã được upload trên MinIO, sau đó sẽ được lưu vào trường filePath của NoteBookSourceEntity để sử dụng làm payload khi gửi lên ingestion service.
+     * @param noteBookId
+     * @param userId
+     * @param displayName
+     * @param content
+     * @return
+     */
+    private String uploadTemporaryTextFileAndStore(UUID noteBookId, UUID userId, String displayName, String content) {
+        String normalizedContent = normalizeText(content);
+        if (normalizedContent == null) {
+            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_PAYLOAD_REQUIRED);
+        }
+
+        String baseName = normalizeText(displayName);
+        if (baseName == null) {
+            baseName = "unnamed-source";
+        }
+        String fileName = baseName.endsWith(".txt") ? baseName : baseName + ".txt";
+
+        Path tempFilePath = null;
+        try {
+            tempFilePath = Files.createTempFile("notebook-source-", ".txt");
+            Files.writeString(
+                    tempFilePath,
+                    normalizedContent,
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.TRUNCATE_EXISTING);
+
+            byte[] bytes = Files.readAllBytes(tempFilePath);
+            return minioService.upload(
+                    bytes,
+                    fileName,
+                    MediaType.TEXT_PLAIN_VALUE,
+                    userId.toString(),
+                    noteBookId.toString(),
+                    NOTEBOOK_BUCKET);
+        } catch (IOException exception) {
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);
+        } finally {
+            if (tempFilePath != null) {
+                try {
+                    Files.deleteIfExists(tempFilePath);
+                } catch (IOException ignored) {
+                    // Ignore cleanup failure of temp file.
+                }
+            }
+        }
     }
 }

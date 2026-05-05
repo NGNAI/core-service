@@ -66,6 +66,12 @@ public class TopicSourceService {
         return result.stream().map(topicSourceMapper::entityToResponseDto).toList();
     }   
     
+    /**
+     * Hàm uploadSources sẽ thực hiện việc upload một hoặc nhiều file lên Minio và tạo các TopicSourceEntity mới liên kết với Topic tương ứng. Hàm sẽ nhận vào topicId để xác định Topic nào sẽ liên kết với các source mới, và một requestDto chứa mảng các file cần upload. Hàm sẽ kiểm tra tính hợp lệ của các file (không null, không rỗng) và sau đó sử dụng một thread pool để thực hiện upload song song cho từng file, giúp tăng hiệu suất khi có nhiều file cần upload. Mỗi file sau khi được upload thành công sẽ được tạo một TopicSourceEntity mới với sourceType là FILE và lưu vào database, cuối cùng hàm sẽ trả về danh sách các TopicSourceResponseDto tương ứng với các source đã được tạo.
+     * @param topicId
+     * @param requestDto
+     * @return
+     */
     public List<TopicSourceResponseDto> uploadSources(UUID topicId, TopicSourcesAddRequestDto requestDto) {
         UUID userId = JwtUtil.getUserId();
         topicService.validateTopicOfUser(topicId, userId);
@@ -101,6 +107,12 @@ public class TopicSourceService {
         }
     }
 
+    /**
+     * Hàm uploadSourcesAndWaitForVectorReady sẽ thực hiện việc upload một hoặc nhiều source lên Minio và tạo các TopicSourceEntity mới liên kết với Topic tương ứng, sau đó gửi từng source notebook lên ingestion service để xử lý embedding và chờ đợi cho đến khi quá trình xử lý hoàn thành. Hàm sẽ kiểm tra định kỳ trạng thái của job trên ingestion service bằng cách gọi phương thức getJobStatus, và cập nhật vectorStatus của TopicSourceEntity tương ứng trong database dựa trên trạng thái trả về từ ingestion service. Nếu quá trình xử lý hoàn thành thành công, hàm sẽ tiếp tục với source tiếp theo, nếu quá trình xử lý gặp lỗi hoặc không hoàn thành trong khoảng thời gian chờ đợi tối đa, hàm sẽ ném ra AppException với status DATA_INGESTION_NOT_COMPLETED. Cuối cùng, hàm sẽ trả về danh sách các TopicSourceResponseDto đã được cập nhật trạng thái vector sau khi hoàn thành xử lý embedding.
+     * @param topicId
+     * @param requestDto
+     * @return
+     */
     public List<TopicSourceResponseDto> uploadSourcesAndWaitForVectorReady(UUID topicId, TopicSourcesAddRequestDto requestDto) {
         List<TopicSourceResponseDto> uploadedSources = uploadSources(topicId, requestDto);
 
@@ -153,6 +165,13 @@ public class TopicSourceService {
                 .build();
     }
 
+    /**
+     * Hàm uploadSingleFileAndAttach sẽ thực hiện việc upload một file lên Minio và tạo một TopicSourceEntity mới liên kết với Topic tương ứng. Trước khi upload, hàm sẽ kiểm tra xem đã có một source nào với cùng displayName và sourceType là FILE chưa để tránh trùng lặp. Nếu đã tồn tại, sẽ ném ra AppException với status TOPIC_SOURCE_ALREADY_EXISTS. Sau khi upload thành công, hàm sẽ lưu thông tin file vào database và trả về TopicSourceResponseDto tương ứng.
+     * @param topicId
+     * @param file
+     * @param userId
+     * @return
+     */
     private TopicSourceResponseDto uploadSingleFileAndAttach(UUID topicId, MultipartFile file, UUID userId) {
         String originalName = file.getOriginalFilename();
         String displayName = (originalName == null || originalName.isBlank())
@@ -192,6 +211,13 @@ public class TopicSourceService {
                 .orElseThrow(() -> new AppException(ApiResponseStatus.TOPIC_SOURCE_NOT_EXISTS));
     }
 
+    /**
+     * Hàm ingestChatSourceAndWaitUntilReady sẽ thực hiện việc gửi một source notebook lên ingestion service để xử lý embedding và chờ đợi cho đến khi quá trình xử lý hoàn thành. Hàm sẽ kiểm tra định kỳ trạng thái của job trên ingestion service bằng cách gọi phương thức getJobStatus, và cập nhật vectorStatus của TopicSourceEntity tương ứng trong database dựa trên trạng thái trả về từ ingestion service. Nếu quá trình xử lý hoàn thành thành công, hàm sẽ kết thúc và trả về, nếu quá trình xử lý gặp lỗi hoặc không hoàn thành trong khoảng thời gian chờ đợi tối đa, hàm sẽ ném ra AppException với status DATA_INGESTION_NOT_COMPLETED.
+     * @param topicId
+     * @param source
+     * @param user
+     * @param organization
+     */
     private void ingestChatSourceAndWaitUntilReady(
             UUID topicId,
             TopicSourceEntity source,
@@ -215,7 +241,7 @@ public class TopicSourceService {
                 user.getUserName(),
                 organization.getId().toString(),
                 organization.getName(),
-                DataScope.LOCAL,
+                DataScope.PERSONAL,
                 topicId.toString());
 
         if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
@@ -255,6 +281,12 @@ public class TopicSourceService {
         throw new AppException(ApiResponseStatus.DATA_INGESTION_NOT_COMPLETED);
     }
 
+    /**
+     * Hàm resolveVectorStatus sẽ chuyển đổi trạng thái thô (raw status) nhận được từ ingestion service thành một giá trị tương ứng trong enum TopicSourceEntity.VectorStatus để lưu vào database. Hàm sẽ xử lý một số giá trị trạng thái phổ biến như "SUCCESS", "COMPLETED", "ERROR", "FAILED", "EXTRACTING", "CHUNKING", "EMBEDDING", "STORING" và ánh xạ chúng vào các trạng thái tương ứng trong VectorStatus. Nếu raw status không khớp với bất kỳ giá trị nào đã định nghĩa, hàm sẽ trả về CREATED làm trạng thái mặc định. Hàm cũng cho phép truyền vào một fallbackStatus để sử dụng trong trường hợp raw status không hợp lệ hoặc không được cung cấp, nếu fallbackStatus cũng không được cung cấp thì sẽ mặc định là CREATED.
+     * @param rawStatus
+     * @param fallbackStatus
+     * @return
+     */
     private TopicSourceEntity.VectorStatus resolveVectorStatus(
             String rawStatus,
             TopicSourceEntity.VectorStatus fallbackStatus) {
