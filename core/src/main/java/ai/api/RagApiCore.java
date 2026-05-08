@@ -5,13 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.core.ParameterizedTypeReference;
+
 import org.springframework.http.MediaType;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
@@ -32,4 +28,15 @@ public class RagApiCore {
                 .retrieve()
                 .bodyToFlux(String.class);
     }
+
+    public String postForString(String endPoint, Object body) throws JsonProcessingException {
+        return ragWebClient.post()
+                .uri(endPoint)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(objectMapper.writeValueAsString(body))
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+    }
+
 }

@@ -14,7 +14,6 @@ import java.util.UUID;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RagCompletionRequestDto {
-    String model;
     List<Message> messages;
     Metadata metadata;
     boolean stream;
@@ -31,9 +30,12 @@ public class RagCompletionRequestDto {
     @Builder
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Metadata {
+        @JsonProperty("user_id")
         UUID userId;
+        @JsonProperty("organization_id")
         UUID organizationId;
         Set<String> scopes;
+        @JsonProperty("file_ids")
         Set<UUID> fileIds;
     }
 }

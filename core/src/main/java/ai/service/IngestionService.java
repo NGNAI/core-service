@@ -19,6 +19,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
 import java.util.UUID;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -31,7 +32,7 @@ public class IngestionService {
     private static final String INGESTION_DELETE_FILE_RAG_PATH = "/file_rag";
     private static final String INGESTION_DELETE_FILE_CHAT_PATH = "/file_chat";
     private static final String INGESTION_DELETE_FILE_NOTEBOOK_PATH = "/file_notebook";
-    private static final String INGESTION_SUMMARY_FILE_NOTEBOOK_PATH = "/file_notebook/summary";
+    private static final String INGESTION_SUMMARY_FILE_NOTEBOOK_PATH = "/summarize";
 
     RestClient ingestionRestClient;
 
@@ -337,8 +338,13 @@ public class IngestionService {
      */
     public IngestionSummaryResponseDto getIngestionSummary(String fileId) {
         try {
-            return ingestionRestClient.get()
-                    .uri(INGESTION_SUMMARY_FILE_NOTEBOOK_PATH + "/{fileId}", fileId)
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file_id", fileId);
+            body.add("collection_type", "notebook");
+
+            return ingestionRestClient.post()
+                    .uri(INGESTION_SUMMARY_FILE_NOTEBOOK_PATH)
+                    .body(body)
                     .retrieve()
                     .body(IngestionSummaryResponseDto.class);
         } catch (RestClientException exception) {

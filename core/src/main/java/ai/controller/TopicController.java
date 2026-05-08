@@ -38,6 +38,7 @@ import ai.model.CustomPairModel;
 import ai.service.MessageService;
 import ai.service.RagService;
 import ai.service.TopicSourceService;
+import ai.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Hidden;
 import ai.service.TopicService;
 import jakarta.validation.Valid;
@@ -70,10 +71,12 @@ public class TopicController {
 
     @PostMapping()
     ResponseEntity<ApiResponseModel<TopicResponseDto>> create(@Valid @RequestBody TopicCreateRequestDto requestDto){
+        TopicResponseDto created = topicService.create(requestDto);
+        ragService.asyncUpdateTopicTitle(created.getId(), JwtUtil.getOrgId(), JwtUtil.getUserId(), requestDto.getTitle());
         return ResponseEntity.ok(
                 ApiResponseModel.<TopicResponseDto>builder()
                         .message("Create topic successfully")
-                        .data(topicService.create(requestDto))
+                        .data(created)
                         .build()
         );
     }

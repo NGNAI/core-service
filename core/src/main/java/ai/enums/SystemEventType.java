@@ -19,7 +19,8 @@ public enum SystemEventType {
     NOTEBOOK_SOURCE_FAILED("Fired when notebook source embedding fails"),
     NOTEBOOK_SOURCE_DELETE_QUEUED("Fired when notebook source delete is accepted and queued"),
     NOTEBOOK_SOURCE_DELETED("Fired when notebook source is deleted successfully"),
-    NOTEBOOK_SOURCE_DELETE_FAILED("Fired when notebook source delete fails and will be retried by scheduler");
+    NOTEBOOK_SOURCE_DELETE_FAILED("Fired when notebook source delete fails and will be retried by scheduler"),
+    TOPIC_TITLE_UPDATED("Fired when a topic title is updated after AI generation");
 
     private final String description;
 }

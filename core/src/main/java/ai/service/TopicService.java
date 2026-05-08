@@ -4,7 +4,6 @@ import ai.dto.own.request.TopicCreateRequestDto;
 import ai.dto.own.request.TopicRenameTitleRequestDto;
 import ai.dto.own.request.filter.TopicFilterDto;
 import ai.dto.own.response.TopicResponseDto;
-import ai.entity.postgres.MessageEntity;
 import ai.entity.postgres.TopicEntity;
 import ai.enums.ApiResponseStatus;
 import ai.exeption.AppException;
@@ -75,5 +74,12 @@ public class TopicService {
     public void delete(UUID id){
         validateTopicOfUser(id,JwtUtil.getUserId());
         topicRepository.deleteById(id);
+    }
+
+    public void updateTitleInternal(UUID topicId, String title) {
+        topicRepository.findById(topicId).ifPresent(entity -> {
+            entity.setTitle(title);
+            topicRepository.save(entity);
+        });
     }
 }

@@ -16,6 +16,8 @@ import java.util.UUID;
 @Repository
 public interface NoteBookSourceRepository extends JpaRepository<NoteBookSourceEntity, UUID> {
 
+    List<NoteBookSourceEntity> findByNoteBookId(UUID noteBookId);
+
     Page<NoteBookSourceEntity> findByNoteBookId(UUID noteBookId, Pageable pageable);
 
     boolean existsByNoteBookIdAndDisplayNameAndSourceType(UUID noteBookId, String displayName, NoteBookSourceEntity.SourceType sourceType);

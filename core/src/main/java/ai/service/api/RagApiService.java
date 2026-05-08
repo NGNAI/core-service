@@ -3,6 +3,8 @@ package ai.service.api;
 import ai.api.RagApiCore;
 import ai.dto.outer.rag.request.RagCompletionRequestDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -14,8 +16,45 @@ import reactor.core.publisher.Flux;
 @Service
 public class RagApiService {
     RagApiCore apiCore;
+    ObjectMapper objectMapper;
 
-    public Flux<String> completions(RagCompletionRequestDto requestDto) throws JsonProcessingException {
-        return apiCore.post("/v1/chat/completions", requestDto);
+    public Flux<String> topicChat(RagCompletionRequestDto requestDto) throws JsonProcessingException {
+        return apiCore.post("/rag/v1/chat/completions", requestDto);
+    }
+
+    public Flux<String> noteBookChat(RagCompletionRequestDto requestDto) throws JsonProcessingException {
+        return apiCore.post("/notebook/v1/chat/completions", requestDto);
+    }
+
+    public String general(RagCompletionRequestDto requestDto) throws JsonProcessingException {
+        String response = apiCore.postForString("/rag/v1/chat/completions_simple", requestDto);
+
+        if (response == null || response.isBlank()) {
+            return null;
+        }
+
+        JsonNode root = objectMapper.readTree(response);
+        JsonNode contentNode = root.path("choices").path(0).path("message").path("content");
+
+        if (contentNode.isTextual()) {
+            return contentNode.asText();
+        }
+
+        if (contentNode.isArray()) {
+            StringBuilder content = new StringBuilder();
+            for (JsonNode part : contentNode) {
+                if (part.isTextual()) {
+                    content.append(part.asText());
+                } else if (part.isObject()) {
+                    JsonNode textPart = part.path("text");
+                    if (textPart.isTextual()) {
+                        content.append(textPart.asText());
+                    }
+                }
+            }
+            return content.length() > 0 ? content.toString() : null;
+        }
+
+        return null;
     }
 }
