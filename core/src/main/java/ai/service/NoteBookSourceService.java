@@ -79,6 +79,12 @@ public class NoteBookSourceService {
                 result.getContent().stream().map(noteBookSourceMapper::entityToResponseDto).toList());
     }
 
+    public List<NoteBookSourceResponseDto> getAllSources(UUID noteBookId) {
+        noteBookService.validateNoteBookOfUser(noteBookId, JwtUtil.getUserId());
+        List<NoteBookSourceEntity> result = noteBookSourceRepository.findByNoteBookId(noteBookId);
+        return result.stream().map(noteBookSourceMapper::entityToResponseDto).toList();
+    }
+    
     /**
      * Thêm source cho notebook từ file upload. Mỗi file sẽ được tạo thành một source riêng biệt. Trường hợp request có nhiều file, hệ thống sẽ xử lý song song để tối ưu thời gian ingestion. Kết quả trả về là list source đã được tạo tương ứng với các file đã upload.
      * @param noteBookId
