@@ -47,7 +47,9 @@ public class SecurityConfig {
                         oauth2.jwt(jwt ->
                                 jwt.decoder(customJWTDecoder)
                                         .jwtAuthenticationConverter(jwtAuthenticationConverter())
-                        ).authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+                        )
+                                .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+                                .accessDeniedHandler(new JwtAccessDeniedHandler())
                 )
                 .addFilterAfter(new TokenTypeFilter(TokenType.TEMP), BearerTokenAuthenticationFilter.class)
                 .cors(cors -> {})
@@ -68,7 +70,9 @@ public class SecurityConfig {
                         oauth2.jwt(jwt ->
                                 jwt.decoder(customJWTDecoder)
                                         .jwtAuthenticationConverter(jwtAuthenticationConverter())
-                        ).authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+                        )
+                                .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+                                .accessDeniedHandler(new JwtAccessDeniedHandler())
                 )
                 .addFilterBefore(new DataIngestionApiKeyFilter(appProperties), BearerTokenAuthenticationFilter.class)
                 .addFilterBefore(new AttachmentApiKeyFilter(appProperties), BearerTokenAuthenticationFilter.class)
