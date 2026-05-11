@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
@@ -31,8 +32,10 @@ public class CustomJwtDecoder implements JwtDecoder {
     public Jwt decode(String token) throws JwtException {
         boolean isValid = authService.introspect(IntrospectRequestDto.builder().token(token).build()).isValid();
 
-        if(!isValid)
-            throw new JwtException("Token invalid");
+        if(!isValid) {
+            System.out.println("############################ Token invalid: " + token);
+            throw new BadJwtException("Token invalid");
+        }
 
         if(Objects.isNull(nimbusJwtDecoder)){
             SecretKeySpec secretKeySpec = new SecretKeySpec(appProperties.getJwt().getSecretKey().getBytes(), "HS512");

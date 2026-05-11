@@ -59,6 +59,7 @@ rag:
 
 ingestion:
   url: "http://192.168.30.73:8000"
+  read-timeout-ms: 180000
 
 minio:
   endpoint: "http://192.168.30.71:9000"

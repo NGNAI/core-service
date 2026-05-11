@@ -338,12 +338,14 @@ public class IngestionService {
      */
     public IngestionSummaryResponseDto getIngestionSummary(String fileId) {
         try {
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("file_id", fileId);
-            body.add("collection_type", "notebook");
+            Map<String, Object> body = Map.of(
+                "file_id", fileId,
+                "collection_type", "notebook"
+            );
 
             return ingestionRestClient.post()
                     .uri(INGESTION_SUMMARY_FILE_NOTEBOOK_PATH)
+                    .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
                     .body(IngestionSummaryResponseDto.class);

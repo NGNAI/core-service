@@ -46,6 +46,7 @@ public class AppProperties {
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Ingestion {
         String url;
+        Long readTimeoutMs;
     }
 
     @Data
