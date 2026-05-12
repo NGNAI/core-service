@@ -52,22 +52,25 @@ public class RagService {
     ObjectMapper objectMapper;
 
     /**
-     * Chat with topic, if topicId is null, create new topic and chat, else chat with exist topic
+     * Chat with topic, if topicId is null, create new topic and chat, else chat
+     * with exist topic
+     * 
      * @param topicId
      * @param requestDto
      * @return
      * @throws JsonProcessingException
      */
-    public Flux<String> chatTopic(UUID topicId, TopicCreateConversationRequestDto requestDto) throws JsonProcessingException {
+    public Flux<String> chatTopic(UUID topicId, TopicCreateConversationRequestDto requestDto)
+            throws JsonProcessingException {
         UUID capturedUserId = JwtUtil.getUserId();
         UUID capturedOrgId = JwtUtil.getOrgId();
 
-        //If topic not exists, create new topic
+        // If topic not exists, create new topic
         boolean isNewTopic = topicId == null;
-        if(isNewTopic)
+        if (isNewTopic)
             topicId = topicService.create(TopicCreateRequestDto.builder()
-                            .title(requestDto.getMessage())
-                            .type(TopicType.PRIVATE.getValue())
+                    .title(requestDto.getMessage())
+                    .type(TopicType.PRIVATE.getValue())
                     .build()).getId();
         else
             topicService.validateTopicOfUser(topicId, capturedUserId);
@@ -82,17 +85,19 @@ public class RagService {
         topicService.validateTopicId(finalTopicId);
 
         MessageFilterDto messageFilterDto = new MessageFilterDto();
-        messageFilterDto.setTypes(Arrays.asList(MessageType.USER.getValue(),MessageType.ASSISTANT.getValue()));
+        messageFilterDto.setTypes(Arrays.asList(MessageType.USER.getValue(), MessageType.ASSISTANT.getValue()));
         messageFilterDto.setPageNumber(0);
         messageFilterDto.setPageSize(10);
         messageFilterDto.setSortBy("createdAt");
         messageFilterDto.setSortDir("desc");
 
-        //Query history
-        List<RagCompletionRequestDto.Message> historyConversations = messageService.getAll(finalTopicId,MessageParentType.TOPIC,messageFilterDto).getSecond()
+        // Query history
+        List<RagCompletionRequestDto.Message> historyConversations = messageService
+                .getAll(finalTopicId, MessageParentType.TOPIC, messageFilterDto).getSecond()
                 .stream().map(messageResponseDto -> RagCompletionRequestDto.Message.builder()
                         .role(messageResponseDto.getType())
-                        .content(messageResponseDto.getContent()).build()).collect(Collectors.toList());
+                        .content(messageResponseDto.getContent()).build())
+                .collect(Collectors.toList());
 
         Collections.reverse(historyConversations);
 
@@ -101,25 +106,23 @@ public class RagService {
                 .content(requestDto.getMessage())
                 .build());
 
-        //Insert user question
+        // Insert user question
         messageService.create(
                 finalTopicId,
                 MessageParentType.TOPIC,
                 MessageCreateRequestDto.builder()
                         .content(requestDto.getMessage())
                         .type(MessageType.USER.getValue())
-                        .build()
-        );
+                        .build());
 
-        //Insert assistant question
+        // Insert assistant question
         MessageResponseDto assistantMessage = messageService.create(
                 finalTopicId,
                 MessageParentType.TOPIC,
                 MessageCreateRequestDto.builder()
                         .content("Answering.....")
                         .type(MessageType.ASSISTANT.getValue())
-                        .build()
-        );
+                        .build());
 
         // Get attachments of topic - Khoa xử lý tiếp nha
         List<TopicSourceResponseDto> attachments = topicSourceService.getAllSources(finalTopicId);
@@ -141,13 +144,13 @@ public class RagService {
         System.out.println(new ObjectMapper().writeValueAsString(ragCompletionRequestDto));
 
         return ragApiService.topicChat(ragCompletionRequestDto)
-                .startWith(String.format("{\"messageId\": \"%s\"}",assistantMessage.getId()))
-                .startWith(String.format("{\"topicId\": \"%s\"}",topicId))
+                .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
+                .startWith(String.format("{\"topicId\": \"%s\"}", topicId))
                 .doOnNext(raw -> {
                     try {
-                        if(!raw.trim().equals("[DONE]")) {
+                        if (!raw.trim().equals("[DONE]")) {
                             JsonNode node = objectMapper.readTree(raw);
-                            
+
                             if (node.has("token")) {
                                 fullAnswer.append(node.get("token").asText());
                             }
@@ -159,26 +162,29 @@ public class RagService {
                         log.error("Fail to parse stream token", e);
                     }
                 })
-                .doOnComplete(()->{
+                .doOnComplete(() -> {
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
-                                    .content(fullAnswer.toString())
-                                    .source(source.toString())
+                            .content(fullAnswer.toString())
+                            .source(source.toString())
                             .build());
                 });
     }
 
     /**
-     * Chat with noteBook, if noteBookId is null, create new noteBook and chat, else chat with exist noteBook
+     * Chat with noteBook, if noteBookId is null, create new noteBook and chat, else
+     * chat with exist noteBook
+     * 
      * @param noteBookId
      * @param requestDto
      * @return
      * @throws JsonProcessingException
      */
-    public Flux<String> chatNoteBook(UUID noteBookId, NoteBookCreateConversationRequestDto requestDto) throws JsonProcessingException {
-        //If noteBook not exists, create new noteBook
-        if(noteBookId == null)
+    public Flux<String> chatNoteBook(UUID noteBookId, NoteBookCreateConversationRequestDto requestDto)
+            throws JsonProcessingException {
+        // If noteBook not exists, create new noteBook
+        if (noteBookId == null)
             noteBookId = noteBookService.create(NoteBookCreateRequestDto.builder()
-                            .title(requestDto.getMessage())
+                    .title(requestDto.getMessage())
                     .build()).getId();
         else
             noteBookService.validateNoteBookOfUser(noteBookId, JwtUtil.getUserId());
@@ -188,17 +194,19 @@ public class RagService {
         noteBookService.validateNoteBookId(finalNoteBookId);
 
         MessageFilterDto messageFilterDto = new MessageFilterDto();
-        messageFilterDto.setTypes(Arrays.asList(MessageType.USER.getValue(),MessageType.ASSISTANT.getValue()));
+        messageFilterDto.setTypes(Arrays.asList(MessageType.USER.getValue(), MessageType.ASSISTANT.getValue()));
         messageFilterDto.setPageNumber(0);
         messageFilterDto.setPageSize(10);
         messageFilterDto.setSortBy("createdAt");
         messageFilterDto.setSortDir("desc");
 
-        //Query history
-        List<RagCompletionRequestDto.Message> historyConversations = messageService.getAll(finalNoteBookId,MessageParentType.NOTEBOOK,messageFilterDto).getSecond()
+        // Query history
+        List<RagCompletionRequestDto.Message> historyConversations = messageService
+                .getAll(finalNoteBookId, MessageParentType.NOTEBOOK, messageFilterDto).getSecond()
                 .stream().map(messageResponseDto -> RagCompletionRequestDto.Message.builder()
                         .role(messageResponseDto.getType())
-                        .content(messageResponseDto.getContent()).build()).collect(Collectors.toList());
+                        .content(messageResponseDto.getContent()).build())
+                .collect(Collectors.toList());
 
         Collections.reverse(historyConversations);
 
@@ -207,33 +215,31 @@ public class RagService {
                 .content(requestDto.getMessage())
                 .build());
 
-        //Insert user question
+        // Insert user question
         messageService.create(
                 finalNoteBookId,
                 MessageParentType.NOTEBOOK,
                 MessageCreateRequestDto.builder()
                         .content(requestDto.getMessage())
                         .type(MessageType.USER.getValue())
-                        .build()
-        );
+                        .build());
 
-        //Insert assistant question
+        // Insert assistant question
         MessageResponseDto assistantMessage = messageService.create(
                 finalNoteBookId,
                 MessageParentType.NOTEBOOK,
                 MessageCreateRequestDto.builder()
                         .content("Answering.....")
                         .type(MessageType.ASSISTANT.getValue())
-                        .build()
-        );
+                        .build());
 
         RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
                 .messages(historyConversations)
                 .metadata(RagCompletionRequestDto.Metadata.builder()
                         .userId(JwtUtil.getUserId())
                         .organizationId(JwtUtil.getOrgId())
-                        .scopes(requestDto.getScopes())
-                        .fileIds(requestDto.getFileIds().stream().map(UUID::fromString).collect(Collectors.toSet()))
+                        .fileIds(requestDto.getSourceIds().stream().map(UUID::fromString)
+                                .collect(Collectors.toSet()))
                         .build())
                 .stream(true)
                 .build();
@@ -244,13 +250,13 @@ public class RagService {
         System.out.println(new ObjectMapper().writeValueAsString(ragCompletionRequestDto));
 
         return ragApiService.noteBookChat(ragCompletionRequestDto)
-                .startWith(String.format("{\"messageId\": \"%s\"}",assistantMessage.getId()))
-                .startWith(String.format("{\"noteBookId\": \"%s\"}",noteBookId))
+                .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
+                .startWith(String.format("{\"noteBookId\": \"%s\"}", noteBookId))
                 .doOnNext(raw -> {
                     try {
-                        if(!raw.trim().equals("[DONE]")) {
+                        if (!raw.trim().equals("[DONE]")) {
                             JsonNode node = objectMapper.readTree(raw);
-                            
+
                             if (node.has("token")) {
                                 fullAnswer.append(node.get("token").asText());
                             }
@@ -262,17 +268,19 @@ public class RagService {
                         log.error("Fail to parse stream token", e);
                     }
                 })
-                .doOnComplete(()->{
+                .doOnComplete(() -> {
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
-                                    .content(fullAnswer.toString())
-                                    .source(source.toString())
+                            .content(fullAnswer.toString())
+                            .source(source.toString())
                             .build());
                 });
     }
 
     /**
-     * Async: generate a better title for a newly created topic via AI, update DB, and notify FE via SSE.
-     * Must capture orgId and userId before spawning the thread (JWT context is thread-local).
+     * Async: generate a better title for a newly created topic via AI, update DB,
+     * and notify FE via SSE.
+     * Must capture orgId and userId before spawning the thread (JWT context is
+     * thread-local).
      */
     public void asyncUpdateTopicTitle(UUID topicId, UUID orgId, UUID userId, String input) {
         CompletableFuture.runAsync(() -> {
@@ -284,8 +292,7 @@ public class RagService {
                         userId,
                         SystemEventType.TOPIC_TITLE_UPDATED,
                         SystemEventSource.TOPIC,
-                        Map.of("topicId", topicId.toString(), "title", betterTitle)
-                );
+                        Map.of("topicId", topicId.toString(), "title", betterTitle));
             } catch (Exception e) {
                 log.error("Failed to generate AI title for topic {}", topicId, e);
             }
@@ -294,28 +301,29 @@ public class RagService {
 
     /**
      * Generate title for topic based on user's input
+     * 
      * @param input
      * @return
      * @throws JsonProcessingException
      */
     public String generalTitleOfTopic(String input) throws JsonProcessingException {
         String prompt = "Act as a professional content editor. Your task is to generate a concise and descriptive title for a chat conversation based on the user's initial input provided below. "
-            + "The title should accurately reflect the main topic or theme of the conversation while adhering to the following constraints:"
-            + "### Constraints:"
-            + "- Language: The title MUST be in the same language as the user's input."
-            + "- Length: Maximum 6-10 words."
-            + "- Format: Return ONLY the raw title text. Do not include quotes, punctuation at the end, or prefixes like \"Title:\"."
-            + "- Tone: Professional and neutral."
-            + "### User Input: " + input + ""
-            + "### Generated Title: ";
+                + "The title should accurately reflect the main topic or theme of the conversation while adhering to the following constraints:"
+                + "### Constraints:"
+                + "- Language: The title MUST be in the same language as the user's input."
+                + "- Length: Maximum 6-10 words."
+                + "- Format: Return ONLY the raw title text. Do not include quotes, punctuation at the end, or prefixes like \"Title:\"."
+                + "- Tone: Professional and neutral."
+                + "### User Input: " + input + ""
+                + "### Generated Title: ";
 
-            RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
-                    .messages(List.of(RagCompletionRequestDto.Message.builder()
-                            .role(MessageType.USER.getValue())
-                            .content(prompt)
-                            .build()))
-                    .stream(false)
-                    .build();
+        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
+                .messages(List.of(RagCompletionRequestDto.Message.builder()
+                        .role(MessageType.USER.getValue())
+                        .content(prompt)
+                        .build()))
+                .stream(false)
+                .build();
 
         return ragApiService.general(ragCompletionRequestDto);
     }
