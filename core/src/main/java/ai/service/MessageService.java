@@ -8,10 +8,7 @@ import ai.enums.MessageParentType;
 import ai.interfaces.MessageRelationEntity;
 import ai.repository.NotebookMessagesRepository;
 import ai.repository.TopicMessagesRepository;
-import jakarta.persistence.criteria.Fetch;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -53,12 +50,23 @@ public class MessageService {
             case TOPIC -> {
                 topicService.validateTopicOfUser(parentId, JwtUtil.getUserId());
                 Specification<TopicMessageEntity> spec = (root, query, criteriaBuilder) -> {
-                    Fetch<TopicMessageEntity, MessageEntity> messageFetch = root.fetch("message", JoinType.INNER);
-                    Join<TopicMessageEntity, MessageEntity> messageJoin = (Join<TopicMessageEntity, MessageEntity>) messageFetch;
+                    boolean isCountQuery = query.getResultType() == Long.class || query.getResultType() == long.class;
 
-                    Predicate messageSearch = filterDto.createSpec(messageJoin, criteriaBuilder);
-                    Predicate orgIdSearch = criteriaBuilder.equal(root.get("topic").get("id"), parentId);
-                    return criteriaBuilder.and(messageSearch, orgIdSearch);
+                    // Sử dụng interface From làm gốc để có thể tạo Predicate từ cả Join và Fetch
+                    From<TopicMessageEntity, MessageEntity> messageNode;
+
+                    if (isCountQuery) {
+                        messageNode = root.join("message", JoinType.INNER);
+                    } else {
+                        // Cú pháp ép kiểu 2 lần để tránh lỗi "Inconvertible types"
+                        messageNode = (Join<TopicMessageEntity, MessageEntity>) (Object) root.fetch("message", JoinType.INNER);
+                    }
+
+                    // Bây giờ messageNode đã là kiểu From, hoàn toàn hợp lệ để truyền vào createSpec
+                    Predicate messageSearch = filterDto.createSpec((Join<TopicMessageEntity, MessageEntity>) messageNode, criteriaBuilder);
+                    Predicate topicIdSearch = criteriaBuilder.equal(root.get("topic").get("id"), parentId);
+
+                    return criteriaBuilder.and(messageSearch, topicIdSearch);
                 };
                 filterDto.setSortPrefix("message");
                 page = topicMessagesRepository.findAll(spec,filterDto.createPageable());
