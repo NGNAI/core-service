@@ -12,5 +12,6 @@ public interface NoteMapper extends GeneralMapper {
     @Mapping(target = "updatedAt", expression = "java(updatedAtFromAudit(entity.getAudit()))")
     @Mapping(target = "updatedBy", expression = "java(updatedByFromAudit(entity.getAudit()))")
     @Mapping(source = "owner.id", target = "ownerId")
+    @Mapping(source = "organization.id", target = "orgId")
     NoteResponseDto entityToResponseDto(NoteEntity entity);
 }

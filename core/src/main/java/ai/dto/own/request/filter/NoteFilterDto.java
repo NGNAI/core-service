@@ -4,6 +4,7 @@ import ai.annotation.EnumValue;
 import ai.constant.InputValidateKey;
 import ai.entity.postgres.NoteEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.NoteSourceBy;
 import ai.enums.NoteSourceType;
 import ai.exeption.AppException;
 import ai.util.StringUtil;
@@ -33,9 +34,13 @@ public class NoteFilterDto extends PageableFilterDto {
     @Schema(description = "Search by note title/content")
     String keyword;
 
-    @Schema(description = "Filter by note source type", exampleClasses = NoteSourceType.class)
+    @Schema(description = "Filter by note source type (TOPIC, NOTEBOOK)", exampleClasses = NoteSourceType.class)
     @EnumValue(enumClass = NoteSourceType.class, message = InputValidateKey.NOTE_SOURCE_TYPE_INVALID)
     String sourceType;
+
+    @Schema(description = "Filter by note source by (HUMAN, AGENT)", exampleClasses = NoteSourceBy.class)
+    @EnumValue(enumClass = NoteSourceBy.class, message = InputValidateKey.NOTE_SOURCE_BY_INVALID)
+    String sourceBy;
 
     @Schema(description = "Filter by topic id")
     UUID topicId;
@@ -68,6 +73,10 @@ public class NoteFilterDto extends PageableFilterDto {
                 predicates.add(criteriaBuilder.equal(root.get("sourceType"), NoteSourceType.valueOf(sourceType)));
             }
 
+            if (sourceBy != null && !sourceBy.isBlank()) {
+                predicates.add(criteriaBuilder.equal(root.get("sourceBy"), NoteSourceBy.valueOf(sourceBy)));
+            }
+            
             if (topicId != null) {
                 predicates.add(criteriaBuilder.equal(root.get("topicId"), topicId));
             }

@@ -1,5 +1,12 @@
 package ai.service;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+
 import ai.dto.own.request.TopicCreateRequestDto;
 import ai.dto.own.request.TopicRenameTitleRequestDto;
 import ai.dto.own.request.filter.TopicFilterDto;
@@ -11,14 +18,10 @@ import ai.mapper.TopicMapper;
 import ai.model.CustomPairModel;
 import ai.repository.TopicRepository;
 import ai.util.JwtUtil;
+import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.data.domain.Page;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-
-import java.util.*;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -26,6 +29,7 @@ import java.util.*;
 public class TopicService {
     TopicRepository topicRepository;
     UserService userService;
+    OrganizationService organizationService;
 
     TopicMapper topicMapper;
 
@@ -45,8 +49,16 @@ public class TopicService {
 
     public CustomPairModel<Long,List<TopicResponseDto>> getAll(TopicFilterDto filterDto){
         UUID userId = JwtUtil.getUserId();
+        UUID organizationId = JwtUtil.getOrgId();
+
         userService.validateUserId(userId);
-        Specification<TopicEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("owner").get("id"), userId));
+        organizationService.validateOrgId(organizationId);
+
+        Specification<TopicEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> {
+            Predicate orgIdPredicate = criteriaBuilder.equal(root.get("organization").get("id"), organizationId);
+            Predicate ownerPredicate = criteriaBuilder.equal(root.get("owner").get("id"), userId);
+            return criteriaBuilder.and(orgIdPredicate, ownerPredicate);
+        });
 
         Page<TopicEntity> page = topicRepository.findAll(
                 spec,
@@ -59,6 +71,7 @@ public class TopicService {
     public TopicResponseDto create(TopicCreateRequestDto createRequestDto){
         TopicEntity newEntity = topicMapper.createRequestDtoToEntity(createRequestDto);
         newEntity.setOwner(userService.getEntityById(JwtUtil.getUserId()));
+        newEntity.setOrganization(organizationService.getEntityById(JwtUtil.getOrgId()));
 
         return topicMapper.entityToResponseDto(topicRepository.save(newEntity));
     }

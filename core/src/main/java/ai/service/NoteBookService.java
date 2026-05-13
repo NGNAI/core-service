@@ -1,5 +1,12 @@
 package ai.service;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+
 import ai.dto.own.request.NoteBookCreateRequestDto;
 import ai.dto.own.request.NoteBookRenameTitleRequestDto;
 import ai.dto.own.request.NoteBookUpdateInstructionRequestDto;
@@ -13,15 +20,10 @@ import ai.mapper.NoteBookMapper;
 import ai.model.CustomPairModel;
 import ai.repository.NoteBookRepository;
 import ai.util.JwtUtil;
+import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.data.domain.Page;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -29,7 +31,7 @@ import java.util.UUID;
 public class NoteBookService {
     NoteBookRepository noteBookRepository;
     UserService userService;
-
+    OrganizationService organizationService;
     NoteBookMapper noteBookMapper;
 
     public void validateNoteBookOfUser(UUID NoteBookId, UUID userId){
@@ -48,8 +50,16 @@ public class NoteBookService {
 
     public CustomPairModel<Long,List<NoteBookResponseDto>> getAll(NoteBookFilterDto filterDto){
         UUID userId = JwtUtil.getUserId();
+        UUID organizationId = JwtUtil.getOrgId();
+
         userService.validateUserId(userId);
-        Specification<NoteBookEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("owner").get("id"), userId));
+        organizationService.validateOrgId(organizationId);
+
+        Specification<NoteBookEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> {
+            Predicate orgIdPredicate = criteriaBuilder.equal(root.get("organization").get("id"), organizationId);
+            Predicate ownerPredicate = criteriaBuilder.equal(root.get("owner").get("id"), userId);
+            return criteriaBuilder.and(orgIdPredicate, ownerPredicate);
+        });
 
         Page<NoteBookEntity> page = noteBookRepository.findAll(
                 spec,
@@ -62,6 +72,7 @@ public class NoteBookService {
     public NoteBookResponseDto create(NoteBookCreateRequestDto createRequestDto){
         NoteBookEntity newEntity = noteBookMapper.createRequestDtoToEntity(createRequestDto);
         newEntity.setOwner(userService.getEntityById(JwtUtil.getUserId()));
+        newEntity.setOrganization(organizationService.getEntityById(JwtUtil.getOrgId()));
 
         return noteBookMapper.entityToResponseDto(noteBookRepository.save(newEntity));
     }

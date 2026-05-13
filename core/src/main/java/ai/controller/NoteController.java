@@ -1,9 +1,27 @@
 package ai.controller;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import ai.dto.own.request.NoteCreateByNoteBookRequestDto;
+import ai.dto.own.request.NoteCreateByTopicRequestDto;
 import ai.dto.own.request.NoteCreateRequestDto;
 import ai.dto.own.request.NoteUpdateRequestDto;
 import ai.dto.own.request.filter.NoteFilterDto;
 import ai.dto.own.response.NoteResponseDto;
+import ai.enums.NoteSourceBy;
 import ai.enums.NoteSourceType;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
@@ -14,12 +32,6 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
 
 @Tag(name = "Note", description = "Note management APIs for topic and notebook sources")
 @RequiredArgsConstructor
@@ -30,12 +42,22 @@ public class NoteController {
     NoteService noteService;
 
     @Operation(summary = "Get note source types", description = "Lấy danh sách source type khả dụng của note")
-    @GetMapping("/source")
-    ResponseEntity<ApiResponseModel<List<NoteSourceType>>> source() {
+    @GetMapping("/source-types")
+    ResponseEntity<ApiResponseModel<List<NoteSourceType>>> sourceTypes() {
         return ResponseEntity.ok(
                 ApiResponseModel.<List<NoteSourceType>>builder()
                         .message("Get note source types successfully")
                         .data(Arrays.asList(NoteSourceType.values()))
+                        .build());
+    }
+
+    @Operation(summary = "Get note source by", description = "Lấy danh sách source by khả dụng của note")
+    @GetMapping("/source-by")
+    ResponseEntity<ApiResponseModel<List<NoteSourceBy>>> sourceBy() {
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<NoteSourceBy>>builder()
+                        .message("Get note source by successfully")
+                        .data(Arrays.asList(NoteSourceBy.values()))
                         .build());
     }
 
@@ -51,9 +73,29 @@ public class NoteController {
                         .build());
     }
 
-        @Operation(summary = "Create note", description = "Tạo ghi chú mới cho một chat topic hoặc notebook cụ thể")
+        @Operation(summary = "Create note", description = "Tạo ghi chú mới")
     @PostMapping
     ResponseEntity<ApiResponseModel<NoteResponseDto>> create(@Valid @RequestBody NoteCreateRequestDto requestDto) {
+        return ResponseEntity.ok(
+                ApiResponseModel.<NoteResponseDto>builder()
+                        .message("Create note successfully")
+                        .data(noteService.create(requestDto))
+                        .build());
+    }
+
+    @Operation(summary = "Create note by topic", description = "Tạo ghi chú mới liên kết với topic")
+    @PostMapping("/by-topic")
+    ResponseEntity<ApiResponseModel<NoteResponseDto>> createByTopic(@Valid @RequestBody NoteCreateByTopicRequestDto requestDto) {
+        return ResponseEntity.ok(
+                ApiResponseModel.<NoteResponseDto>builder()
+                        .message("Create note successfully")
+                        .data(noteService.create(requestDto))
+                        .build());
+    }
+
+    @Operation(summary = "Create note by notebook", description = "Tạo ghi chú mới liên kết với notebook")
+    @PostMapping("/by-notebook")
+    ResponseEntity<ApiResponseModel<NoteResponseDto>> createByNoteBook(@Valid @RequestBody NoteCreateByNoteBookRequestDto requestDto) {
         return ResponseEntity.ok(
                 ApiResponseModel.<NoteResponseDto>builder()
                         .message("Create note successfully")
