@@ -155,8 +155,10 @@ public enum ApiResponseStatus {
     NOTE_NOTEBOOK_ID_REQUIRED(1117, "Notebook id is required for NOTEBOOK note source", HttpStatus.BAD_REQUEST),
     NOTE_SORT_BY_INVALID(1118, "Note sort field is invalid", HttpStatus.BAD_REQUEST),
     NOTE_SORT_DIR_INVALID(1119, "Note sort direction is invalid", HttpStatus.BAD_REQUEST),
+    NOTE_SOURCE_BY_INVALID(1124, "Invalid note source by", HttpStatus.BAD_REQUEST),
 
     UNEXPECTED(9999, "An unexpected error occurred!",HttpStatus.INTERNAL_SERVER_ERROR);
+    
 
     int code;
     String message;

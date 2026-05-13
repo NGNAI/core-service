@@ -1,5 +1,6 @@
 package ai.dto.own.response;
 
+import ai.enums.NoteSourceBy;
 import ai.enums.NoteSourceType;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -16,7 +17,9 @@ public class NoteResponseDto extends AuditResponseDto {
     String title;
     String content;
     NoteSourceType sourceType;
+    NoteSourceBy sourceBy;
     UUID topicId;
     UUID noteBookId;
     UUID ownerId;
+    UUID orgId;
 }

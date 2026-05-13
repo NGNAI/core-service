@@ -1,27 +1,32 @@
 package ai.service;
 
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+
+import ai.dto.own.request.NoteCreateByNoteBookRequestDto;
+import ai.dto.own.request.NoteCreateByTopicRequestDto;
 import ai.dto.own.request.NoteCreateRequestDto;
 import ai.dto.own.request.NoteUpdateRequestDto;
 import ai.dto.own.request.filter.NoteFilterDto;
 import ai.dto.own.response.NoteResponseDto;
 import ai.entity.postgres.NoteEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.NoteSourceBy;
 import ai.enums.NoteSourceType;
 import ai.exeption.AppException;
 import ai.mapper.NoteMapper;
 import ai.model.CustomPairModel;
 import ai.repository.NoteRepository;
 import ai.util.JwtUtil;
+import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.data.domain.Page;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -30,6 +35,7 @@ public class NoteService {
     NoteRepository noteRepository;
     NoteMapper noteMapper;
     UserService userService;
+    OrganizationService organizationService;
     TopicService topicService;
     NoteBookService noteBookService;
 
@@ -45,10 +51,13 @@ public class NoteService {
 
     public CustomPairModel<Long, List<NoteResponseDto>> getAll(NoteFilterDto filterDto) {
         UUID userId = JwtUtil.getUserId();
-        userService.validateUserId(userId);
+        UUID organizationId = JwtUtil.getOrgId();
 
-        Specification<NoteEntity> spec = filterDto.createSpec().and(
-                (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("owner").get("id"), userId));
+        Specification<NoteEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> {
+            Predicate orgIdPredicate = criteriaBuilder.equal(root.get("organization").get("id"), organizationId);
+            Predicate ownerPredicate = criteriaBuilder.equal(root.get("owner").get("id"), userId);
+            return criteriaBuilder.and(orgIdPredicate, ownerPredicate);
+        });
 
         Page<NoteEntity> page = noteRepository.findAll(spec, filterDto.createPageable());
 
@@ -59,14 +68,45 @@ public class NoteService {
 
     public NoteResponseDto create(NoteCreateRequestDto requestDto) {
         UUID userId = JwtUtil.getUserId();
+        UUID orgId = JwtUtil.getOrgId();
 
         NoteEntity note = new NoteEntity();
         note.setTitle(normalizeNullable(requestDto.getTitle()));
         note.setContent(normalizeRequired(requestDto.getContent()));
-        note.setSourceType(parseSourceType(requestDto.getSourceType()));
+        note.setSourceType(parseSourceType(NoteSourceType.USER.name()));
+        note.setSourceBy(parseSourceBy(NoteSourceBy.HUMAN.name()));
         note.setOwner(userService.getEntityById(userId));
+        note.setOrganization(organizationService.getEntityById(orgId));
 
-        applySourceTarget(note, requestDto.getTopicId(), requestDto.getNoteBookId(), userId);
+        return noteMapper.entityToResponseDto(noteRepository.save(note));
+    }
+
+    public NoteResponseDto create(NoteCreateByTopicRequestDto requestDto) {
+        UUID userId = JwtUtil.getUserId();
+        UUID orgId = JwtUtil.getOrgId();
+
+        NoteEntity note = new NoteEntity();
+        note.setTitle(normalizeNullable(requestDto.getTitle()));
+        note.setContent(normalizeRequired(requestDto.getContent()));
+        note.setSourceType(parseSourceType(NoteSourceType.TOPIC.name()));
+        note.setSourceBy(parseSourceBy(NoteSourceBy.AGENT.name()));
+        note.setOwner(userService.getEntityById(userId));
+        note.setOrganization(organizationService.getEntityById(orgId));
+
+        return noteMapper.entityToResponseDto(noteRepository.save(note));
+    }
+
+    public NoteResponseDto create(NoteCreateByNoteBookRequestDto requestDto) {
+        UUID userId = JwtUtil.getUserId();
+        UUID orgId = JwtUtil.getOrgId();
+
+        NoteEntity note = new NoteEntity();
+        note.setTitle(normalizeNullable(requestDto.getTitle()));
+        note.setContent(normalizeRequired(requestDto.getContent()));
+        note.setSourceType(parseSourceType(NoteSourceType.NOTEBOOK.name()));
+        note.setSourceBy(parseSourceBy(requestDto.getSourceBy()));
+        note.setOwner(userService.getEntityById(userId));
+        note.setOrganization(organizationService.getEntityById(orgId));
 
         return noteMapper.entityToResponseDto(noteRepository.save(note));
     }
@@ -84,9 +124,6 @@ public class NoteService {
         NoteEntity note = getEntityById(noteId);
         note.setTitle(normalizeNullable(requestDto.getTitle()));
         note.setContent(normalizeRequired(requestDto.getContent()));
-        note.setSourceType(parseSourceType(requestDto.getSourceType()));
-
-        applySourceTarget(note, requestDto.getTopicId(), requestDto.getNoteBookId(), userId);
 
         return noteMapper.entityToResponseDto(noteRepository.save(note));
     }
@@ -97,35 +134,19 @@ public class NoteService {
         noteRepository.deleteById(noteId);
     }
 
-    private void applySourceTarget(NoteEntity note, UUID topicId, UUID noteBookId, UUID userId) {
-        if (note.getSourceType() == NoteSourceType.TOPIC) {
-            if (topicId == null) {
-                throw new AppException(ApiResponseStatus.NOTE_TOPIC_ID_REQUIRED);
-            }
-            topicService.validateTopicOfUser(topicId, userId);
-            note.setTopicId(topicId);
-            note.setNoteBookId(null);
-            return;
-        }
-
-        if (note.getSourceType() == NoteSourceType.NOTEBOOK) {
-            if (noteBookId == null) {
-                throw new AppException(ApiResponseStatus.NOTE_NOTEBOOK_ID_REQUIRED);
-            }
-            noteBookService.validateNoteBookOfUser(noteBookId, userId);
-            note.setTopicId(null);
-            note.setNoteBookId(noteBookId);
-            return;
-        }
-
-        throw new AppException(ApiResponseStatus.NOTE_SOURCE_TARGET_INVALID);
-    }
-
     private NoteSourceType parseSourceType(String sourceType) {
         try {
             return NoteSourceType.valueOf(sourceType.trim().toUpperCase(Locale.ROOT));
         } catch (Exception exception) {
             throw new AppException(ApiResponseStatus.NOTE_SOURCE_TYPE_INVALID);
+        }
+    }
+
+    private NoteSourceBy parseSourceBy(String sourceBy) {
+        try {
+            return NoteSourceBy.valueOf(sourceBy.trim().toUpperCase(Locale.ROOT));
+        } catch (Exception exception) {
+            throw new AppException(ApiResponseStatus.NOTE_SOURCE_BY_INVALID);
         }
     }
 
@@ -144,4 +165,6 @@ public class NoteService {
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
+
+    
 }

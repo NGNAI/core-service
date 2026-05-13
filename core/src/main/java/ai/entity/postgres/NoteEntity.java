@@ -1,6 +1,7 @@
 package ai.entity.postgres;
 
 import ai.entity.postgres.embeddable.AuditEmbed;
+import ai.enums.NoteSourceBy;
 import ai.enums.NoteSourceType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -35,8 +36,12 @@ public class NoteEntity {
     String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "source_type", nullable = false)
+    @Column(name = "source_type", nullable = true)
     NoteSourceType sourceType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source_by", nullable = false)
+    NoteSourceBy sourceBy;
 
     @Column(name = "topic_id")
     UUID topicId;
@@ -47,6 +52,10 @@ public class NoteEntity {
     @ManyToOne
     @JoinColumn(name = "owner_id")
     UserEntity owner;
+
+    @ManyToOne
+    @JoinColumn(name = "org_id")
+    OrganizationEntity organization;
 
     @Embedded
     AuditEmbed audit = new AuditEmbed();
