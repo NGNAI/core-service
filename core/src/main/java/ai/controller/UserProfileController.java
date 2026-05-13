@@ -1,7 +1,9 @@
 package ai.controller;
 
+import ai.dto.own.request.OrganizationSelectRequestDto;
 import ai.dto.own.request.UserPasswordUpdateRequestDto;
 import ai.dto.own.request.UserProfileUpdateRequestDto;
+import ai.dto.own.response.OrganizationSelectResponseDto;
 import ai.dto.own.response.UserProfileResponseDto;
 import ai.model.ApiResponseModel;
 import ai.service.UserProfileService;
@@ -9,8 +11,13 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import com.nimbusds.jose.JOSEException;
+
+import ai.service.AuthService;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -18,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 public class UserProfileController {
     UserProfileService userProfileService;
+    AuthService authService;
 
     @GetMapping()
     ResponseEntity<ApiResponseModel<UserProfileResponseDto>> getProfile(){
@@ -45,6 +53,16 @@ public class UserProfileController {
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Change password successfully")
+                        .build()
+        );
+    }
+
+    @PostMapping("/change-org")
+    ResponseEntity<ApiResponseModel<OrganizationSelectResponseDto>> changeOrg(@Valid @RequestBody OrganizationSelectRequestDto selectRequestDto) throws JOSEException {
+        return ResponseEntity.ok(
+                ApiResponseModel.<OrganizationSelectResponseDto>builder()
+                        .message("Change organization successfully")
+                        .data(authService.selectOrg(selectRequestDto))
                         .build()
         );
     }

@@ -14,7 +14,9 @@ import ai.dto.own.request.NoteCreateRequestDto;
 import ai.dto.own.request.NoteUpdateRequestDto;
 import ai.dto.own.request.filter.NoteFilterDto;
 import ai.dto.own.response.NoteResponseDto;
+import ai.entity.postgres.NoteBookEntity;
 import ai.entity.postgres.NoteEntity;
+import ai.entity.postgres.TopicEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.NoteSourceBy;
 import ai.enums.NoteSourceType;
@@ -85,10 +87,13 @@ public class NoteService {
         UUID userId = JwtUtil.getUserId();
         UUID orgId = JwtUtil.getOrgId();
 
+        TopicEntity topic = topicService.getEntityById(UUID.fromString(requestDto.getTopicId()));
+
         NoteEntity note = new NoteEntity();
         note.setTitle(normalizeNullable(requestDto.getTitle()));
         note.setContent(normalizeRequired(requestDto.getContent()));
         note.setSourceType(parseSourceType(NoteSourceType.TOPIC.name()));
+        note.setTopicId(topic.getId());
         note.setSourceBy(parseSourceBy(NoteSourceBy.AGENT.name()));
         note.setOwner(userService.getEntityById(userId));
         note.setOrganization(organizationService.getEntityById(orgId));
@@ -100,11 +105,14 @@ public class NoteService {
         UUID userId = JwtUtil.getUserId();
         UUID orgId = JwtUtil.getOrgId();
 
+        NoteBookEntity noteBook = noteBookService.getEntityById(UUID.fromString(requestDto.getNoteBookId()));
+
         NoteEntity note = new NoteEntity();
         note.setTitle(normalizeNullable(requestDto.getTitle()));
         note.setContent(normalizeRequired(requestDto.getContent()));
         note.setSourceType(parseSourceType(NoteSourceType.NOTEBOOK.name()));
         note.setSourceBy(parseSourceBy(requestDto.getSourceBy()));
+        note.setNoteBookId(noteBook.getId());
         note.setOwner(userService.getEntityById(userId));
         note.setOrganization(organizationService.getEntityById(orgId));
 
