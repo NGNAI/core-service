@@ -1,11 +1,12 @@
 package ai.enums;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 
 @AllArgsConstructor
 @Getter
@@ -157,7 +158,9 @@ public enum ApiResponseStatus {
     NOTE_SORT_DIR_INVALID(1119, "Note sort direction is invalid", HttpStatus.BAD_REQUEST),
     NOTE_SOURCE_BY_INVALID(1124, "Invalid note source by", HttpStatus.BAD_REQUEST),
 
-    UNEXPECTED(9999, "An unexpected error occurred!",HttpStatus.INTERNAL_SERVER_ERROR);
+    UNEXPECTED(9999, "An unexpected error occurred!",HttpStatus.INTERNAL_SERVER_ERROR),
+    
+    NOTE_SOURCE_BY_NOT_ALLOW_UPDATE(1125, "Note source by not allow update", HttpStatus.BAD_REQUEST);
     
 
     int code;
