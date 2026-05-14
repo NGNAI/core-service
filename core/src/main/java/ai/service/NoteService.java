@@ -47,6 +47,12 @@ public class NoteService {
         }
     }
 
+    public void validateNoteOfOrganization(UUID noteId, UUID organizationId) {
+        if (!noteRepository.existsByIdAndOrganizationId(noteId, organizationId)) {
+            throw new AppException(ApiResponseStatus.PERMISSION_DENIED);
+        }
+    }
+
     public NoteEntity getEntityById(UUID noteId) {
         return noteRepository.findById(noteId).orElseThrow(() -> new AppException(ApiResponseStatus.NOTE_NOT_EXISTS));
     }
@@ -127,9 +133,18 @@ public class NoteService {
 
     public NoteResponseDto update(UUID noteId, NoteUpdateRequestDto requestDto) {
         UUID userId = JwtUtil.getUserId();
+        UUID orgId = JwtUtil.getOrgId();
+
         validateNoteOfUser(noteId, userId);
+        validateNoteOfOrganization(noteId, orgId);
 
         NoteEntity note = getEntityById(noteId);
+        if(note.getSourceBy()!=null && note.getSourceBy() == NoteSourceBy.AGENT) {
+            throw new AppException(ApiResponseStatus.NOTE_SOURCE_BY_NOT_ALLOW_UPDATE);
+        } else {
+            note.setSourceBy(NoteSourceBy.HUMAN);
+        }
+
         note.setTitle(normalizeNullable(requestDto.getTitle()));
         note.setContent(normalizeRequired(requestDto.getContent()));
 
