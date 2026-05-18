@@ -3,7 +3,6 @@ name: Deploy Core Service
 on:
   push:
     branches:
-      - khue
       - master
     paths:
       - core/**
