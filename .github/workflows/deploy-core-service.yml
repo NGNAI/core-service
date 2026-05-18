@@ -38,7 +38,9 @@ jobs:
           cache: maven
 
       - name: Build JAR
-        run: ./mvnw -B -ntp -pl core -am clean package -DskipTests
+        run: |
+          chmod +x ./mvnw
+          ./mvnw -B -ntp -pl core -am clean package -DskipTests
 
       - name: Deploy and restart service
         shell: bash
