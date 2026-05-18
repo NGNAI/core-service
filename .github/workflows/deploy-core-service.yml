@@ -1,0 +1,64 @@
+name: Deploy Core Service
+
+on:
+  push:
+    branches:
+      - khue
+      - master
+    paths:
+      - core/**
+      - common/**
+      - pom.xml
+      - core/pom.xml
+      - common/pom.xml
+      - .github/workflows/deploy-core-service.yml
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: read
+    concurrency:
+      group: core-service-deploy
+      cancel-in-progress: true
+    env:
+      SERVICE_NAME: core_service
+      DEPLOY_JAR_PATH: /opt/dev/app/core-1.0-SNAPSHOT.jar
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Build JAR
+        run: ./mvnw -B -ntp -pl core -am clean package -DskipTests
+
+      - name: Deploy and restart service
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          JAR_SOURCE="core/target/core-1.0-SNAPSHOT.jar"
+
+          if [ ! -f "$JAR_SOURCE" ]; then
+            echo "JAR not found at: $JAR_SOURCE"
+            ls -la core/target || true
+            exit 1
+          fi
+
+          # Ensure target directory exists and copy new jar.
+          sudo mkdir -p "$(dirname "$DEPLOY_JAR_PATH")"
+          sudo install -m 0644 "$JAR_SOURCE" "$DEPLOY_JAR_PATH"
+
+          sudo systemctl stop "$SERVICE_NAME"
+          sudo systemctl start "$SERVICE_NAME"
+
+          sudo systemctl is-active "$SERVICE_NAME"
+          sudo systemctl --no-pager --full status "$SERVICE_NAME" | head -n 30
