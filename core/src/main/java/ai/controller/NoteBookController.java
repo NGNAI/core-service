@@ -1,11 +1,9 @@
 package ai.controller;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import ai.dto.own.request.*;
-import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
-import ai.enums.MessageParentType;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -24,19 +22,30 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
+import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
+import ai.dto.own.request.NoteBookCreateConversationRequestDto;
+import ai.dto.own.request.NoteBookCreateRequestDto;
+import ai.dto.own.request.NoteBookRenameTitleRequestDto;
+import ai.dto.own.request.NoteBookSourceAddFilesRequestDto;
+import ai.dto.own.request.NoteBookSourceAddNotesRequestDto;
+import ai.dto.own.request.NoteBookSourceAddTextRequestDto;
+import ai.dto.own.request.NoteBookUpdateInstructionRequestDto;
+import ai.dto.own.request.NoteBookUpdateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.request.filter.NoteBookFilterDto;
 import ai.dto.own.response.MessageResponseDto;
+import ai.dto.own.response.NoteBookResponseDto;
 import ai.dto.own.response.NoteBookSourceDownloadData;
 import ai.dto.own.response.NoteBookSourceJobStatusResponseDto;
 import ai.dto.own.response.NoteBookSourcePresignedUrlResponseDto;
 import ai.dto.own.response.NoteBookSourceResponseDto;
-import ai.dto.own.response.NoteBookResponseDto;
+import ai.entity.postgres.NoteBookSourceEntity;
+import ai.enums.MessageParentType;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.MessageService;
-import ai.service.NoteBookSourceService;
 import ai.service.NoteBookService;
+import ai.service.NoteBookSourceService;
 import ai.service.RagService;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
@@ -153,6 +162,28 @@ public class NoteBookController {
                         .build()
         );
     }
+
+
+    @Operation(summary = "Get source types", description = "Lấy danh sách source type khả dụng của source trong notebook")
+    @GetMapping("/sources/source-types")
+    ResponseEntity<ApiResponseModel<List<NoteBookSourceEntity.SourceType>>> sourceTypes() {
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<NoteBookSourceEntity.SourceType>>builder()
+                        .message("Get source types successfully")
+                        .data(Arrays.asList(NoteBookSourceEntity.SourceType.values()))
+                        .build());
+    }
+
+    @Operation(summary = "Get vector statuses", description = "Lấy danh sách vector status khả dụng của source trong notebook")
+    @GetMapping("/sources/vector-statuses")
+    ResponseEntity<ApiResponseModel<List<NoteBookSourceEntity.VectorStatus>>> vectorStatuses() {
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<NoteBookSourceEntity.VectorStatus>>builder()
+                        .message("Get vector statuses successfully")
+                        .data(Arrays.asList(NoteBookSourceEntity.VectorStatus.values()))
+                        .build());
+    }
+
 
     @Hidden
         @Operation(summary = "Download notebook source", description = "Tải file nguồn của notebook khi source là FILE")
