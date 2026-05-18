@@ -59,8 +59,7 @@ jobs:
           sudo mkdir -p "$(dirname "$DEPLOY_JAR_PATH")"
           sudo install -m 0644 "$JAR_SOURCE" "$DEPLOY_JAR_PATH"
 
-          sudo systemctl stop "$SERVICE_NAME"
-          sudo systemctl start "$SERVICE_NAME"
+          sudo systemctl restart "$SERVICE_NAME"
 
           sudo systemctl is-active "$SERVICE_NAME"
           sudo systemctl --no-pager --full status "$SERVICE_NAME" | head -n 30
