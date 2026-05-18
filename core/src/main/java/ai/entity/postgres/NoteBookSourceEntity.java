@@ -33,11 +33,11 @@ import java.util.UUID;
 @Entity
 public class NoteBookSourceEntity {
 
-    public enum SourceType {
+    public static enum SourceType {
         FILE, TEXT, NOTE;
     }
 
-    public enum VectorStatus {
+    public static enum VectorStatus {
         CREATED, // Mới tạo
         EXTRACTING, // Đang trích xuất
         CHUNKING, // Đang chia nhỏ
