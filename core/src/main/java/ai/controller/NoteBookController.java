@@ -305,10 +305,10 @@ public class NoteBookController {
     }
 
     @Operation(summary = "Chat with notebook", description = "Gửi câu hỏi vào notebook và nhận phản hồi dạng SSE stream")
-    @PostMapping(value = "/{noteBookId}/messages", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/{noteBookId}/messages", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> postMessageByNoteBookIdFlux(
             @PathVariable UUID noteBookId,
-            @Valid @ModelAttribute NoteBookCreateConversationRequestDto requestDto) throws JsonProcessingException {
+            @Valid @RequestBody NoteBookCreateConversationRequestDto requestDto) throws JsonProcessingException {
         return ragService.chatNoteBook(noteBookId, requestDto);
     }
 }
