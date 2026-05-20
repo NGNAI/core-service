@@ -3,12 +3,6 @@ package ai.service;
 import java.util.List;
 import java.util.UUID;
 
-import ai.entity.postgres.*;
-import ai.enums.MessageParentType;
-import ai.interfaces.MessageRelationEntity;
-import ai.repository.NotebookMessagesRepository;
-import ai.repository.TopicMessagesRepository;
-import jakarta.persistence.criteria.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -19,13 +13,26 @@ import ai.dto.own.request.MessageCreateRequestDto;
 import ai.dto.own.request.MessageUpdateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.response.MessageResponseDto;
+import ai.entity.postgres.MessageEntity;
+import ai.entity.postgres.NoteBookEntity;
+import ai.entity.postgres.NotebookMessageEntity;
+import ai.entity.postgres.TopicEntity;
+import ai.entity.postgres.TopicMessageEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.MessageParentType;
 import ai.enums.MessageType;
 import ai.exeption.AppException;
+import ai.interfaces.MessageRelationEntity;
 import ai.mapper.MessageMapper;
 import ai.model.CustomPairModel;
 import ai.repository.MessageRepository;
+import ai.repository.NotebookMessagesRepository;
+import ai.repository.TopicMessagesRepository;
 import ai.util.JwtUtil;
+import jakarta.persistence.criteria.From;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -74,13 +81,26 @@ public class MessageService {
             case NOTEBOOK -> {
                 noteBookService.validateNoteBookOfUser(parentId, JwtUtil.getUserId());
                 Specification<NotebookMessageEntity> spec = (root, query, criteriaBuilder) -> {
-                    Fetch<NotebookMessageEntity, MessageEntity> messageFetch = root.fetch("message", JoinType.INNER);
-                    Join<NotebookMessageEntity, MessageEntity> messageJoin = (Join<NotebookMessageEntity, MessageEntity>) messageFetch;
+                    boolean isCountQuery = query.getResultType() == Long.class || query.getResultType() == long.class;
 
-                    Predicate messageSearch = filterDto.createSpec(messageJoin, criteriaBuilder);
-                    Predicate orgIdSearch = criteriaBuilder.equal(root.get("topic").get("id"), parentId);
-                    return criteriaBuilder.and(messageSearch, orgIdSearch);
+                    // Sử dụng interface From làm gốc để có thể tạo Predicate từ cả Join và Fetch
+                    From<NotebookMessageEntity, MessageEntity> messageNode;
+
+                    if (isCountQuery) {
+                        messageNode = root.join("message", JoinType.INNER);
+                    } else {
+                        // Cú pháp ép kiểu 2 lần để tránh lỗi "Inconvertible types"
+                        messageNode = (Join<NotebookMessageEntity, MessageEntity>) (Object) root.fetch("message", JoinType.INNER);
+                    }
+
+                    // Bây giờ messageNode đã là kiểu From, hoàn toàn hợp lệ để truyền vào createSpec
+                    Predicate messageSearch = filterDto.createSpec((Join<NotebookMessageEntity, MessageEntity>) messageNode, criteriaBuilder);
+                    Predicate notebookIdSearch = criteriaBuilder.equal(root.get("notebook").get("id"), parentId);
+
+                    return criteriaBuilder.and(messageSearch, notebookIdSearch);
                 };
+
+
                 filterDto.setSortPrefix("message");
                 page = notebookMessagesRepository.findAll(spec,filterDto.createPageable());
             }
