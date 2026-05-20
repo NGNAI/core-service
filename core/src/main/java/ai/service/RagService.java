@@ -133,7 +133,7 @@ public class RagService {
                         .userId(JwtUtil.getUserId())
                         .organizationId(JwtUtil.getOrgId())
                         .scopes(requestDto.getScopes())
-                        .fileIds(attachments.stream().map(TopicSourceResponseDto::getId).collect(Collectors.toSet()))
+                        .fileIds(attachments.stream().map(e->e.getId().toString()).collect(Collectors.toSet()))
                         .build())
                 .stream(true)
                 .build();
@@ -238,8 +238,7 @@ public class RagService {
                 .metadata(RagCompletionRequestDto.Metadata.builder()
                         .userId(JwtUtil.getUserId())
                         .organizationId(JwtUtil.getOrgId())
-                        .fileIds(requestDto.getSourceIds().stream().map(UUID::fromString)
-                                .collect(Collectors.toSet()))
+                        .fileIds(requestDto.getSourceIds())
                         .build())
                 .stream(true)
                 .build();

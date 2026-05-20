@@ -1,14 +1,15 @@
 package ai.dto.outer.rag.request;
 
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
-
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 
 @Data
 @Builder
@@ -36,6 +37,6 @@ public class RagCompletionRequestDto {
         UUID organizationId;
         Set<String> scopes;
         @JsonProperty("file_ids")
-        Set<UUID> fileIds;
+        Set<String> fileIds;
     }
 }
