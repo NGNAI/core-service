@@ -1,5 +1,13 @@
 package ai.service;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import ai.dto.own.request.UserPasswordUpdateRequestDto;
 import ai.dto.own.request.UserProfileUpdateRequestDto;
 import ai.dto.own.response.OrganizationWithUserRoleDto;
@@ -12,6 +20,7 @@ import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.UserSource;
 import ai.exeption.AppException;
+import ai.mapper.OrganizationMapper;
 import ai.mapper.RoleMapper;
 import ai.mapper.UserMapper;
 import ai.repository.OrganizationUserRoleRepository;
@@ -20,12 +29,6 @@ import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -39,6 +42,7 @@ public class UserProfileService {
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
 
+    OrganizationMapper organizationMapper;
     RoleMapper roleMapper;
 
     public UserProfileResponseDto getProfile(){
@@ -90,5 +94,28 @@ public class UserProfileService {
 
         entity.setPassword(passwordEncoder.encode(requestDto.getNewPassword()));
         userRepository.save(entity);
+    }
+
+    public List<OrganizationWithUserRoleDto> listOrg(){
+        UUID userId = JwtUtil.getUserId();
+        Map<UUID, OrganizationWithUserRoleDto> mapResult = new LinkedHashMap<>();
+        Map<UUID, Map<String, Map<String, Map<String, String>>>> mapRolePermission = roleService.getPermissionListOfRole();
+
+        ourRepository.findByUserWithPermission(userId).forEach(our -> {
+            UUID orgId = our.getOrganization().getId();
+            RoleEntity roleEntity = our.getRole();
+            RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(roleEntity);
+            role.setPermissions(mapRolePermission.getOrDefault(role.getId(), Map.of()));
+
+            mapResult
+                    .computeIfAbsent(orgId, key -> organizationMapper.entityToWithUserRoleResponseDto(our.getOrganization()))
+                    .getRoles()
+                    .add(role);
+        });
+
+        if(mapResult.isEmpty())
+            throw new AppException(ApiResponseStatus.USER_NOT_IN_ORG);
+
+        return List.copyOf(mapResult.values());
     }
 }
