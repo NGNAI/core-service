@@ -38,10 +38,10 @@ public class NoteBookEntity {
     @Column(name = "title", nullable = false)
     String title;
 
-    @Column(name = "description", nullable = false)
+    @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     String description;
 
-    @Column(name = "instruction")
+    @Column(name = "instruction", nullable = true, columnDefinition = "TEXT")
     String instruction;
 
     @Embedded
