@@ -41,6 +41,12 @@ public class TopicEntity {
     @Column(name = "type", nullable = false)
     String type;
 
+    @Column(name = "conversation_summary", columnDefinition = "TEXT")
+    String conversationSummary;
+
+    @Column(name = "conversation_summary_last_message_id")
+    UUID conversationSummaryLastMessageId;
+
     @Embedded
     AuditEmbed audit= new AuditEmbed();
 

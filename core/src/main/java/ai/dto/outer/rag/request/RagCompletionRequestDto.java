@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Data
@@ -20,7 +21,7 @@ public class RagCompletionRequestDto {
     boolean stream;
 
     @Data
-    @Builder
+    @NoArgsConstructor
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Message {
         String role;
@@ -28,7 +29,7 @@ public class RagCompletionRequestDto {
     }
 
     @Data
-    @Builder
+    @NoArgsConstructor
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Metadata {
         @JsonProperty("user_id")
@@ -38,5 +39,7 @@ public class RagCompletionRequestDto {
         Set<String> scopes;
         @JsonProperty("file_ids")
         Set<String> fileIds;
+        @JsonProperty("summaries")
+        Set<String> summaries;
     }
 }
