@@ -118,6 +118,28 @@ public class MessageService {
         return new CustomPairModel<>(page.getTotalElements(),messages);
     }
 
+    public List<MessageResponseDto> getTopicMessagesAfter(UUID topicId, UUID messageId) {
+        topicService.validateTopicOfUser(topicId, JwtUtil.getUserId());
+        return getTopicMessagesAfterInternal(topicId, messageId);
+    }
+
+    public List<MessageResponseDto> getTopicMessagesAfterInternal(UUID topicId, UUID messageId) {
+        List<TopicMessageEntity> topicMessages = messageId == null
+                ? topicMessagesRepository.findByTopic_IdOrderById_MessageIdAsc(topicId)
+                : topicMessagesRepository.findByTopic_IdAndId_MessageIdGreaterThanOrderById_MessageIdAsc(topicId, messageId);
+
+        return mapTopicMessages(topicMessages, topicId);
+    }
+
+    private List<MessageResponseDto> mapTopicMessages(List<TopicMessageEntity> topicMessages, UUID topicId) {
+        return topicMessages.stream().map(entity -> {
+            MessageResponseDto responseDto = messageMapper.entityToResponseDto(entity.getMessageEntity());
+            responseDto.setParentId(topicId);
+            responseDto.setParentType(MessageParentType.TOPIC.getValue());
+            return responseDto;
+        }).toList();
+    }
+
     public MessageResponseDto create(UUID parentId, MessageParentType parentType, MessageCreateRequestDto createRequestDto){
         MessageEntity newEntity = messageRepository.save(messageMapper.createRequestDtoToEntity(createRequestDto));
 

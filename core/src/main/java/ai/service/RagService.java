@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -24,6 +25,7 @@ import ai.dto.own.request.TopicCreateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.dto.own.response.TopicSourceResponseDto;
+import ai.entity.postgres.TopicEntity;
 import ai.enums.MessageParentType;
 import ai.enums.MessageType;
 import ai.enums.SystemEventSource;
@@ -42,6 +44,8 @@ import reactor.core.publisher.Flux;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class RagService {
+    static final int RECENT_MESSAGE_WINDOW = 10;
+
     RagApiService ragApiService;
     TopicService topicService;
     TopicSourceService topicSourceService;
@@ -83,28 +87,24 @@ public class RagService {
         }
 
         topicService.validateTopicId(finalTopicId);
+        TopicEntity topicEntity = topicService.getEntityById(finalTopicId);
 
         MessageFilterDto messageFilterDto = new MessageFilterDto();
         messageFilterDto.setTypes(Arrays.asList(MessageType.USER.getValue(), MessageType.ASSISTANT.getValue()));
         messageFilterDto.setPageNumber(0);
-        messageFilterDto.setPageSize(10);
+        messageFilterDto.setPageSize(RECENT_MESSAGE_WINDOW);
         messageFilterDto.setSortBy("createdAt");
         messageFilterDto.setSortDir("desc");
 
         // Query history
         List<RagCompletionRequestDto.Message> historyConversations = messageService
                 .getAll(finalTopicId, MessageParentType.TOPIC, messageFilterDto).getSecond()
-                .stream().map(messageResponseDto -> RagCompletionRequestDto.Message.builder()
-                        .role(messageResponseDto.getType())
-                        .content(messageResponseDto.getContent()).build())
+            .stream().map(messageResponseDto -> createRagMessage(messageResponseDto.getType(), messageResponseDto.getContent()))
                 .collect(Collectors.toList());
 
         Collections.reverse(historyConversations);
 
-        historyConversations.add(RagCompletionRequestDto.Message.builder()
-                .role(MessageType.USER.getValue())
-                .content(requestDto.getMessage())
-                .build());
+        historyConversations.add(createRagMessage(MessageType.USER.getValue(), requestDto.getMessage()));
 
         // Insert user question
         messageService.create(
@@ -127,16 +127,18 @@ public class RagService {
         // Get attachments of topic - Khoa xử lý tiếp nha
         List<TopicSourceResponseDto> attachments = topicSourceService.getAllSources(finalTopicId);
 
+        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
+        metadata.setUserId(JwtUtil.getUserId());
+        metadata.setOrganizationId(JwtUtil.getOrgId());
+        metadata.setScopes(requestDto.getScopes());
+        metadata.setFileIds(attachments.stream().map(e -> e.getId().toString()).collect(Collectors.toSet()));
+        metadata.setSummaries(buildSummaryMetadata(topicEntity));
+
         RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
-                .messages(historyConversations)
-                .metadata(RagCompletionRequestDto.Metadata.builder()
-                        .userId(JwtUtil.getUserId())
-                        .organizationId(JwtUtil.getOrgId())
-                        .scopes(requestDto.getScopes())
-                        .fileIds(attachments.stream().map(e->e.getId().toString()).collect(Collectors.toSet()))
-                        .build())
-                .stream(true)
-                .build();
+            .messages(historyConversations)
+            .metadata(metadata)
+            .stream(true)
+            .build();
 
         StringBuilder fullAnswer = new StringBuilder();
         StringBuilder source = new StringBuilder();
@@ -167,6 +169,8 @@ public class RagService {
                             .content(fullAnswer.toString())
                             .source(source.toString())
                             .build());
+
+                    asyncUpdateTopicSummary(finalTopicId);
                 });
     }
 
@@ -196,24 +200,19 @@ public class RagService {
         MessageFilterDto messageFilterDto = new MessageFilterDto();
         messageFilterDto.setTypes(Arrays.asList(MessageType.USER.getValue(), MessageType.ASSISTANT.getValue()));
         messageFilterDto.setPageNumber(0);
-        messageFilterDto.setPageSize(10);
+        messageFilterDto.setPageSize(RECENT_MESSAGE_WINDOW);
         messageFilterDto.setSortBy("createdAt");
         messageFilterDto.setSortDir("desc");
 
         // Query history
         List<RagCompletionRequestDto.Message> historyConversations = messageService
                 .getAll(finalNoteBookId, MessageParentType.NOTEBOOK, messageFilterDto).getSecond()
-                .stream().map(messageResponseDto -> RagCompletionRequestDto.Message.builder()
-                        .role(messageResponseDto.getType())
-                        .content(messageResponseDto.getContent()).build())
+            .stream().map(messageResponseDto -> createRagMessage(messageResponseDto.getType(), messageResponseDto.getContent()))
                 .collect(Collectors.toList());
 
         Collections.reverse(historyConversations);
 
-        historyConversations.add(RagCompletionRequestDto.Message.builder()
-                .role(MessageType.USER.getValue())
-                .content(requestDto.getMessage())
-                .build());
+        historyConversations.add(createRagMessage(MessageType.USER.getValue(), requestDto.getMessage()));
 
         // Insert user question
         messageService.create(
@@ -233,15 +232,17 @@ public class RagService {
                         .type(MessageType.ASSISTANT.getValue())
                         .build());
 
+        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
+        metadata.setUserId(JwtUtil.getUserId());
+        metadata.setOrganizationId(JwtUtil.getOrgId());
+        metadata.setFileIds(requestDto.getSourceIds());
+        metadata.setSummaries(Collections.emptySet());
+
         RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
-                .messages(historyConversations)
-                .metadata(RagCompletionRequestDto.Metadata.builder()
-                        .userId(JwtUtil.getUserId())
-                        .organizationId(JwtUtil.getOrgId())
-                        .fileIds(requestDto.getSourceIds())
-                        .build())
-                .stream(true)
-                .build();
+            .messages(historyConversations)
+            .metadata(metadata)
+            .stream(true)
+            .build();
 
         StringBuilder fullAnswer = new StringBuilder();
         StringBuilder source = new StringBuilder();
@@ -298,6 +299,37 @@ public class RagService {
         });
     }
 
+    public void asyncUpdateTopicSummary(UUID topicId) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                TopicEntity topicEntity = topicService.getEntityById(topicId);
+                List<MessageResponseDto> topicMessages = messageService.getTopicMessagesAfterInternal(
+                        topicId,
+                        topicEntity.getConversationSummaryLastMessageId());
+
+                if (topicMessages.size() <= RECENT_MESSAGE_WINDOW) {
+                    return;
+                }
+
+                int summarizeUntilIndex = topicMessages.size() - RECENT_MESSAGE_WINDOW;
+                List<MessageResponseDto> messagesToSummarize = topicMessages.subList(0, summarizeUntilIndex);
+                UUID lastSummarizedMessageId = messagesToSummarize.get(messagesToSummarize.size() - 1).getId();
+
+                String updatedSummary = generalSummaryOfTopic(
+                        topicEntity.getConversationSummary(),
+                        messagesToSummarize);
+
+                if (updatedSummary == null || updatedSummary.isBlank()) {
+                    return;
+                }
+
+                topicService.updateConversationSummaryInternal(topicId, updatedSummary, lastSummarizedMessageId);
+            } catch (Exception e) {
+                log.error("Failed to generate conversation summary for topic {}", topicId, e);
+            }
+        });
+    }
+
     /**
      * Generate title for topic based on user's input
      * 
@@ -317,14 +349,53 @@ public class RagService {
                 + "### Generated Title: ";
 
         RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
-                .messages(List.of(RagCompletionRequestDto.Message.builder()
-                        .role(MessageType.USER.getValue())
-                        .content(prompt)
-                        .build()))
-                .stream(false)
-                .build();
+            .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
+            .stream(false)
+            .build();
 
         return ragApiService.general(ragCompletionRequestDto);
+    }
+
+    public String generalSummaryOfTopic(String existingSummary, List<MessageResponseDto> messages) throws JsonProcessingException {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("Act as a conversation memory compressor. Your task is to update a long-running topic summary so future chat turns can retain the important context. ");
+        prompt.append("Write in the same language as the conversation. Keep only durable facts, decisions, constraints, preferences, named entities, unresolved questions, and important progress state. ");
+        prompt.append("Do not include greetings, filler, duplicated wording, or markdown bullets unless they are essential. Return only the updated summary text.\n\n");
+        prompt.append("Existing summary:\n");
+        prompt.append(isBlank(existingSummary) ? "(none)" : existingSummary);
+        prompt.append("\n\nNew messages to absorb:\n");
+
+        for (MessageResponseDto message : messages) {
+            prompt.append(message.getType()).append(": ").append(message.getContent()).append('\n');
+        }
+
+        prompt.append("\nUpdated summary:");
+
+        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
+            .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt.toString())))
+            .stream(false)
+            .build();
+
+        return ragApiService.general(ragCompletionRequestDto);
+    }
+
+    private Set<String> buildSummaryMetadata(TopicEntity topicEntity) {
+        if (topicEntity == null || isBlank(topicEntity.getConversationSummary())) {
+            return Collections.emptySet();
+        }
+
+        return Collections.singleton(topicEntity.getConversationSummary());
+    }
+
+    private RagCompletionRequestDto.Message createRagMessage(String role, String content) {
+        RagCompletionRequestDto.Message message = new RagCompletionRequestDto.Message();
+        message.setRole(role);
+        message.setContent(content);
+        return message;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 
 }
