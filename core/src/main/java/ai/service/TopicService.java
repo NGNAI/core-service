@@ -95,4 +95,12 @@ public class TopicService {
             topicRepository.save(entity);
         });
     }
+
+    public void updateConversationSummaryInternal(UUID topicId, String summary, UUID lastMessageId) {
+        topicRepository.findById(topicId).ifPresent(entity -> {
+            entity.setConversationSummary(summary);
+            entity.setConversationSummaryLastMessageId(lastMessageId);
+            topicRepository.save(entity);
+        });
+    }
 }
