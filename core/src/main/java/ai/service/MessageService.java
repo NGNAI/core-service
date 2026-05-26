@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -118,11 +119,13 @@ public class MessageService {
         return new CustomPairModel<>(page.getTotalElements(),messages);
     }
 
+    @Transactional(readOnly = true)
     public List<MessageResponseDto> getTopicMessagesAfter(UUID topicId, UUID messageId) {
         topicService.validateTopicOfUser(topicId, JwtUtil.getUserId());
         return getTopicMessagesAfterInternal(topicId, messageId);
     }
 
+    @Transactional(readOnly = true)
     public List<MessageResponseDto> getTopicMessagesAfterInternal(UUID topicId, UUID messageId) {
         List<TopicMessageEntity> topicMessages = messageId == null
                 ? topicMessagesRepository.findByTopic_IdOrderById_MessageIdAsc(topicId)
