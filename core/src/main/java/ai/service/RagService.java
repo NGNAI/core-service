@@ -325,6 +325,7 @@ public class RagService {
 
                 topicService.updateConversationSummaryInternal(topicId, updatedSummary, lastSummarizedMessageId);
             } catch (Exception e) {
+                e.printStackTrace();
                 log.error("Failed to generate conversation summary for topic {}", topicId, e);
             }
         });
