@@ -46,26 +46,39 @@ sql:
   init:
     mode: "always"
 
+# Cấu hình cho JWT (JSON Web Token)
 jwt:
   secret-key: "2daEri6ObwgO7dlnqH8SlcgtKWQ1njWdkg7hFv+gjTlfxxaeqBdg7XimfhBEIJEn"
   expiry-duration: 216000
 
+# Cấu hình cho OTP service (One-Time Password)
 otp:
   url: "http://192.168.200.42:16500"
   x-api-key: "kgw5KynWd9MAGht7waCZsFI0eTumLPxLVUEnRVtEXjypXNkpQ3vHEtPvWK5llC4MDf4bvl0BsbedKaGFsnOPJOd8kpaTcW7R04FDsZZMOAwlyKwguh0LVEsi3qQnDJM3BkVeBjH4F2WYga6D3TGqKljEJSl7QyluPpq0+Rp0S+HYx07sp4Wjynvaxb4oRB14"
 
+# Cấu hình cho RAG (Retrieval-Augmented Generation)
 rag:
   url: "http://192.168.30.75:8002"
+  memory:
+    # Số lượng message gần nhất trong topic được đưa vào context
+    topic-recent-message-window: 10
+    # Số lượng message gần nhất trong notebook được đưa vào context
+    note-book-recent-message-window: 14
+    # Số lượng message tối thiểu để thực hiện nén hội thoại (conversation compression)
+    min-messages-to-compress: 4
 
+# Cấu hình cho data ingestion service
 ingestion:
   url: "http://192.168.30.73:8000"
   read-timeout-ms: 180000
 
+# Cấu hình cho MinIO (dùng để lưu trữ file đính kèm, notebook source, v.v.)
 minio:
   endpoint: "http://192.168.30.71:9000"
   access-key: "admin"
   secret-key: "password"
 
+# Cấu hình cho các API cho việc tích hợp với các service khác (attachment service, ingestion service, v.v.)
 integration:
   attachment-api:
     header-name: "X-API-KEY"
@@ -92,6 +105,7 @@ integration:
     # Hoặc gửi qua header, ví dụ: X-Webhook-Signature: YOUR_WEBHOOK_SHARED_SECRET
     signature-header-name: "X-Webhook-Signature"
 
+# Cấu hình cho tính năng tự động ingest dữ liệu từ file (auto-ingestion)
 auto-ingestion:
   enabled: true
   input-dir: "D:/input"

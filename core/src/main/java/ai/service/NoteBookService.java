@@ -112,4 +112,12 @@ public class NoteBookService {
         validateNoteBookOfUser(id,JwtUtil.getUserId());
         noteBookRepository.deleteById(id);
     }
+
+    public void updateConversationSummaryInternal(UUID noteBookId, String summary, UUID lastMessageId) {
+        noteBookRepository.findById(noteBookId).ifPresent(entity -> {
+            entity.setConversationSummary(summary);
+            entity.setConversationSummaryLastMessageId(lastMessageId);
+            noteBookRepository.save(entity);
+        });
+    }
 }

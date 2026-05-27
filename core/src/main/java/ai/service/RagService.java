@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -15,6 +14,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ai.AppProperties;
 import ai.dto.outer.rag.request.RagCompletionRequestDto;
 import ai.dto.own.request.MessageCreateRequestDto;
 import ai.dto.own.request.MessageUpdateRequestDto;
@@ -25,6 +25,7 @@ import ai.dto.own.request.TopicCreateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.dto.own.response.TopicSourceResponseDto;
+import ai.entity.postgres.NoteBookEntity;
 import ai.entity.postgres.TopicEntity;
 import ai.enums.MessageParentType;
 import ai.enums.MessageType;
@@ -44,8 +45,11 @@ import reactor.core.publisher.Flux;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class RagService {
-    static final int RECENT_MESSAGE_WINDOW = 10;
+    static final int DEFAULT_TOPIC_RECENT_MESSAGE_WINDOW = 10;
+    static final int DEFAULT_NOTEBOOK_RECENT_MESSAGE_WINDOW = 14;
+    static final int DEFAULT_MIN_MESSAGES_TO_COMPRESS = 4;
 
+    AppProperties appProperties;
     RagApiService ragApiService;
     TopicService topicService;
     TopicSourceService topicSourceService;
@@ -92,7 +96,7 @@ public class RagService {
         MessageFilterDto messageFilterDto = new MessageFilterDto();
         messageFilterDto.setTypes(Arrays.asList(MessageType.USER.getValue(), MessageType.ASSISTANT.getValue()));
         messageFilterDto.setPageNumber(0);
-        messageFilterDto.setPageSize(RECENT_MESSAGE_WINDOW);
+        messageFilterDto.setPageSize(topicRecentMessageWindow());
         messageFilterDto.setSortBy("createdAt");
         messageFilterDto.setSortDir("desc");
 
@@ -196,11 +200,12 @@ public class RagService {
         UUID finalNoteBookId = noteBookId;
 
         noteBookService.validateNoteBookId(finalNoteBookId);
+        NoteBookEntity noteBookEntity = noteBookService.getEntityById(finalNoteBookId);
 
         MessageFilterDto messageFilterDto = new MessageFilterDto();
         messageFilterDto.setTypes(Arrays.asList(MessageType.USER.getValue(), MessageType.ASSISTANT.getValue()));
         messageFilterDto.setPageNumber(0);
-        messageFilterDto.setPageSize(RECENT_MESSAGE_WINDOW);
+        messageFilterDto.setPageSize(noteBookRecentMessageWindow());
         messageFilterDto.setSortBy("createdAt");
         messageFilterDto.setSortDir("desc");
 
@@ -236,7 +241,7 @@ public class RagService {
         metadata.setUserId(JwtUtil.getUserId());
         metadata.setOrganizationId(JwtUtil.getOrgId());
         metadata.setFileIds(requestDto.getSourceIds());
-        metadata.setSummaries(Collections.emptySet());
+        metadata.setSummaries(buildSummaryMetadata(noteBookEntity));
 
         RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
             .messages(historyConversations)
@@ -273,6 +278,8 @@ public class RagService {
                             .content(fullAnswer.toString())
                             .source(source.toString())
                             .build());
+
+                    asyncUpdateNoteBookSummary(finalNoteBookId);
                 });
     }
 
@@ -307,11 +314,12 @@ public class RagService {
                         topicId,
                         topicEntity.getConversationSummaryLastMessageId());
 
-                if (topicMessages.size() <= RECENT_MESSAGE_WINDOW) {
+                int recentWindow = topicRecentMessageWindow();
+                if (!shouldSummarize(topicMessages.size(), recentWindow)) {
                     return;
                 }
 
-                int summarizeUntilIndex = topicMessages.size() - RECENT_MESSAGE_WINDOW;
+                int summarizeUntilIndex = topicMessages.size() - recentWindow;
                 List<MessageResponseDto> messagesToSummarize = topicMessages.subList(0, summarizeUntilIndex);
                 UUID lastSummarizedMessageId = messagesToSummarize.get(messagesToSummarize.size() - 1).getId();
 
@@ -325,8 +333,39 @@ public class RagService {
 
                 topicService.updateConversationSummaryInternal(topicId, updatedSummary, lastSummarizedMessageId);
             } catch (Exception e) {
-                e.printStackTrace();
                 log.error("Failed to generate conversation summary for topic {}", topicId, e);
+            }
+        });
+    }
+
+    public void asyncUpdateNoteBookSummary(UUID noteBookId) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                NoteBookEntity noteBookEntity = noteBookService.getEntityById(noteBookId);
+                List<MessageResponseDto> noteBookMessages = messageService.getNoteBookMessagesAfterInternal(
+                        noteBookId,
+                        noteBookEntity.getConversationSummaryLastMessageId());
+
+                int recentWindow = noteBookRecentMessageWindow();
+                if (!shouldSummarize(noteBookMessages.size(), recentWindow)) {
+                    return;
+                }
+
+                int summarizeUntilIndex = noteBookMessages.size() - recentWindow;
+                List<MessageResponseDto> messagesToSummarize = noteBookMessages.subList(0, summarizeUntilIndex);
+                UUID lastSummarizedMessageId = messagesToSummarize.get(messagesToSummarize.size() - 1).getId();
+
+                String updatedSummary = generalSummaryOfNoteBook(
+                        noteBookEntity.getConversationSummary(),
+                        messagesToSummarize);
+
+                if (updatedSummary == null || updatedSummary.isBlank()) {
+                    return;
+                }
+
+                noteBookService.updateConversationSummaryInternal(noteBookId, updatedSummary, lastSummarizedMessageId);
+            } catch (Exception e) {
+                log.error("Failed to generate conversation summary for notebook {}", noteBookId, e);
             }
         });
     }
@@ -359,8 +398,8 @@ public class RagService {
 
     public String generalSummaryOfTopic(String existingSummary, List<MessageResponseDto> messages) throws JsonProcessingException {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("Act as a conversation memory compressor. Your task is to update a long-running topic summary so future chat turns can retain the important context. ");
-        prompt.append("Write in the same language as the conversation. Keep only durable facts, decisions, constraints, preferences, named entities, unresolved questions, and important progress state. ");
+        prompt.append("Act as a conversation memory compressor for Topic chat. Update a long-running topic summary so future turns retain important context. ");
+        prompt.append("Write in the same language as the conversation. Keep only durable facts, decisions, constraints, user preferences, named entities, unresolved questions, and progress state. ");
         prompt.append("Do not include greetings, filler, duplicated wording, or markdown bullets unless they are essential. Return only the updated summary text.\n\n");
         prompt.append("Existing summary:\n");
         prompt.append(isBlank(existingSummary) ? "(none)" : existingSummary);
@@ -380,12 +419,43 @@ public class RagService {
         return ragApiService.general(ragCompletionRequestDto);
     }
 
-    private Set<String> buildSummaryMetadata(TopicEntity topicEntity) {
-        if (topicEntity == null || isBlank(topicEntity.getConversationSummary())) {
-            return Collections.emptySet();
+    public String generalSummaryOfNoteBook(String existingSummary, List<MessageResponseDto> messages) throws JsonProcessingException {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("Act as a conversation memory compressor for Notebook chat. Update the notebook conversation summary for long-term memory. ");
+        prompt.append("Write in the same language as the conversation. Prioritize: requirements, tasks, plans, assumptions, decisions, unresolved action items, and key references from exchanged content. ");
+        prompt.append("Do not include greetings, filler, duplicated wording, or markdown bullets unless essential. Return only the updated summary text.\n\n");
+        prompt.append("Existing summary:\n");
+        prompt.append(isBlank(existingSummary) ? "(none)" : existingSummary);
+        prompt.append("\n\nNew messages to absorb:\n");
+
+        for (MessageResponseDto message : messages) {
+            prompt.append(message.getType()).append(": ").append(message.getContent()).append('\n');
         }
 
-        return Collections.singleton(topicEntity.getConversationSummary());
+        prompt.append("\nUpdated summary:");
+
+        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
+                .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt.toString())))
+                .stream(false)
+                .build();
+
+        return ragApiService.general(ragCompletionRequestDto);
+    }
+
+    private String buildSummaryMetadata(TopicEntity topicEntity) {
+        if (topicEntity == null || isBlank(topicEntity.getConversationSummary())) {
+            return "";
+        }
+
+        return topicEntity.getConversationSummary().replaceAll("\\s+", " ").trim();
+    }
+
+    private String buildSummaryMetadata(NoteBookEntity noteBookEntity) {
+        if (noteBookEntity == null || isBlank(noteBookEntity.getConversationSummary())) {
+            return "";
+        }
+
+        return noteBookEntity.getConversationSummary().replaceAll("\\s+", " ").trim();
     }
 
     private RagCompletionRequestDto.Message createRagMessage(String role, String content) {
@@ -393,6 +463,41 @@ public class RagService {
         message.setRole(role);
         message.setContent(content);
         return message;
+    }
+
+    private boolean shouldSummarize(int totalMessagesAfterCheckpoint, int recentWindow) {
+        return totalMessagesAfterCheckpoint > recentWindow + minMessagesToCompress();
+    }
+
+    private int topicRecentMessageWindow() {
+        return readPositiveMemoryConfig(
+                appProperties.getRag() != null && appProperties.getRag().getMemory() != null
+                        ? appProperties.getRag().getMemory().getTopicRecentMessageWindow()
+                        : null,
+                DEFAULT_TOPIC_RECENT_MESSAGE_WINDOW);
+    }
+
+    private int noteBookRecentMessageWindow() {
+        return readPositiveMemoryConfig(
+                appProperties.getRag() != null && appProperties.getRag().getMemory() != null
+                        ? appProperties.getRag().getMemory().getNoteBookRecentMessageWindow()
+                        : null,
+                DEFAULT_NOTEBOOK_RECENT_MESSAGE_WINDOW);
+    }
+
+    private int minMessagesToCompress() {
+        return readPositiveMemoryConfig(
+                appProperties.getRag() != null && appProperties.getRag().getMemory() != null
+                        ? appProperties.getRag().getMemory().getMinMessagesToCompress()
+                        : null,
+                DEFAULT_MIN_MESSAGES_TO_COMPRESS);
+    }
+
+    private int readPositiveMemoryConfig(Integer configured, int defaultValue) {
+        if (configured == null || configured <= 0) {
+            return defaultValue;
+        }
+        return configured;
     }
 
     private boolean isBlank(String value) {

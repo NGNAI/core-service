@@ -81,6 +81,9 @@ public enum ApiResponseStatus {
 
     MESSAGE_ID_NOT_EXISTS(1050, "Topic ID does not exist", HttpStatus.NOT_FOUND),
     MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1051, "Message cannot be null or empty", HttpStatus.BAD_REQUEST),
+    MESSAGE_FEEDBACK_NO_CHANGE(1128, "Message feedback has no change", HttpStatus.BAD_REQUEST),
+    MESSAGE_FEEDBACK_CAN_NOT_BE_NULL_OR_EMPTY(1126, "Message feedback cannot be null or empty", HttpStatus.BAD_REQUEST),
+    INVALID_MESSAGE_FEEDBACK_VALUE(1127, "Invalid message feedback value", HttpStatus.BAD_REQUEST),
     RAG_SCOPE_CAN_NOT_BE_NULL_OR_EMPTY(1052, "Scope cannot be null or empty", HttpStatus.BAD_REQUEST),
     INVALID_RAG_SCOPE_VALUE(1053, "Invalid scope value", HttpStatus.BAD_REQUEST),
     UNAUTHENTICATED(1054, "Unauthenticated", HttpStatus.UNAUTHORIZED),

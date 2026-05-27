@@ -40,6 +40,15 @@ public class AppProperties {
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Rag {
         String url;
+        Memory memory;
+    }
+
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Memory {
+        Integer topicRecentMessageWindow;
+        Integer noteBookRecentMessageWindow;
+        Integer minMessagesToCompress;
     }
     
     @Data
