@@ -44,6 +44,12 @@ public class NoteBookEntity {
     @Column(name = "instruction", nullable = true, columnDefinition = "TEXT")
     String instruction;
 
+    @Column(name = "conversation_summary", nullable = true, columnDefinition = "TEXT")
+    String conversationSummary;
+
+    @Column(name = "conversation_summary_last_message_id", nullable = true)
+    UUID conversationSummaryLastMessageId;
+
     @Embedded
     AuditEmbed audit= new AuditEmbed();
 

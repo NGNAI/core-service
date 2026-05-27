@@ -34,6 +34,9 @@ public class EnumValuesValidator implements ConstraintValidator<EnumValue, CharS
             acceptedValues.addAll(Stream.of(DataSource.values()).map(DataSource::name).toList());
         }else if (annotation.enumClass() == MessageParentType.class) {
             acceptedValues.addAll(Stream.of(DataSource.values()).map(DataSource::getValue).toList());
+        } else if (annotation.enumClass() == MessageFeedbackType.class) {
+            acceptedValues.addAll(Stream.of(MessageFeedbackType.values()).map(MessageFeedbackType::getValue).toList());
+            acceptedValues.addAll(Stream.of(MessageFeedbackType.values()).map(MessageFeedbackType::name).toList());
         } else {
             acceptedValues.addAll(Arrays.stream(annotation.enumClass().getEnumConstants()).map(e -> {
                 try {

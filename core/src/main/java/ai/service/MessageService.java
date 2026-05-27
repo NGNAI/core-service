@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,19 +14,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ai.dto.own.request.MessageCreateRequestDto;
 import ai.dto.own.request.MessageUpdateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
+import ai.dto.own.response.MessageFeedbackHistoryResponseDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.entity.postgres.MessageEntity;
+import ai.entity.postgres.MessageFeedbackHistoryEntity;
 import ai.entity.postgres.NoteBookEntity;
 import ai.entity.postgres.NotebookMessageEntity;
 import ai.entity.postgres.TopicEntity;
 import ai.entity.postgres.TopicMessageEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.MessageFeedbackType;
 import ai.enums.MessageParentType;
 import ai.enums.MessageType;
 import ai.exeption.AppException;
 import ai.interfaces.MessageRelationEntity;
 import ai.mapper.MessageMapper;
 import ai.model.CustomPairModel;
+import ai.repository.MessageFeedbackHistoryRepository;
 import ai.repository.MessageRepository;
 import ai.repository.NotebookMessagesRepository;
 import ai.repository.TopicMessagesRepository;
@@ -38,14 +43,20 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.time.Instant;
+
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class MessageService {
+    static final int DEFAULT_HISTORY_PAGE_SIZE = 20;
+    static final int MAX_HISTORY_PAGE_SIZE = 100;
+
     TopicService topicService;
     NoteBookService noteBookService;
 
     MessageRepository messageRepository;
+    MessageFeedbackHistoryRepository messageFeedbackHistoryRepository;
     TopicMessagesRepository topicMessagesRepository;
     MessageMapper messageMapper;
     ObjectMapper objectMapper;
@@ -143,6 +154,30 @@ public class MessageService {
         }).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<MessageResponseDto> getNoteBookMessagesAfter(UUID noteBookId, UUID messageId) {
+        noteBookService.validateNoteBookOfUser(noteBookId, JwtUtil.getUserId());
+        return getNoteBookMessagesAfterInternal(noteBookId, messageId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MessageResponseDto> getNoteBookMessagesAfterInternal(UUID noteBookId, UUID messageId) {
+        List<NotebookMessageEntity> noteBookMessages = messageId == null
+                ? notebookMessagesRepository.findByNotebook_IdOrderById_MessageIdAsc(noteBookId)
+                : notebookMessagesRepository.findByNotebook_IdAndId_MessageIdGreaterThanOrderById_MessageIdAsc(noteBookId, messageId);
+
+        return mapNoteBookMessages(noteBookMessages, noteBookId);
+    }
+
+    private List<MessageResponseDto> mapNoteBookMessages(List<NotebookMessageEntity> noteBookMessages, UUID noteBookId) {
+        return noteBookMessages.stream().map(entity -> {
+            MessageResponseDto responseDto = messageMapper.entityToResponseDto(entity.getMessageEntity());
+            responseDto.setParentId(noteBookId);
+            responseDto.setParentType(MessageParentType.NOTEBOOK.getValue());
+            return responseDto;
+        }).toList();
+    }
+
     public MessageResponseDto create(UUID parentId, MessageParentType parentType, MessageCreateRequestDto createRequestDto){
         MessageEntity newEntity = messageRepository.save(messageMapper.createRequestDtoToEntity(createRequestDto));
 
@@ -185,6 +220,129 @@ public class MessageService {
                 .type(MessageType.FILE.getValue())
                 .content(content)
                 .build());
+    }
+
+    public MessageResponseDto updateTopicMessageFeedback(UUID topicId, UUID messageId, MessageFeedbackType feedbackType) {
+        topicService.validateTopicOfUser(topicId, JwtUtil.getUserId());
+        if (!topicMessagesRepository.existsByTopic_IdAndMessage_Id(topicId, messageId)) {
+            throw new AppException(ApiResponseStatus.MESSAGE_ID_NOT_EXISTS);
+        }
+
+        return updateFeedback(messageId, feedbackType.getValue());
+    }
+
+    public MessageResponseDto updateNoteBookMessageFeedback(UUID noteBookId, UUID messageId, MessageFeedbackType feedbackType) {
+        noteBookService.validateNoteBookOfUser(noteBookId, JwtUtil.getUserId());
+        if (!notebookMessagesRepository.existsByNotebook_IdAndMessage_Id(noteBookId, messageId)) {
+            throw new AppException(ApiResponseStatus.MESSAGE_ID_NOT_EXISTS);
+        }
+
+        return updateFeedback(messageId, feedbackType.getValue());
+    }
+
+    @Transactional(readOnly = true)
+    public CustomPairModel<Long, List<MessageFeedbackHistoryResponseDto>> getTopicMessageFeedbackHistory(UUID topicId, UUID messageId, int pageNumber, int pageSize) {
+        topicService.validateTopicOfUser(topicId, JwtUtil.getUserId());
+        if (!topicMessagesRepository.existsByTopic_IdAndMessage_Id(topicId, messageId)) {
+            throw new AppException(ApiResponseStatus.MESSAGE_ID_NOT_EXISTS);
+        }
+
+        return getMessageFeedbackHistory(messageId, pageNumber, pageSize);
+    }
+
+    @Transactional(readOnly = true)
+    public CustomPairModel<Long, List<MessageFeedbackHistoryResponseDto>> getNoteBookMessageFeedbackHistory(UUID noteBookId, UUID messageId, int pageNumber, int pageSize) {
+        noteBookService.validateNoteBookOfUser(noteBookId, JwtUtil.getUserId());
+        if (!notebookMessagesRepository.existsByNotebook_IdAndMessage_Id(noteBookId, messageId)) {
+            throw new AppException(ApiResponseStatus.MESSAGE_ID_NOT_EXISTS);
+        }
+
+        return getMessageFeedbackHistory(messageId, pageNumber, pageSize);
+    }
+
+    private MessageResponseDto updateFeedback(UUID messageId, String feedbackValue) {
+        MessageEntity entity = messageRepository.findById(messageId)
+                .orElseThrow(() -> new AppException(ApiResponseStatus.MESSAGE_ID_NOT_EXISTS));
+
+        String normalizedFeedback = normalizeFeedback(feedbackValue);
+        String previousFeedback = entity.getFeedback();
+
+        if (isSameFeedback(previousFeedback, normalizedFeedback)) {
+            throw new AppException(ApiResponseStatus.MESSAGE_FEEDBACK_NO_CHANGE);
+        }
+
+        entity.setFeedback(normalizedFeedback);
+        MessageEntity updated = messageRepository.save(entity);
+
+        MessageFeedbackHistoryEntity history = new MessageFeedbackHistoryEntity();
+        history.setMessage(updated);
+        history.setBeforeFeedback(previousFeedback);
+        history.setAfterFeedback(normalizedFeedback);
+        messageFeedbackHistoryRepository.save(history);
+
+        return messageMapper.entityToResponseDto(updated);
+    }
+
+        private CustomPairModel<Long, List<MessageFeedbackHistoryResponseDto>> getMessageFeedbackHistory(UUID messageId, int pageNumber, int pageSize) {
+        int normalizedPageNumber = Math.max(pageNumber, 0);
+        int normalizedPageSize = pageSize <= 0
+            ? DEFAULT_HISTORY_PAGE_SIZE
+            : Math.min(pageSize, MAX_HISTORY_PAGE_SIZE);
+
+        Page<MessageFeedbackHistoryEntity> page = messageFeedbackHistoryRepository
+            .findByMessage_IdOrderByAudit_CreatedAtDesc(
+                messageId,
+                PageRequest.of(normalizedPageNumber, normalizedPageSize));
+
+        List<MessageFeedbackHistoryResponseDto> data = page.getContent().stream()
+            .map(this::mapFeedbackHistory)
+            .toList();
+
+        return new CustomPairModel<>(page.getTotalElements(), data);
+    }
+
+    private MessageFeedbackHistoryResponseDto mapFeedbackHistory(MessageFeedbackHistoryEntity historyEntity) {
+        MessageFeedbackHistoryResponseDto responseDto = new MessageFeedbackHistoryResponseDto();
+        responseDto.setId(historyEntity.getId());
+        responseDto.setMessageId(historyEntity.getMessage().getId());
+        responseDto.setBeforeFeedback(historyEntity.getBeforeFeedback());
+        responseDto.setAfterFeedback(historyEntity.getAfterFeedback());
+        responseDto.setCreatedAt(formatInstant(historyEntity.getAudit().getCreatedAt()));
+        responseDto.setCreatedBy(historyEntity.getAudit().getCreatedBy());
+        responseDto.setUpdatedAt(formatInstant(historyEntity.getAudit().getUpdatedAt()));
+        responseDto.setUpdatedBy(historyEntity.getAudit().getUpdatedBy());
+        return responseDto;
+    }
+
+    private String formatInstant(Instant value) {
+        if (value == null) {
+            return null;
+        }
+        return value.toString();
+    }
+
+    private String normalizeFeedback(String feedbackValue) {
+        if (feedbackValue == null) {
+            return null;
+        }
+
+        if (MessageFeedbackType.NONE.getValue().equalsIgnoreCase(feedbackValue)) {
+            return null;
+        }
+
+        return feedbackValue.trim().toLowerCase();
+    }
+
+    private boolean isSameFeedback(String oldValue, String newValue) {
+        if (oldValue == null && newValue == null) {
+            return true;
+        }
+
+        if (oldValue == null || newValue == null) {
+            return false;
+        }
+
+        return oldValue.equalsIgnoreCase(newValue);
     }
 
     public MessageResponseDto update(UUID messageId, MessageUpdateRequestDto updateRequestDto){

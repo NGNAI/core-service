@@ -25,6 +25,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.own.request.NoteBookCreateConversationRequestDto;
 import ai.dto.own.request.NoteBookCreateRequestDto;
+import ai.dto.own.request.MessageFeedbackRequestDto;
 import ai.dto.own.request.NoteBookRenameTitleRequestDto;
 import ai.dto.own.request.NoteBookSourceAddFilesRequestDto;
 import ai.dto.own.request.NoteBookSourceAddNotesRequestDto;
@@ -33,6 +34,7 @@ import ai.dto.own.request.NoteBookUpdateInstructionRequestDto;
 import ai.dto.own.request.NoteBookUpdateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.request.filter.NoteBookFilterDto;
+import ai.dto.own.response.MessageFeedbackHistoryResponseDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.dto.own.response.NoteBookResponseDto;
 import ai.dto.own.response.NoteBookSourceDownloadData;
@@ -40,6 +42,7 @@ import ai.dto.own.response.NoteBookSourceJobStatusResponseDto;
 import ai.dto.own.response.NoteBookSourcePresignedUrlResponseDto;
 import ai.dto.own.response.NoteBookSourceResponseDto;
 import ai.entity.postgres.NoteBookSourceEntity;
+import ai.enums.MessageFeedbackType;
 import ai.enums.MessageParentType;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
@@ -311,4 +314,35 @@ public class NoteBookController {
             @Valid @RequestBody NoteBookCreateConversationRequestDto requestDto) throws JsonProcessingException {
         return ragService.chatNoteBook(noteBookId, requestDto);
     }
+
+        @PatchMapping("/{noteBookId}/messages/{messageId}/feedback")
+        ResponseEntity<ApiResponseModel<MessageResponseDto>> updateMessageFeedback(
+            @PathVariable UUID noteBookId,
+            @PathVariable UUID messageId,
+            @Valid @RequestBody MessageFeedbackRequestDto requestDto) {
+        return ResponseEntity.ok(
+            ApiResponseModel.<MessageResponseDto>builder()
+                .message("Update message feedback successfully")
+                .data(messageService.updateNoteBookMessageFeedback(
+                    noteBookId,
+                    messageId,
+                    MessageFeedbackType.valueOf(requestDto.getFeedback().trim().toUpperCase())))
+                .build());
+        }
+
+                @GetMapping("/{noteBookId}/messages/{messageId}/feedback/history")
+                ResponseEntity<ApiResponseModel<List<MessageFeedbackHistoryResponseDto>>> getMessageFeedbackHistory(
+                    @PathVariable UUID noteBookId,
+                    @PathVariable UUID messageId,
+                    @RequestParam(defaultValue = "0") int pageNumber,
+                    @RequestParam(defaultValue = "20") int pageSize) {
+                CustomPairModel<Long, List<MessageFeedbackHistoryResponseDto>> result = messageService
+                    .getNoteBookMessageFeedbackHistory(noteBookId, messageId, pageNumber, pageSize);
+                return ResponseEntity.ok(
+                    ApiResponseModel.<List<MessageFeedbackHistoryResponseDto>>builder()
+                        .message("Get notebook message feedback history successfully")
+                        .count(result.getFirst())
+                        .data(result.getSecond())
+                        .build());
+                }
 }

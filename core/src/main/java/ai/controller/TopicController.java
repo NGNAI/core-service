@@ -28,11 +28,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import ai.dto.own.request.TopicCreateConversationRequestDto;
 import ai.dto.own.request.TopicCreateRequestDto;
+import ai.dto.own.response.MessageFeedbackHistoryResponseDto;
+import ai.dto.own.request.MessageFeedbackRequestDto;
 import ai.dto.own.request.TopicRenameTitleRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.request.filter.TopicFilterDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.dto.own.response.TopicResponseDto;
+import ai.enums.MessageFeedbackType;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.MessageService;
@@ -197,4 +200,35 @@ public class TopicController {
 
         return ragService.chatTopic(topicId, requestDto);
     }
+
+    @PatchMapping("/{topicId}/messages/{messageId}/feedback")
+    ResponseEntity<ApiResponseModel<MessageResponseDto>> updateMessageFeedback(
+            @PathVariable UUID topicId,
+            @PathVariable UUID messageId,
+            @Valid @RequestBody MessageFeedbackRequestDto requestDto) {
+        return ResponseEntity.ok(
+                ApiResponseModel.<MessageResponseDto>builder()
+                        .message("Update message feedback successfully")
+                        .data(messageService.updateTopicMessageFeedback(
+                                topicId,
+                                messageId,
+                                MessageFeedbackType.valueOf(requestDto.getFeedback().trim().toUpperCase())))
+                        .build());
+    }
+
+                    @GetMapping("/{topicId}/messages/{messageId}/feedback/history")
+                    ResponseEntity<ApiResponseModel<List<MessageFeedbackHistoryResponseDto>>> getMessageFeedbackHistory(
+                        @PathVariable UUID topicId,
+                        @PathVariable UUID messageId,
+                        @RequestParam(defaultValue = "0") int pageNumber,
+                        @RequestParam(defaultValue = "20") int pageSize) {
+                    CustomPairModel<Long, List<MessageFeedbackHistoryResponseDto>> result = messageService
+                        .getTopicMessageFeedbackHistory(topicId, messageId, pageNumber, pageSize);
+                    return ResponseEntity.ok(
+                        ApiResponseModel.<List<MessageFeedbackHistoryResponseDto>>builder()
+                            .message("Get topic message feedback history successfully")
+                            .count(result.getFirst())
+                            .data(result.getSecond())
+                            .build());
+                    }
 }
