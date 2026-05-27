@@ -15,4 +15,6 @@ public interface TopicMessagesRepository extends JpaRepository<TopicMessageEntit
 	List<TopicMessageEntity> findByTopic_IdOrderById_MessageIdAsc(UUID topicId);
 
 	List<TopicMessageEntity> findByTopic_IdAndId_MessageIdGreaterThanOrderById_MessageIdAsc(UUID topicId, UUID messageId);
+
+	boolean existsByTopic_IdAndMessage_Id(UUID topicId, UUID messageId);
 }
