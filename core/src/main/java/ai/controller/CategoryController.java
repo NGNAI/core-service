@@ -15,6 +15,7 @@ import ai.entity.postgres.NoteBookSourceEntity;
 import ai.enums.DataScope;
 import ai.enums.DataSource;
 import ai.enums.IngestionStatus;
+import ai.enums.MessageFeedbackType;
 import ai.enums.NoteSourceBy;
 import ai.enums.NoteSourceType;
 import ai.model.ApiResponseModel;
@@ -85,6 +86,19 @@ public class CategoryController {
                 ApiResponseModel.<List<NoteBookSourceEntity.VectorStatus>>builder()
                         .message("Get vector statuses successfully")
                         .data(Arrays.asList(NoteBookSourceEntity.VectorStatus.values()))
+                        .build());
+    }
+
+    @GetMapping("/message-feedback-types")
+    ResponseEntity<ApiResponseModel<List<String>>> messageFeedbackTypes() {
+        List<String> feedbackTypes = Arrays.asList(MessageFeedbackType.values()).stream()
+                .map(MessageFeedbackType::getValue)
+                .toList();
+
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<String>>builder()
+                        .message("Get message feedback types successfully")
+                        .data(feedbackTypes)
                         .build());
     }
 

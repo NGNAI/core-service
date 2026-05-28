@@ -465,10 +465,21 @@ public class RagService {
         return message;
     }
 
+    /**
+     * Định nghĩa khi nào cần gọi API tóm tắt lại cuộc hội thoại để cập nhật summary. Nếu tổng số tin nhắn sau checkpoint (tức là tin nhắn chưa được tóm tắt) vượt quá recentWindow + minMessagesToCompress, thì sẽ gọi API tóm tắt.
+     * recentWindow đảm bảo rằng luôn có một số lượng tin nhắn gần đây được giữ nguyên trong summary để duy trì ngữ cảnh tươi mới, trong khi minMessagesToCompress đảm bảo rằng chỉ gọi API tóm tắt khi có đủ tin nhắn mới cần được nén lại, tránh việc gọi API quá thường xuyên với lượng tin nhắn quá ít.
+     * @param totalMessagesAfterCheckpoint tổng số tin nhắn sau checkpoint
+     * @param recentWindow số lượng tin nhắn gần đây được giữ nguyên trong summary
+     * @return true nếu cần tóm tắt, false nếu không
+     */
     private boolean shouldSummarize(int totalMessagesAfterCheckpoint, int recentWindow) {
         return totalMessagesAfterCheckpoint > recentWindow + minMessagesToCompress();
     }
 
+    /**
+     * Đọc cấu hình từ appProperties, nếu không có hoặc không hợp lệ (null hoặc <=0) thì trả về giá trị mặc định.
+     * @return giá trị cấu hình hợp lệ hoặc giá trị mặc định
+    */
     private int topicRecentMessageWindow() {
         return readPositiveMemoryConfig(
                 appProperties.getRag() != null && appProperties.getRag().getMemory() != null
