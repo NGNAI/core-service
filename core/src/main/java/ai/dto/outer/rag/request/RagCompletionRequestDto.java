@@ -41,5 +41,7 @@ public class RagCompletionRequestDto {
         Set<String> fileIds;
         @JsonProperty("summaries")
         String summaries;
+        @JsonProperty("user_instruction")
+        String userInstruction;
     }
 }

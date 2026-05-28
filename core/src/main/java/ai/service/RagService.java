@@ -242,6 +242,7 @@ public class RagService {
         metadata.setOrganizationId(JwtUtil.getOrgId());
         metadata.setFileIds(requestDto.getSourceIds());
         metadata.setSummaries(buildSummaryMetadata(noteBookEntity));
+        metadata.setUserInstruction(noteBookEntity.getInstruction());
 
         RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
             .messages(historyConversations)
