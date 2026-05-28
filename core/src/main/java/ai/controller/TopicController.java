@@ -3,11 +3,6 @@ package ai.controller;
 import java.util.List;
 import java.util.UUID;
 
-import ai.dto.own.request.TopicSourcesAddRequestDto;
-import ai.dto.own.response.TopicSourceDownloadData;
-import ai.dto.own.response.TopicSourcePresignedUrlResponseDto;
-import ai.dto.own.response.TopicSourceResponseDto;
-import ai.enums.MessageParentType;
 import org.springframework.data.util.Pair;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -26,24 +21,28 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
+import ai.dto.own.request.MessageFeedbackRequestDto;
 import ai.dto.own.request.TopicCreateConversationRequestDto;
 import ai.dto.own.request.TopicCreateRequestDto;
-import ai.dto.own.response.MessageFeedbackHistoryResponseDto;
-import ai.dto.own.request.MessageFeedbackRequestDto;
 import ai.dto.own.request.TopicRenameTitleRequestDto;
+import ai.dto.own.request.TopicSourcesAddRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.request.filter.TopicFilterDto;
+import ai.dto.own.response.MessageFeedbackHistoryResponseDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.dto.own.response.TopicResponseDto;
-import ai.enums.MessageFeedbackType;
+import ai.dto.own.response.TopicSourceDownloadData;
+import ai.dto.own.response.TopicSourcePresignedUrlResponseDto;
+import ai.dto.own.response.TopicSourceResponseDto;
+import ai.enums.MessageParentType;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.MessageService;
 import ai.service.RagService;
+import ai.service.TopicService;
 import ai.service.TopicSourceService;
 import ai.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Hidden;
-import ai.service.TopicService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -212,7 +211,7 @@ public class TopicController {
                         .data(messageService.updateTopicMessageFeedback(
                                 topicId,
                                 messageId,
-                                MessageFeedbackType.valueOf(requestDto.getFeedback().trim().toUpperCase())))
+                        requestDto.getFeedback()))
                         .build());
     }
 
