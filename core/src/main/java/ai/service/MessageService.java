@@ -1,5 +1,6 @@
 package ai.service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,8 +43,6 @@ import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-
-import java.time.Instant;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -222,22 +221,22 @@ public class MessageService {
                 .build());
     }
 
-    public MessageResponseDto updateTopicMessageFeedback(UUID topicId, UUID messageId, MessageFeedbackType feedbackType) {
+    public MessageResponseDto updateTopicMessageFeedback(UUID topicId, UUID messageId, String feedbackValue) {
         topicService.validateTopicOfUser(topicId, JwtUtil.getUserId());
         if (!topicMessagesRepository.existsByTopic_IdAndMessage_Id(topicId, messageId)) {
             throw new AppException(ApiResponseStatus.MESSAGE_ID_NOT_EXISTS);
         }
 
-        return updateFeedback(messageId, feedbackType.getValue());
+        return updateFeedback(messageId, feedbackValue);
     }
 
-    public MessageResponseDto updateNoteBookMessageFeedback(UUID noteBookId, UUID messageId, MessageFeedbackType feedbackType) {
+    public MessageResponseDto updateNoteBookMessageFeedback(UUID noteBookId, UUID messageId, String feedbackValue) {
         noteBookService.validateNoteBookOfUser(noteBookId, JwtUtil.getUserId());
         if (!notebookMessagesRepository.existsByNotebook_IdAndMessage_Id(noteBookId, messageId)) {
             throw new AppException(ApiResponseStatus.MESSAGE_ID_NOT_EXISTS);
         }
 
-        return updateFeedback(messageId, feedbackType.getValue());
+        return updateFeedback(messageId, feedbackValue);
     }
 
     @Transactional(readOnly = true)
@@ -326,11 +325,16 @@ public class MessageService {
             return null;
         }
 
-        if (MessageFeedbackType.NONE.getValue().equalsIgnoreCase(feedbackValue)) {
+        String normalizedFeedback = feedbackValue.trim().toLowerCase();
+        if (normalizedFeedback.isEmpty()) {
             return null;
         }
 
-        return feedbackValue.trim().toLowerCase();
+        if (!MessageFeedbackType.isSupportedValue(normalizedFeedback)) {
+            throw new AppException(ApiResponseStatus.INVALID_MESSAGE_FEEDBACK_VALUE);
+        }
+
+        return normalizedFeedback;
     }
 
     private boolean isSameFeedback(String oldValue, String newValue) {

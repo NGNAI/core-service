@@ -10,8 +10,12 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum MessageFeedbackType {
     LIKE("like"),
-    DISLIKE("dislike"),
-    NONE("none");
+    DISLIKE("dislike");
 
     String value;
+
+    public static boolean isSupportedValue(String value) {
+        return java.util.Arrays.stream(values())
+                .anyMatch(type -> type.getValue().equalsIgnoreCase(value));
+    }
 }
