@@ -34,13 +34,25 @@ public class RagCompletionRequestDto {
     public static class Metadata {
         @JsonProperty("user_id")
         UUID userId;
+        
         @JsonProperty("organization_id")
         UUID organizationId;
+
+        @JsonProperty("topic_id")
+        UUID topic_id;
+
+        @JsonProperty("notebook_id")
+        UUID notebook_id;
+
+        @JsonProperty("scopes")
         Set<String> scopes;
+        
         @JsonProperty("file_ids")
         Set<String> fileIds;
+        
         @JsonProperty("summaries")
         String summaries;
+        
         @JsonProperty("user_instruction")
         String userInstruction;
     }
