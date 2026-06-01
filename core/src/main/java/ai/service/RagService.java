@@ -142,6 +142,7 @@ public class RagService {
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
         metadata.setUserId(JwtUtil.getUserId());
         metadata.setOrganizationId(JwtUtil.getOrgId());
+        metadata.setTopic_id(finalTopicId);
         metadata.setScopes(requestDto.getScopes());
         metadata.setFileIds(attachments.stream().map(e -> e.getId().toString()).collect(Collectors.toSet()));
         metadata.setSummaries(buildSummaryMetadata(topicEntity));
@@ -248,6 +249,7 @@ public class RagService {
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
         metadata.setUserId(JwtUtil.getUserId());
         metadata.setOrganizationId(JwtUtil.getOrgId());
+        metadata.setNotebook_id(finalNoteBookId);
         metadata.setFileIds(requestDto.getSourceIds());
         metadata.setSummaries(buildSummaryMetadata(noteBookEntity));
         metadata.setUserInstruction(noteBookEntity.getInstruction());
