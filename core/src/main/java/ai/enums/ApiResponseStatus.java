@@ -161,6 +161,20 @@ public enum ApiResponseStatus {
     NOTE_SORT_DIR_INVALID(1119, "Note sort direction is invalid", HttpStatus.BAD_REQUEST),
     NOTE_SOURCE_BY_INVALID(1124, "Invalid note source by", HttpStatus.BAD_REQUEST),
 
+    DRAFT_ID_NOT_EXISTS(1129, "Draft does not exist", HttpStatus.NOT_FOUND),
+    DRAFT_TYPE_CAN_NOT_BE_NULL_OR_EMPTY(1130, "Draft type cannot be null or empty", HttpStatus.BAD_REQUEST),
+    DRAFT_TITLE_CAN_NOT_BE_NULL_OR_EMPTY(1131, "Draft title cannot be null or empty", HttpStatus.BAD_REQUEST),
+    DRAFT_DESCRIPTION_CAN_NOT_BE_NULL_OR_EMPTY(1132, "Draft description cannot be null or empty", HttpStatus.BAD_REQUEST),
+    DRAFT_PRESENTATION_STYLE_CAN_NOT_BE_NULL_OR_EMPTY(1133, "Draft presentation style cannot be null or empty", HttpStatus.BAD_REQUEST),
+    DRAFT_LANGUAGE_CAN_NOT_BE_NULL_OR_EMPTY(1134, "Draft language cannot be null or empty", HttpStatus.BAD_REQUEST),
+    DRAFT_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY(1135, "Draft content cannot be null or empty", HttpStatus.BAD_REQUEST),
+    DRAFT_GENERATION_FAILED(1136, "Draft generation failed", HttpStatus.BAD_GATEWAY),
+    INVALID_DRAFT_TYPE_VALUE(1137, "Invalid draft type value", HttpStatus.BAD_REQUEST),
+    INVALID_DRAFT_PRESENTATION_STYLE_VALUE(1138, "Invalid draft presentation style value", HttpStatus.BAD_REQUEST),
+    DRAFT_VERSION_NOT_EXISTS(1139, "Draft version does not exist", HttpStatus.NOT_FOUND),
+    DRAFT_ROLLBACK_REASON_CAN_NOT_BE_NULL_OR_EMPTY(1140, "Draft rollback reason cannot be null or empty", HttpStatus.BAD_REQUEST),
+    DRAFT_LAST_VERSION_CAN_NOT_BE_DELETED(1141, "Cannot delete the last draft version", HttpStatus.CONFLICT),
+
     UNEXPECTED(9999, "An unexpected error occurred!",HttpStatus.INTERNAL_SERVER_ERROR),
     
     NOTE_SOURCE_BY_NOT_ALLOW_UPDATE(1125, "Note source by not allow update", HttpStatus.BAD_REQUEST);

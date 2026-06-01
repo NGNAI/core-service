@@ -1,0 +1,442 @@
+package ai.service;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import ai.dto.own.request.DraftSaveRequestDto;
+import ai.dto.own.request.DraftSaveVersionRequestDto;
+import ai.dto.own.response.AuditResponseDto;
+import ai.dto.own.response.DraftResponseDto;
+import ai.dto.own.response.DraftVersionResponseDto;
+import ai.entity.postgres.DraftEntity;
+import ai.entity.postgres.DraftVersionEntity;
+import ai.entity.postgres.embeddable.AuditEmbed;
+import ai.enums.ApiResponseStatus;
+import ai.enums.DraftPresentationStyle;
+import ai.enums.DraftType;
+import ai.exeption.AppException;
+import ai.model.CustomPairModel;
+import ai.repository.DraftRepository;
+import ai.repository.DraftVersionRepository;
+import ai.util.JwtUtil;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Service
+public class DraftService {
+    static final int DEFAULT_PAGE_SIZE = 20;
+    static final int MAX_PAGE_SIZE = 100;
+    static final int CONTENT_PREVIEW_LENGTH = 320;
+
+    DraftRepository draftRepository;
+    DraftVersionRepository draftVersionRepository;
+    UserService userService;
+    OrganizationService organizationService;
+
+    public void validateDraftOfUser(UUID draftId, UUID userId) {
+        if (!draftRepository.existsByIdAndOwnerId(draftId, userId)) {
+            throw new AppException(ApiResponseStatus.PERMISSION_DENIED);
+        }
+    }
+
+    public DraftEntity getEntityById(UUID draftId) {
+        return draftRepository.findById(draftId)
+                .orElseThrow(() -> new AppException(ApiResponseStatus.DRAFT_ID_NOT_EXISTS));
+    }
+
+    @Transactional
+    public DraftResponseDto create(DraftSaveRequestDto requestDto) {
+        UUID userId = JwtUtil.getUserId();
+        UUID organizationId = JwtUtil.getOrgId();
+
+        DraftEntity entity = new DraftEntity();
+        entity.setType(normalizeDraftType(requestDto.getType()));
+        entity.setTitle(normalizeRequired(requestDto.getTitle(), ApiResponseStatus.DRAFT_TITLE_CAN_NOT_BE_NULL_OR_EMPTY));
+        entity.setDetailedDescription(normalizeRequired(
+                requestDto.getDetailedDescription(),
+                ApiResponseStatus.DRAFT_DESCRIPTION_CAN_NOT_BE_NULL_OR_EMPTY));
+        entity.setPresentationStyle(normalizePresentationStyle(requestDto.getPresentationStyle()));
+        entity.setLanguage(normalizeRequired(requestDto.getLanguage(), ApiResponseStatus.DRAFT_LANGUAGE_CAN_NOT_BE_NULL_OR_EMPTY));
+        entity.setTone(normalizeNullable(requestDto.getTone()));
+        entity.setTargetAudience(normalizeNullable(requestDto.getTargetAudience()));
+        entity.setOutputLength(normalizeNullable(requestDto.getOutputLength()));
+        entity.setFormatInstruction(normalizeNullable(requestDto.getFormatInstruction()));
+        entity.setAdditionalInstruction(normalizeNullable(requestDto.getAdditionalInstruction()));
+        entity.setLatestVersionNumber(0);
+        entity.setOwner(userService.getEntityById(userId));
+        entity.setOrganization(organizationService.getEntityById(organizationId));
+
+        DraftEntity savedDraft = draftRepository.save(entity);
+
+        String generatedContent = normalizeRequired(
+                requestDto.getGeneratedContent(),
+                ApiResponseStatus.DRAFT_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY);
+
+        DraftVersionEntity savedVersion = draftVersionRepository.save(
+                buildVersion(
+                        savedDraft,
+                        1,
+                        entity.getDetailedDescription(),
+                        requestDto.getChangeRequest(),
+                        generatedContent));
+
+        savedDraft.setLatestVersionNumber(savedVersion.getVersionNumber());
+        savedDraft.setLatestContentPreview(buildContentPreview(savedVersion.getGeneratedContent()));
+
+        return mapDraft(draftRepository.save(savedDraft));
+    }
+
+    @Transactional
+    public DraftVersionResponseDto saveVersion(UUID draftId, DraftSaveVersionRequestDto requestDto) {
+        UUID userId = JwtUtil.getUserId();
+        validateDraftOfUser(draftId, userId);
+
+        DraftEntity draft = getEntityById(draftId);
+
+        applyDraftConfigUpdates(draft, requestDto);
+
+        String resolvedDescription = resolveDetailedDescription(draft.getDetailedDescription(), requestDto.getDetailedDescription());
+        draft.setDetailedDescription(resolvedDescription);
+
+        Integer currentVersion = draft.getLatestVersionNumber();
+        int nextVersion = java.util.Objects.requireNonNullElse(currentVersion, 0) + 1;
+
+        String generatedContent = normalizeRequired(
+                requestDto.getGeneratedContent(),
+                ApiResponseStatus.DRAFT_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY);
+
+        DraftVersionEntity savedVersion = draftVersionRepository.save(
+                buildVersion(
+                        draft,
+                        nextVersion,
+                        resolvedDescription,
+                        requestDto.getChangeRequest(),
+                        generatedContent));
+
+        draft.setLatestVersionNumber(nextVersion);
+        draft.setLatestContentPreview(buildContentPreview(generatedContent));
+        draftRepository.save(draft);
+
+        return mapVersion(savedVersion);
+    }
+
+    @Transactional
+    public void deleteVersion(UUID draftId, UUID versionId) {
+        UUID userId = JwtUtil.getUserId();
+        validateDraftOfUser(draftId, userId);
+
+        DraftEntity draft = getEntityById(draftId);
+        DraftVersionEntity versionEntity = getDraftVersionEntity(draftId, versionId);
+
+        if (draftVersionRepository.countByDraft_Id(draftId) <= 1) {
+            throw new AppException(ApiResponseStatus.DRAFT_LAST_VERSION_CAN_NOT_BE_DELETED);
+        }
+
+        draftVersionRepository.delete(versionEntity);
+
+        syncLatestVersionMetadata(draft);
+    }
+
+    @Transactional
+    public DraftVersionResponseDto rollbackToVersion(UUID draftId, UUID versionId, String rollbackReason) {
+        UUID userId = JwtUtil.getUserId();
+        validateDraftOfUser(draftId, userId);
+
+        DraftEntity draft = getEntityById(draftId);
+        DraftVersionEntity targetVersion = getDraftVersionEntity(draftId, versionId);
+
+        String normalizedRollbackReason = normalizeRequired(
+                rollbackReason,
+                ApiResponseStatus.DRAFT_ROLLBACK_REASON_CAN_NOT_BE_NULL_OR_EMPTY);
+
+        Integer currentVersion = draft.getLatestVersionNumber();
+        int nextVersion = java.util.Objects.requireNonNullElse(currentVersion, 0) + 1;
+
+        DraftVersionEntity rollbackVersion = buildVersion(
+                draft,
+                nextVersion,
+                targetVersion.getDetailedDescription(),
+                normalizedRollbackReason,
+                targetVersion.getGeneratedContent());
+
+        DraftVersionEntity savedRollbackVersion = draftVersionRepository.save(rollbackVersion);
+
+        draft.setDetailedDescription(targetVersion.getDetailedDescription());
+        draft.setLatestVersionNumber(nextVersion);
+        draft.setLatestContentPreview(buildContentPreview(targetVersion.getGeneratedContent()));
+        draftRepository.save(draft);
+
+        return mapVersion(savedRollbackVersion);
+    }
+
+    @Transactional(readOnly = true)
+    public DraftResponseDto getById(UUID draftId) {
+        UUID userId = JwtUtil.getUserId();
+        validateDraftOfUser(draftId, userId);
+        return mapDraft(getEntityById(draftId));
+    }
+
+    @Transactional(readOnly = true)
+    public CustomPairModel<Long, List<DraftResponseDto>> getAll(int pageNumber, int pageSize) {
+        UUID userId = JwtUtil.getUserId();
+        UUID organizationId = JwtUtil.getOrgId();
+
+        int normalizedPageNumber = Math.max(pageNumber, 0);
+        int normalizedPageSize = normalizePageSize(pageSize);
+
+        Page<DraftEntity> page = draftRepository.findByOwner_IdAndOrganization_IdOrderByAudit_UpdatedAtDesc(
+                userId,
+                organizationId,
+                PageRequest.of(normalizedPageNumber, normalizedPageSize));
+
+        List<DraftResponseDto> data = page.getContent().stream()
+                .map(this::mapDraft)
+                .toList();
+
+        return new CustomPairModel<>(page.getTotalElements(), data);
+    }
+
+    @Transactional(readOnly = true)
+    public CustomPairModel<Long, List<DraftVersionResponseDto>> getVersions(UUID draftId, int pageNumber, int pageSize) {
+        UUID userId = JwtUtil.getUserId();
+        validateDraftOfUser(draftId, userId);
+
+        int normalizedPageNumber = Math.max(pageNumber, 0);
+        int normalizedPageSize = normalizePageSize(pageSize);
+
+        Page<DraftVersionEntity> page = draftVersionRepository.findByDraft_IdOrderByVersionNumberDesc(
+                draftId,
+                PageRequest.of(normalizedPageNumber, normalizedPageSize));
+
+        List<DraftVersionResponseDto> data = page.getContent().stream()
+                .map(this::mapVersion)
+                .toList();
+
+        return new CustomPairModel<>(page.getTotalElements(), data);
+    }
+
+    @Transactional(readOnly = true)
+    public String getLatestContentOfCurrentUser(UUID draftId) {
+        UUID userId = JwtUtil.getUserId();
+        validateDraftOfUser(draftId, userId);
+
+        return draftVersionRepository.findFirstByDraft_IdOrderByVersionNumberDesc(draftId)
+                .map(DraftVersionEntity::getGeneratedContent)
+                .orElse(null);
+    }
+
+    private DraftVersionEntity getDraftVersionEntity(UUID draftId, UUID versionId) {
+        return draftVersionRepository.findByIdAndDraft_Id(versionId, draftId)
+                .orElseThrow(() -> new AppException(ApiResponseStatus.DRAFT_VERSION_NOT_EXISTS));
+    }
+
+    private void syncLatestVersionMetadata(DraftEntity draft) {
+        draftVersionRepository.findFirstByDraft_IdOrderByVersionNumberDesc(draft.getId())
+                .ifPresentOrElse(
+                        latestVersion -> {
+                            draft.setDetailedDescription(latestVersion.getDetailedDescription());
+                            draft.setLatestVersionNumber(latestVersion.getVersionNumber());
+                            draft.setLatestContentPreview(buildContentPreview(latestVersion.getGeneratedContent()));
+                        },
+                        () -> {
+                            draft.setLatestVersionNumber(0);
+                            draft.setLatestContentPreview(null);
+                        });
+
+        draftRepository.save(draft);
+    }
+
+    private void applyDraftConfigUpdates(DraftEntity draft, DraftSaveVersionRequestDto requestDto) {
+        String title = normalizeNullable(requestDto.getTitle());
+        if (title != null) {
+            draft.setTitle(title);
+        }
+
+        String type = normalizeNullable(requestDto.getType());
+        if (type != null) {
+            draft.setType(normalizeDraftType(type));
+        }
+
+        String presentationStyle = normalizeNullable(requestDto.getPresentationStyle());
+        if (presentationStyle != null) {
+            draft.setPresentationStyle(normalizePresentationStyle(presentationStyle));
+        }
+
+        String language = normalizeNullable(requestDto.getLanguage());
+        if (language != null) {
+            draft.setLanguage(language);
+        }
+
+        String tone = normalizeNullable(requestDto.getTone());
+        if (tone != null) {
+            draft.setTone(tone);
+        }
+
+        String targetAudience = normalizeNullable(requestDto.getTargetAudience());
+        if (targetAudience != null) {
+            draft.setTargetAudience(targetAudience);
+        }
+
+        String outputLength = normalizeNullable(requestDto.getOutputLength());
+        if (outputLength != null) {
+            draft.setOutputLength(outputLength);
+        }
+
+        String formatInstruction = normalizeNullable(requestDto.getFormatInstruction());
+        if (formatInstruction != null) {
+            draft.setFormatInstruction(formatInstruction);
+        }
+
+        String additionalInstruction = normalizeNullable(requestDto.getAdditionalInstruction());
+        if (additionalInstruction != null) {
+            draft.setAdditionalInstruction(additionalInstruction);
+        }
+    }
+
+    private DraftVersionEntity buildVersion(
+            DraftEntity draft,
+            int versionNumber,
+            String detailedDescription,
+            String changeRequest,
+            String generatedContent) {
+        DraftVersionEntity versionEntity = new DraftVersionEntity();
+        versionEntity.setDraft(draft);
+        versionEntity.setVersionNumber(versionNumber);
+        versionEntity.setDetailedDescription(detailedDescription);
+        versionEntity.setChangeRequest(normalizeNullable(changeRequest));
+        versionEntity.setGeneratedContent(generatedContent);
+        return versionEntity;
+    }
+
+    private DraftResponseDto mapDraft(DraftEntity entity) {
+        DraftResponseDto responseDto = new DraftResponseDto();
+        responseDto.setId(entity.getId());
+        responseDto.setOwnerId(entity.getOwner() != null ? entity.getOwner().getId() : null);
+        responseDto.setOrganizationId(entity.getOrganization() != null ? entity.getOrganization().getId() : null);
+        responseDto.setType(entity.getType());
+        responseDto.setTitle(entity.getTitle());
+        responseDto.setDetailedDescription(entity.getDetailedDescription());
+        responseDto.setPresentationStyle(entity.getPresentationStyle());
+        responseDto.setLanguage(entity.getLanguage());
+        responseDto.setTone(entity.getTone());
+        responseDto.setTargetAudience(entity.getTargetAudience());
+        responseDto.setOutputLength(entity.getOutputLength());
+        responseDto.setFormatInstruction(entity.getFormatInstruction());
+        responseDto.setAdditionalInstruction(entity.getAdditionalInstruction());
+        responseDto.setLatestVersionNumber(entity.getLatestVersionNumber());
+        responseDto.setLatestContentPreview(entity.getLatestContentPreview());
+        applyAudit(responseDto, entity.getAudit());
+        return responseDto;
+    }
+
+    private DraftVersionResponseDto mapVersion(DraftVersionEntity entity) {
+        DraftVersionResponseDto responseDto = new DraftVersionResponseDto();
+        responseDto.setId(entity.getId());
+        responseDto.setDraftId(entity.getDraft() != null ? entity.getDraft().getId() : null);
+        responseDto.setVersionNumber(entity.getVersionNumber());
+        responseDto.setDetailedDescription(entity.getDetailedDescription());
+        responseDto.setChangeRequest(entity.getChangeRequest());
+        responseDto.setGeneratedContent(entity.getGeneratedContent());
+        applyAudit(responseDto, entity.getAudit());
+        return responseDto;
+    }
+
+    private void applyAudit(AuditResponseDto responseDto, AuditEmbed audit) {
+        if (audit == null) {
+            return;
+        }
+
+        responseDto.setCreatedAt(formatInstant(audit.getCreatedAt()));
+        responseDto.setCreatedBy(audit.getCreatedBy());
+        responseDto.setUpdatedAt(formatInstant(audit.getUpdatedAt()));
+        responseDto.setUpdatedBy(audit.getUpdatedBy());
+    }
+
+    private String formatInstant(Instant instant) {
+        return instant == null ? null : instant.toString();
+    }
+
+    private String normalizeDraftType(String type) {
+        String normalized = normalizeRequired(type, ApiResponseStatus.DRAFT_TYPE_CAN_NOT_BE_NULL_OR_EMPTY)
+                .toLowerCase(Locale.ROOT);
+
+        if (!DraftType.isSupportedValue(normalized)) {
+            throw new AppException(ApiResponseStatus.INVALID_DRAFT_TYPE_VALUE);
+        }
+
+        return normalized;
+    }
+
+    private String normalizePresentationStyle(String style) {
+        String normalized = normalizeRequired(style, ApiResponseStatus.DRAFT_PRESENTATION_STYLE_CAN_NOT_BE_NULL_OR_EMPTY)
+                .toLowerCase(Locale.ROOT);
+
+        if (!DraftPresentationStyle.isSupportedValue(normalized)) {
+            throw new AppException(ApiResponseStatus.INVALID_DRAFT_PRESENTATION_STYLE_VALUE);
+        }
+
+        return normalized;
+    }
+
+    private String resolveDetailedDescription(String existingValue, String updateValue) {
+        String normalizedUpdate = normalizeNullable(updateValue);
+        if (normalizedUpdate != null) {
+            return normalizedUpdate;
+        }
+
+        String normalizedExisting = normalizeNullable(existingValue);
+        if (normalizedExisting == null) {
+            throw new AppException(ApiResponseStatus.DRAFT_DESCRIPTION_CAN_NOT_BE_NULL_OR_EMPTY);
+        }
+
+        return normalizedExisting;
+    }
+
+    private String buildContentPreview(String content) {
+        String normalized = normalizeNullable(content);
+        if (normalized == null) {
+            return null;
+        }
+
+        if (normalized.length() <= CONTENT_PREVIEW_LENGTH) {
+            return normalized;
+        }
+
+        return normalized.substring(0, CONTENT_PREVIEW_LENGTH) + "...";
+    }
+
+    private int normalizePageSize(int pageSize) {
+        if (pageSize <= 0) {
+            return DEFAULT_PAGE_SIZE;
+        }
+
+        return Math.min(pageSize, MAX_PAGE_SIZE);
+    }
+
+    private String normalizeRequired(String value, ApiResponseStatus statusWhenBlank) {
+        String normalized = normalizeNullable(value);
+        if (normalized == null) {
+            throw new AppException(statusWhenBlank);
+        }
+        return normalized;
+    }
+
+    private String normalizeNullable(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+}
