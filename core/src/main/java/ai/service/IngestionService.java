@@ -1,5 +1,18 @@
 package ai.service;
 
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.multipart.MultipartFile;
+
 import ai.dto.outer.ingestion.response.IngestionDeleteResponseDto;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.outer.ingestion.response.IngestionSummaryResponseDto;
@@ -9,18 +22,6 @@ import ai.enums.DataScope;
 import ai.exeption.AppException;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.Map;
-import java.util.UUID;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
@@ -50,14 +51,15 @@ public class IngestionService {
      * @param visibility
      * @return
      */
-    public IngestionUploadResponseDto uploadRag(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility) {
-        return uploadRag(file, fileId, username, uniId, unitName, visibility, null);
+    public IngestionUploadResponseDto uploadRag(MultipartFile file, String fileId, String userId, String username, String uniId, String unitName, DataScope visibility) {
+        return uploadRag(file, fileId, userId, username, uniId, unitName, visibility, null);
     }
 
-    public IngestionUploadResponseDto uploadRag(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility, String callbackUrl) {
+    public IngestionUploadResponseDto uploadRag(MultipartFile file, String fileId, String userId, String username, String uniId, String unitName, DataScope visibility, String callbackUrl) {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", file.getResource());
         body.add("file_id", fileId);
+        body.add("user_id", userId);
         body.add("user_name", username);
         body.add("unit_id", uniId);
         body.add("unit_name", unitName);
@@ -84,17 +86,18 @@ public class IngestionService {
      * @param fileBytes
      * @param fileName
      * @param fileId
+     * @param userId
      * @param username
      * @param unitId
      * @param unitName
      * @param visibility
      * @return
      */
-    public IngestionUploadResponseDto uploadRag(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility) {
-        return uploadRag(fileBytes, fileName, fileId, username, unitId, unitName, visibility, null);
+    public IngestionUploadResponseDto uploadRag(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility) {
+        return uploadRag(fileBytes, fileName, fileId, userId, username, unitId, unitName, visibility, null);
     }
 
-    public IngestionUploadResponseDto uploadRag(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility, String callbackUrl) {
+    public IngestionUploadResponseDto uploadRag(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String callbackUrl) {
         ByteArrayResource fileResource = new ByteArrayResource(fileBytes) {
             @Override
             public String getFilename() {
@@ -105,6 +108,7 @@ public class IngestionService {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", fileResource);
         body.add("file_id", fileId);
+        body.add("user_id", userId);
         body.add("user_name", username);
         body.add("unit_id", unitId);
         body.add("unit_name", unitName);
@@ -127,14 +131,15 @@ public class IngestionService {
     }
 
 
-    public IngestionUploadResponseDto uploadChat(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility, String topicId) {
-        return uploadChat(file, fileId, username, uniId, unitName, visibility, topicId, null);
+    public IngestionUploadResponseDto uploadChat(MultipartFile file, String fileId, String userId, String username, String uniId, String unitName, DataScope visibility, String topicId) {
+        return uploadChat(file, fileId, userId, username, uniId, unitName, visibility, topicId, null);
     }
 
-    public IngestionUploadResponseDto uploadChat(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility, String topicId, String callbackUrl) {
+    public IngestionUploadResponseDto uploadChat(MultipartFile file, String fileId, String userId, String username, String uniId, String unitName, DataScope visibility, String topicId, String callbackUrl) {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", file.getResource());
         body.add("file_id", fileId);
+        body.add("user_id", userId);
         body.add("user_name", username);
         body.add("unit_id", uniId);
         body.add("unit_name", unitName);
@@ -157,11 +162,11 @@ public class IngestionService {
         }
     }
 
-    public IngestionUploadResponseDto uploadChat(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility, String topicId) {
-        return uploadChat(fileBytes, fileName, fileId, username, unitId, unitName, visibility, topicId, null);
+    public IngestionUploadResponseDto uploadChat(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String topicId) {
+        return uploadChat(fileBytes, fileName, fileId, userId, username, unitId, unitName, visibility, topicId, null);
     }
 
-    public IngestionUploadResponseDto uploadChat(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility, String topicId, String callbackUrl) {
+    public IngestionUploadResponseDto uploadChat(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String topicId, String callbackUrl) {
         ByteArrayResource fileResource = new ByteArrayResource(fileBytes) {
             @Override
             public String getFilename() {
@@ -172,6 +177,7 @@ public class IngestionService {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", fileResource);
         body.add("file_id", fileId);
+        body.add("user_id", userId);
         body.add("user_name", username);
         body.add("unit_id", unitId);
         body.add("unit_name", unitName);
@@ -194,14 +200,15 @@ public class IngestionService {
         }
     }  
 
-    public IngestionUploadResponseDto uploadNoteBook(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility, String notebookId) {
-        return uploadNoteBook(file, fileId, username, uniId, unitName, visibility, notebookId, null);
+    public IngestionUploadResponseDto uploadNoteBook(MultipartFile file, String fileId, String userId, String username, String uniId, String unitName, DataScope visibility, String notebookId) {
+        return uploadNoteBook(file, fileId, userId, username, uniId, unitName, visibility, notebookId, null);
     }
 
-    public IngestionUploadResponseDto uploadNoteBook(MultipartFile file, String fileId, String username, String uniId, String unitName, DataScope visibility, String notebookId, String callbackUrl) {
+    public IngestionUploadResponseDto uploadNoteBook(MultipartFile file, String fileId, String userId, String username, String uniId, String unitName, DataScope visibility, String notebookId, String callbackUrl) {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", file.getResource());
         body.add("file_id", fileId);
+        body.add("user_id", userId);
         body.add("user_name", username);
         body.add("unit_id", uniId);
         body.add("unit_name", unitName);
@@ -224,11 +231,11 @@ public class IngestionService {
         }
     }
 
-    public IngestionUploadResponseDto uploadNoteBook(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility, String notebookId) {
-        return uploadNoteBook(fileBytes, fileName, fileId, username, unitId, unitName, visibility, notebookId, null);
+    public IngestionUploadResponseDto uploadNoteBook(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String notebookId) {
+        return uploadNoteBook(fileBytes, fileName, fileId, userId, username, unitId, unitName, visibility, notebookId, null);
     }
 
-    public IngestionUploadResponseDto uploadNoteBook(byte[] fileBytes, String fileName, String fileId, String username, String unitId, String unitName, DataScope visibility, String notebookId, String callbackUrl) {
+    public IngestionUploadResponseDto uploadNoteBook(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String notebookId, String callbackUrl) {
         ByteArrayResource fileResource = new ByteArrayResource(fileBytes) {
             @Override
             public String getFilename() {
@@ -239,6 +246,7 @@ public class IngestionService {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", fileResource);
         body.add("file_id", fileId);
+        body.add("user_id", userId);
         body.add("user_name", username);
         body.add("unit_id", unitId);
         body.add("unit_name", unitName);

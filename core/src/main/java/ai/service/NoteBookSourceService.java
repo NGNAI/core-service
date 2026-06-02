@@ -1,39 +1,5 @@
 package ai.service;
 
-import ai.AppProperties;
-import ai.dto.outer.ingestion.response.IngestionSummaryResponseDto;
-import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
-import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
-import ai.dto.own.request.NoteBookSourceAddFilesRequestDto;
-import ai.dto.own.request.NoteBookSourceAddNotesRequestDto;
-import ai.dto.own.request.NoteBookSourceAddTextRequestDto;
-import ai.dto.own.response.NoteBookSourceDownloadData;
-import ai.dto.own.response.NoteBookSourceJobStatusResponseDto;
-import ai.dto.own.response.NoteBookSourcePresignedUrlResponseDto;
-import ai.dto.own.response.NoteBookSourceResponseDto;
-import ai.entity.postgres.NoteEntity;
-import ai.entity.postgres.NoteBookEntity;
-import ai.entity.postgres.NoteBookSourceEntity;
-import ai.enums.DataIngestionDeleteStatus;
-import ai.enums.ApiResponseStatus;
-import ai.enums.DataScope;
-import ai.enums.SystemEventSource;
-import ai.enums.SystemEventType;
-import ai.exeption.AppException;
-import ai.mapper.NoteBookSourceMapper;
-import ai.model.CustomPairModel;
-import ai.repository.NoteBookSourceRepository;
-import ai.util.JwtUtil;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -46,6 +12,41 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import ai.AppProperties;
+import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
+import ai.dto.outer.ingestion.response.IngestionSummaryResponseDto;
+import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
+import ai.dto.own.request.NoteBookSourceAddFilesRequestDto;
+import ai.dto.own.request.NoteBookSourceAddNotesRequestDto;
+import ai.dto.own.request.NoteBookSourceAddTextRequestDto;
+import ai.dto.own.response.NoteBookSourceDownloadData;
+import ai.dto.own.response.NoteBookSourceJobStatusResponseDto;
+import ai.dto.own.response.NoteBookSourcePresignedUrlResponseDto;
+import ai.dto.own.response.NoteBookSourceResponseDto;
+import ai.entity.postgres.NoteBookEntity;
+import ai.entity.postgres.NoteBookSourceEntity;
+import ai.entity.postgres.NoteEntity;
+import ai.enums.ApiResponseStatus;
+import ai.enums.DataIngestionDeleteStatus;
+import ai.enums.DataScope;
+import ai.enums.SystemEventSource;
+import ai.enums.SystemEventType;
+import ai.exeption.AppException;
+import ai.mapper.NoteBookSourceMapper;
+import ai.model.CustomPairModel;
+import ai.repository.NoteBookSourceRepository;
+import ai.util.JwtUtil;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -373,6 +374,7 @@ public class NoteBookSourceService {
             String fileName = resolvePayloadFileName(source);
             String callbackUrl = resolveCallbackUrl();
 
+            String userId = source.getOwnerId() != null ? source.getOwnerId().toString() : null;
             String userName = resolveUserName(source);
             String unitId = source.getOrganizationId() != null
                     ? source.getOrganizationId().toString()
@@ -383,6 +385,7 @@ public class NoteBookSourceService {
                     payloadBytes,
                     fileName,
                     source.getId().toString(),
+                    userId,
                     userName,
                     unitId,
                     unitName,

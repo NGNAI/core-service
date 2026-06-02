@@ -1,8 +1,24 @@
 package ai.service;
 
-import ai.dto.own.request.TopicSourcesAddRequestDto;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.util.Pair;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
+import ai.dto.own.request.TopicSourcesAddRequestDto;
 import ai.dto.own.response.TopicSourceDownloadData;
 import ai.dto.own.response.TopicSourcePresignedUrlResponseDto;
 import ai.dto.own.response.TopicSourceResponseDto;
@@ -19,21 +35,6 @@ import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.util.Pair;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -238,6 +239,7 @@ public class TopicSourceService {
                 objectData.getBytes(),
                 resolveFileName(source),
                 source.getId().toString(),
+                user.getId().toString(),
                 user.getUserName(),
                 organization.getId().toString(),
                 organization.getName(),
