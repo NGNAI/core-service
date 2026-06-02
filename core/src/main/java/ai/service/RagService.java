@@ -76,7 +76,7 @@ public class RagService {
      * @return
      * @throws JsonProcessingException
      */
-    public Flux<String> chatTopic(UUID topicId, TopicCreateConversationRequestDto requestDto)
+    public Flux<String> chatTopic(UUID topicId, TopicCreateConversationRequestDto requestDto, List<TopicSourceResponseDto> uploadedSources)
             throws JsonProcessingException {
         UUID capturedUserId = JwtUtil.getUserId();
         UUID capturedOrgId = JwtUtil.getOrgId();
@@ -137,14 +137,18 @@ public class RagService {
                         .build());
 
         // Get attachments of topic - Khoa xử lý tiếp nha
-        List<TopicSourceResponseDto> attachments = topicSourceService.getAllSources(finalTopicId);
+        //List<TopicSourceResponseDto> attachments = topicSourceService.getAllSources(finalTopicId);
 
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
         metadata.setUserId(JwtUtil.getUserId());
         metadata.setOrganizationId(JwtUtil.getOrgId());
         metadata.setTopic_id(finalTopicId);
         metadata.setScopes(requestDto.getScopes());
-        metadata.setFileIds(attachments.stream().map(e -> e.getId().toString()).collect(Collectors.toSet()));
+        //metadata.setFileIds(attachments.stream().map(e -> e.getId().toString()).collect(Collectors.toSet()));
+        // Chỗ fileIds này tạm thời là lấy theo attachment của message đầu vào, sau này có thể điều chỉnh lại nếu muốn lấy attachment theo topic thay vì message (hiện tại FE chưa support upload attachment riêng cho message, mà chỉ có upload attachment chung cho topic, nên tạm thời cứ lấy attachment của message đầu vào đã, sau này nếu FE support upload attachment riêng cho message thì sẽ lấy attachment theo message thay vì topic)
+        metadata.setFileIds(uploadedSources != null
+                ? uploadedSources.stream().map(e -> e.getId().toString()).collect(Collectors.toSet())
+                : Collections.emptySet());
         metadata.setSummaries(buildSummaryMetadata(topicEntity));
 
         RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
