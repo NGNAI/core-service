@@ -1,10 +1,10 @@
 package ai.service;
 
-import java.util.Optional;
-import java.util.UUID;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -30,8 +30,8 @@ import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.DataIngestionDeleteStatus;
-import ai.enums.DataSource;
 import ai.enums.DataScope;
+import ai.enums.DataSource;
 import ai.enums.IngestionStatus;
 import ai.enums.SystemEventSource;
 import ai.enums.SystemEventType;
@@ -157,6 +157,7 @@ public class DataIngestionService {
             IngestionUploadResponseDto ingestionResponse = ingestionService.uploadRag(
                     requestDto.getFile(),
                     dataIngestion.getId().toString(),
+                    user.getId().toString(),
                     user.getUserName(),
                     organization.getId().toString(),
                     organization.getName(),
@@ -297,6 +298,7 @@ public class DataIngestionService {
                     fileBytes,
                     fileName,
                     dataIngestion.getId().toString(),
+                    owner.getId().toString(),
                     owner.getUserName(),
                     organization.getId().toString(),
                     organization.getName(),
@@ -588,6 +590,7 @@ public class DataIngestionService {
                     objectData.getBytes(),
                     dataIngestion.getName(),
                     dataIngestion.getId().toString(),
+                    owner.getId().toString(),
                     owner.getUserName(),
                     organization.getId().toString(),
                     organization.getName(),
