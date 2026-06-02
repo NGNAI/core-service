@@ -190,14 +190,16 @@ public class TopicController {
     public Flux<String> postMessageByTopicIdFlux(
             @PathVariable UUID topicId,
             @Valid @ModelAttribute TopicCreateConversationRequestDto requestDto) throws JsonProcessingException {
+        // Nếu có file đính kèm thì upload file trước, sau đó mới gọi API chatTopic để đảm bảo khi gọi API chatTopic thì file đã được upload và vector đã sẵn sàng, tránh trường hợp gọi API chatTopic mà file chưa được upload xong hoặc vector chưa sẵn sàng dẫn đến lỗi
+        List<TopicSourceResponseDto> uploadedSources = null;
         if (requestDto.getFiles() != null && requestDto.getFiles().length > 0) {
             TopicSourcesAddRequestDto sourceRequest = new TopicSourcesAddRequestDto();
             sourceRequest.setFiles(requestDto.getFiles());
-            List<TopicSourceResponseDto> uploadedSources = topicSourceService.uploadSourcesAndWaitForVectorReady(topicId, sourceRequest);
+            uploadedSources = topicSourceService.uploadSourcesAndWaitForVectorReady(topicId, sourceRequest);
             uploadedSources.forEach(uploadedSource -> messageService.createAttachmentMessage(topicId, uploadedSource));
         }
 
-        return ragService.chatTopic(topicId, requestDto);
+        return ragService.chatTopic(topicId, requestDto, uploadedSources);
     }
 
     @PatchMapping("/{topicId}/messages/{messageId}/feedback")
