@@ -21,8 +21,11 @@ import lombok.extern.slf4j.Slf4j;
 public class PermissionCheckerService {
     OrganizationService organizationService;
     OrganizationUserRoleService ourService;
+    UserService userService;
 
     public boolean canAccess(UUID targetOrg, String resource, String action, String targetResource){
+        if(JwtUtil.getUserId()!=null && userService.getRoot().getId().equals(JwtUtil.getUserId()))
+            return true;
         List<PermissionGrantModel> permissions = ourService.getPermissionGrant(JwtUtil.getUserId(), JwtUtil.getOrgId());
         System.out.println("permissions: " + permissions.size());
         
