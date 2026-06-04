@@ -30,10 +30,12 @@ import ai.util.StringUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
+@Slf4j
 public class RoleService {
     PermissionService permissionService;
 
@@ -103,6 +105,7 @@ public class RoleService {
         Map<UUID, String> mapPermissionScope = requestDto.getPermissions().stream().collect(Collectors.toMap(PermissionAssignRequestDto::getId,PermissionAssignRequestDto::getScope));
         mapPermissionScope.forEach((k,v)->{
            System.out.println("Permission ID: " + k + ", Scope: " + v);
+           log.info("Permission ID: {}, Scope: {}", k, v);
         });
 
         permissions.forEach(permission->{roleEntity.addPermission(permission,mapPermissionScope.get(permission.getId()));});
