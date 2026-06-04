@@ -1,12 +1,13 @@
 package ai.repository;
 
-import ai.entity.postgres.TopicEntity;
+import java.util.UUID;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.UUID;
+import ai.entity.postgres.TopicEntity;
 
 @Repository
 public interface TopicRepository extends JpaRepository<TopicEntity, UUID>, JpaSpecificationExecutor<TopicEntity> {
@@ -17,4 +18,7 @@ public interface TopicRepository extends JpaRepository<TopicEntity, UUID>, JpaSp
           AND t.owner.id = :ownerId
     """)
     boolean existsByIdAndOwnerId(UUID id, UUID ownerId);
+    
+    @Query("SELECT COUNT(t) FROM TopicEntity t")
+    long countAllTopics();
 }
