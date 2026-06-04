@@ -1,5 +1,6 @@
 package ai.service;
 
+import ai.annotation.Audited;
 import ai.dto.own.request.*;
 import ai.dto.own.request.filter.UserFilterDto;
 import ai.dto.own.response.RoleSimplifyResponseDto;
@@ -10,6 +11,8 @@ import ai.entity.postgres.OrganizationUserRoleEntity;
 import ai.entity.postgres.RoleEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.AuditAction;
+import ai.enums.AuditResource;
 import ai.enums.PermissionAction;
 import ai.enums.PermissionResource;
 import ai.enums.PermissionScope;
@@ -215,6 +218,7 @@ public class OrganizationUserRoleService {
         return new CustomPairModel<>(users.getTotalElements(), mapResult.values().stream().toList());
     }
 
+    @Audited(action = AuditAction.ASSIGN, resource = AuditResource.ORG_USER_ROLE, resourceIdExpression = "#arg0", description = "Gán người dùng vào tổ chức: {0}")
     public void assignUsers(UUID id, OrganizationAssignUserRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -234,10 +238,11 @@ public class OrganizationUserRoleService {
         } else {
             role = roleRepository.findByDefaultAssign().orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_DEFAULT_ASSIGN_NOT_EXISTS));
         }
-
+    
         ourRepository.saveAll(users.stream().map(user -> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
     }
 
+    @Audited(action = AuditAction.ASSIGN, resource = AuditResource.ORG_USER_ROLE, resourceIdExpression = "#arg0", description = "Gán vai trò cho người dùng trong tổ chức: {0}")
     public void assignRole(UUID id, UUID roleId,OrganizationAssignRoleRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -262,6 +267,7 @@ public class OrganizationUserRoleService {
         ourRepository.saveAll(users.stream().map(user -> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
     }
 
+    @Audited(action = AuditAction.REMOVE, resource = AuditResource.ORG_USER_ROLE, resourceIdExpression = "#arg0", description = "Gỡ người dùng khỏi tổ chức: {0}")
     public void removeUsers(UUID orgId, OrganizationRemoveUserRequestDto requestDto) {
         if (!orgRepository.existsById(orgId)) throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
 
@@ -278,6 +284,7 @@ public class OrganizationUserRoleService {
         ourRepository.deleteAll(ourList);
     }
 
+    @Audited(action = AuditAction.REMOVE, resource = AuditResource.ORG_USER_ROLE, resourceIdExpression = "#arg0", description = "Gỡ vai trò khỏi người dùng trong tổ chức: {0}")
     public void removeRole(UUID orgId,UUID roleId, OrganizationRemoveRoleRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(orgId).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -300,6 +307,7 @@ public class OrganizationUserRoleService {
         ourRepository.deleteAll(users.stream().map(user -> new OrganizationUserRoleEntity(org, user, role)).collect(Collectors.toSet()));
     }
 
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.ORG_USER_ROLE, resourceIdExpression = "#arg0", description = "Thay thế vai trò trong tổ chức: {0}")
     public void replaceRole(UUID orgId, OrganizationReplaceRoleRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(orgId).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -328,7 +336,8 @@ public class OrganizationUserRoleService {
 
         ourRepository.saveAll(users.stream().map(user -> new OrganizationUserRoleEntity(org, user, newRole)).collect(Collectors.toSet()));
     }
-
+@Audited(action = AuditAction.UPDATE, resource = AuditResource.ORG_USER_ROLE, resourceIdExpression = "#arg0", description = "Đặt lại vai trò trong tổ chức: {0}")
+    
     public void resetRole(UUID orgId, OrganizationResetRoleRequestDto requestDto) {
         OrganizationEntity org = orgRepository.findById(orgId).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 

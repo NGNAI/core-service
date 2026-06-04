@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import ai.annotation.Audited;
 import ai.dto.own.request.DraftSaveRequestDto;
 import ai.dto.own.request.DraftSaveVersionRequestDto;
 import ai.dto.own.response.AuditResponseDto;
@@ -19,6 +20,8 @@ import ai.entity.postgres.DraftEntity;
 import ai.entity.postgres.DraftVersionEntity;
 import ai.entity.postgres.embeddable.AuditEmbed;
 import ai.enums.ApiResponseStatus;
+import ai.enums.AuditAction;
+import ai.enums.AuditResource;
 import ai.enums.DraftPresentationStyle;
 import ai.enums.DraftType;
 import ai.exeption.AppException;
@@ -54,6 +57,7 @@ public class DraftService {
                 .orElseThrow(() -> new AppException(ApiResponseStatus.DRAFT_ID_NOT_EXISTS));
     }
 
+    @Audited(action = AuditAction.CREATE, resource = AuditResource.DRAFT, description = "Tạo bản nháp: {0}")
     @Transactional
     public DraftResponseDto create(DraftSaveRequestDto requestDto) {
         UUID userId = JwtUtil.getUserId();
@@ -97,6 +101,7 @@ public class DraftService {
     }
 
     @Transactional
+    @Audited(action = AuditAction.SAVE_VERSION, resource = AuditResource.DRAFT_VERSION, resourceIdExpression = "#arg0", description = "Lưu phiên bản mới cho draft: {0}")
     public DraftVersionResponseDto saveVersion(UUID draftId, DraftSaveVersionRequestDto requestDto) {
         UUID userId = JwtUtil.getUserId();
         validateDraftOfUser(draftId, userId);
@@ -130,6 +135,7 @@ public class DraftService {
         return mapVersion(savedVersion);
     }
 
+    @Audited(action = AuditAction.DELETE, resource = AuditResource.DRAFT_VERSION, resourceIdExpression = "#arg0", description = "Xoá phiên bản: {0}")
     @Transactional
     public void deleteVersion(UUID draftId, UUID versionId) {
         UUID userId = JwtUtil.getUserId();
@@ -147,6 +153,7 @@ public class DraftService {
         syncLatestVersionMetadata(draft);
     }
 
+    @Audited(action = AuditAction.ROLLBACK, resource = AuditResource.DRAFT, resourceIdExpression = "#arg0", description = "Khôi phục phiên bản draft: {0}")
     @Transactional
     public DraftVersionResponseDto rollbackToVersion(UUID draftId, UUID versionId, String rollbackReason) {
         UUID userId = JwtUtil.getUserId();

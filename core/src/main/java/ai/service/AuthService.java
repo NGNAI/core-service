@@ -1,8 +1,10 @@
 package ai.service;
 
 import ai.AppProperties;
+import ai.annotation.Audited;
 import ai.dto.outer.otp.request.OtpAuthRequestDto;
 import ai.dto.outer.otp.response.OtpAuthResponseDto;
+import ai.dto.own.request.audit.AuditLogRequest;
 import ai.dto.own.request.AuthRequestDto;
 import ai.dto.own.request.IntrospectRequestDto;
 import ai.dto.own.request.OrganizationSelectRequestDto;
@@ -12,6 +14,9 @@ import ai.entity.postgres.OrganizationUserRoleEntity;
 import ai.entity.postgres.RoleEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.AuditAction;
+import ai.enums.AuditResource;
+import ai.enums.AuditStatus;
 import ai.enums.TokenType;
 import ai.exeption.AppException;
 import ai.mapper.OrganizationMapper;
@@ -49,6 +54,7 @@ public class AuthService {
     UserService userService;
     OrganizationService organizationService;
     RoleService roleService;
+    AuditLogService auditLogService;
 
     UserRepository userRepository;
     OrganizationUserRoleRepository ourRepository;
@@ -72,70 +78,92 @@ public class AuthService {
     }
 
     public AuthResponseDto auth(AuthRequestDto authRequestDto) throws JOSEException, JsonProcessingException {
-        UserEntity userEntity = null;
-        if(authRequestDto.getSource().equals("local")){
-            userEntity = userRepository.findByUserNameAndSource(authRequestDto.getUsername(),"local")
-                    .orElseThrow(() -> new AppException(ApiResponseStatus.AUTHENTICATE_FAILED));
+        try {
+            UserEntity userEntity;
+            if (authRequestDto.getSource().equals("local")) {
+                userEntity = userRepository.findByUserNameAndSource(authRequestDto.getUsername(), "local")
+                        .orElseThrow(() -> new AppException(ApiResponseStatus.AUTHENTICATE_FAILED));
 
-            if(!passwordEncoder.matches(authRequestDto.getPassword(),userEntity.getPassword()))
-                throw new AppException(ApiResponseStatus.AUTHENTICATE_FAILED);
-        } else {
-            OtpAuthRequestDto otpAuthRequestDto = new OtpAuthRequestDto(authRequestDto.getUsername(),authRequestDto.getPassword(),"ngn");
-            OtpApiResponseModel<OtpAuthResponseDto> authResponse = otpApiService.auth(otpAuthRequestDto);
-            if(authResponse.isSuccess()) {
-                OtpAuthResponseDto authResponseDto = authResponse.getData();
-
-                userEntity = userRepository.findByUserNameAndSource(authResponseDto.getUserId(),"ldap")
-                        .orElse(new UserEntity());
-
-                userEntity.setUserName(authResponseDto.getUserId());
-                userEntity.setEmail(authResponseDto.getEmail());
-                userEntity.setFirstName(authResponseDto.getFullName());
-                userEntity.setSource("ldap");
-
-                //FIXME remove this after recreate database
-                userEntity.setPassword("");
+                if (!passwordEncoder.matches(authRequestDto.getPassword(), userEntity.getPassword()))
+                    throw new AppException(ApiResponseStatus.AUTHENTICATE_FAILED);
             } else {
-                throw new AppException(ApiResponseStatus.AUTHENTICATE_FAILED);
+                OtpAuthRequestDto otpAuthRequestDto = new OtpAuthRequestDto(authRequestDto.getUsername(), authRequestDto.getPassword(), "ngn");
+                OtpApiResponseModel<OtpAuthResponseDto> authResponse = otpApiService.auth(otpAuthRequestDto);
+                if (authResponse.isSuccess()) {
+                    OtpAuthResponseDto authResponseDto = authResponse.getData();
+
+                    userEntity = userRepository.findByUserNameAndSource(authResponseDto.getUserId(), "ldap")
+                            .orElse(new UserEntity());
+
+                    userEntity.setUserName(authResponseDto.getUserId());
+                    userEntity.setEmail(authResponseDto.getEmail());
+                    userEntity.setFirstName(authResponseDto.getFullName());
+                    userEntity.setSource("ldap");
+
+                    //FIXME remove this after recreate database
+                    userEntity.setPassword("");
+                } else {
+                    throw new AppException(ApiResponseStatus.AUTHENTICATE_FAILED);
+                }
             }
+
+            userEntity.setLastLogin(Instant.now());
+            userEntity = userRepository.save(userEntity);
+
+            UserWithOrgResponseDto userResponse = userMapper.entityToWithOrgResponseDto(userEntity);
+
+            Map<UUID, OrganizationWithUserRoleDto> mapResult = new HashMap<>();
+            Map<UUID, Map<String, Map<String, Map<String, String>>>> mapRolePermission = roleService.getPermissionListOfRole();
+
+            ourRepository.findByUserWithPermission(userResponse.getId()).forEach(our -> {
+                UUID orgId = our.getOrganization().getId();
+                RoleEntity roleEntity = our.getRole();
+                RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(roleEntity);
+                role.setPermissions(mapRolePermission.getOrDefault(role.getId(), Map.of()));
+
+                if (!mapResult.containsKey(orgId)) {
+                    OrganizationWithUserRoleDto orgWithRole = organizationMapper.entityToWithUserRoleResponseDto(our.getOrganization());
+                    orgWithRole.getRoles().add(role);
+                    mapResult.put(orgId, orgWithRole);
+                } else
+                    mapResult.get(orgId).getRoles().add(role);
+            });
+
+            userResponse.getOrganizations().addAll(mapResult.values());
+
+            if (userResponse.getOrganizations().isEmpty())
+                throw new AppException(ApiResponseStatus.USER_NOT_IN_ORG);
+
+            String token = userResponse.getOrganizations().size() == 1
+                    ? generateToken(userEntity, TokenType.ACCESS, userResponse.getOrganizations().iterator().next().getId())
+                    : generateToken(userEntity, TokenType.TEMP, null);
+
+            auditLogService.record(AuditLogRequest.builder()
+                    .action(AuditAction.LOGIN)
+                    .resource(AuditResource.AUTH)
+                    .userId(userEntity.getId())
+                    .userName(userEntity.getUserName())
+                    .success(true)
+                    .description("Đăng nhập thành công: " + userEntity.getUserName())
+                    .build());
+
+            return AuthResponseDto.builder()
+                    .token(token)
+                    .user(userResponse)
+                    .build();
+        } catch (Exception ex) {
+            auditLogService.record(AuditLogRequest.builder()
+                    .action(AuditAction.LOGIN)
+                    .resource(AuditResource.AUTH)
+                    .userName(authRequestDto.getUsername())
+                    .success(false)
+                    .errorMessage(ex.getMessage())
+                    .description("Đăng nhập thất bại: " + authRequestDto.getUsername())
+                    .build());
+            throw ex instanceof AppException appEx
+                    ? appEx
+                    : new AppException(ApiResponseStatus.AUTHENTICATE_FAILED);
         }
-        userEntity.setLastLogin(Instant.now());
-        userEntity = userRepository.save(userEntity);
-
-        UserWithOrgResponseDto userResponse = userMapper.entityToWithOrgResponseDto(userEntity);
-
-        Map<UUID, OrganizationWithUserRoleDto> mapResult = new HashMap<>();
-        Map<UUID, Map<String, Map<String, Map<String, String>>>> mapRolePermission = roleService.getPermissionListOfRole();
-
-        ourRepository.findByUserWithPermission(userResponse.getId()).forEach(our->{
-            UUID orgId = our.getOrganization().getId();
-            RoleEntity roleEntity = our.getRole();
-            RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(roleEntity);
-            role.setPermissions(mapRolePermission.getOrDefault(role.getId(),Map.of()));
-
-            if(!mapResult.containsKey(orgId)) {
-                OrganizationWithUserRoleDto orgWithRole = organizationMapper.entityToWithUserRoleResponseDto(our.getOrganization());
-
-                orgWithRole.getRoles().add(role);
-
-                mapResult.put(orgId, orgWithRole);
-            } else
-                mapResult.get(orgId).getRoles().add(role);
-        });
-
-        userResponse.getOrganizations().addAll(mapResult.values());
-
-        if(userResponse.getOrganizations().isEmpty())
-            throw new AppException(ApiResponseStatus.USER_NOT_IN_ORG);
-
-        String token = userResponse.getOrganizations().size()==1
-                ? generateToken(userEntity, TokenType.ACCESS, userResponse.getOrganizations().iterator().next().getId())
-                : generateToken(userEntity, TokenType.TEMP, null);
-
-        return AuthResponseDto.builder()
-                .token(token)
-                .user(userResponse)
-                .build();
     }
 
     public OrganizationSelectResponseDto selectOrg(OrganizationSelectRequestDto requestDto) throws JOSEException {
@@ -161,10 +189,25 @@ public class AuthService {
 
             organizationWithUserRoleDto.getRoles().add(role);
         });
-        return OrganizationSelectResponseDto.builder()
+        OrganizationSelectResponseDto response = OrganizationSelectResponseDto.builder()
                 .token(generateToken(userEntity, TokenType.ACCESS, orgId))
                 .organization(organizationWithUserRoleDto)
                 .build();
+
+        auditLogService.record(AuditLogRequest.builder()
+                .action(AuditAction.SELECT_ORG)
+                .resource(AuditResource.AUTH)
+                .userId(userId)
+                .userName(userEntity.getUserName())
+                .orgId(orgId)
+                .organizationName(organizationEntity.getName())
+                .resourceId(orgId.toString())
+                .resourceName(organizationEntity.getName())
+                .success(true)
+                .description("Chọn tổ chức: " + organizationEntity.getName())
+                .build());
+
+        return response;
     }
 
     private boolean verifyToken(String token) throws JOSEException, ParseException {

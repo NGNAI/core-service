@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import ai.annotation.Audited;
 import ai.dto.own.request.NoteBookCreateRequestDto;
 import ai.dto.own.request.NoteBookRenameTitleRequestDto;
 import ai.dto.own.request.NoteBookUpdateInstructionRequestDto;
@@ -15,6 +16,8 @@ import ai.dto.own.request.filter.NoteBookFilterDto;
 import ai.dto.own.response.NoteBookResponseDto;
 import ai.entity.postgres.NoteBookEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.AuditAction;
+import ai.enums.AuditResource;
 import ai.exeption.AppException;
 import ai.mapper.NoteBookMapper;
 import ai.model.CustomPairModel;
@@ -69,6 +72,7 @@ public class NoteBookService {
         return new CustomPairModel<>(page.getTotalElements(),page.getContent().stream().map(noteBookMapper::entityToResponseDto).toList());
     }
 
+    @Audited(action = AuditAction.CREATE, resource = AuditResource.NOTEBOOK, description = "Tạo sổ tay: {0}")
     public NoteBookResponseDto create(NoteBookCreateRequestDto createRequestDto){
         NoteBookEntity newEntity = noteBookMapper.createRequestDtoToEntity(createRequestDto);
         newEntity.setOwner(userService.getEntityById(JwtUtil.getUserId()));
@@ -76,12 +80,13 @@ public class NoteBookService {
 
         return noteBookMapper.entityToResponseDto(noteBookRepository.save(newEntity));
     }
-    
+
     public NoteBookResponseDto getById(UUID id){
         validateNoteBookOfUser(id,JwtUtil.getUserId());
         return noteBookMapper.entityToResponseDto(noteBookRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.NOTEBOOK_ID_NOT_EXISTS)));
     }
-    
+
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.NOTEBOOK, resourceIdExpression = "#arg0", description = "Cập nhật sổ tay: {0}")
     public NoteBookResponseDto update(UUID id, NoteBookUpdateRequestDto requestDto){
         validateNoteBookOfUser(id,JwtUtil.getUserId());
         NoteBookEntity entity = noteBookRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.NOTEBOOK_ID_NOT_EXISTS));
@@ -91,7 +96,8 @@ public class NoteBookService {
 
         return noteBookMapper.entityToResponseDto(noteBookRepository.save(entity));
     }
-    
+
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.NOTEBOOK, resourceIdExpression = "#arg0", description = "Đổi tên sổ tay: {0}")
     public NoteBookResponseDto renameTitle(UUID id, NoteBookRenameTitleRequestDto requestDto){
         validateNoteBookOfUser(id,JwtUtil.getUserId());
         NoteBookEntity entity = noteBookRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.NOTEBOOK_ID_NOT_EXISTS));
@@ -100,6 +106,7 @@ public class NoteBookService {
         return noteBookMapper.entityToResponseDto(noteBookRepository.save(entity));
     }
 
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.NOTEBOOK, resourceIdExpression = "#arg0", description = "Cập nhật chỉ dẫn sổ tay: {0}")
     public NoteBookResponseDto updateInstruction(UUID id, NoteBookUpdateInstructionRequestDto requestDto){
         validateNoteBookOfUser(id,JwtUtil.getUserId());
         NoteBookEntity entity = noteBookRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.NOTEBOOK_ID_NOT_EXISTS));
@@ -108,6 +115,7 @@ public class NoteBookService {
         return noteBookMapper.entityToResponseDto(noteBookRepository.save(entity));
     }
 
+    @Audited(action = AuditAction.DELETE, resource = AuditResource.NOTEBOOK, resourceIdExpression = "#arg0", description = "Xoá sổ tay: {0}")
     public void delete(UUID id){
         validateNoteBookOfUser(id,JwtUtil.getUserId());
         noteBookRepository.deleteById(id);

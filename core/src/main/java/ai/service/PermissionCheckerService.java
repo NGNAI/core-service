@@ -1,19 +1,20 @@
 package ai.service;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
 import ai.enums.PermissionAction;
 import ai.enums.PermissionResource;
-import ai.enums.PermissionScope;
 import ai.model.PermissionGrantModel;
 import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
+@Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service("perm")
@@ -22,12 +23,16 @@ public class PermissionCheckerService {
     OrganizationUserRoleService ourService;
 
     public boolean canAccess(UUID targetOrg, String resource, String action, String targetResource){
+        log.info("Checking permission for user {} on resource {} with action {} and target resource {}", JwtUtil.getUserId(), resource, action, targetResource);
+        log.debug("Target organization: {}", targetOrg);
         List<PermissionGrantModel> permissions = ourService.getPermissionGrant(JwtUtil.getUserId(), JwtUtil.getOrgId());
-
+        log.debug("permissions: {}", permissions.size());
+        
         if(permissions==null || permissions.isEmpty())
             return false;
 
         for(PermissionGrantModel permission : permissions) {
+            log.debug("Checking permission: {}", permission);
             if(!matchResourceAction(permission,PermissionResource.valueOf(resource),PermissionAction.valueOf(action),targetResource!=null ? PermissionResource.valueOf(targetResource) : null))
                 continue;
 

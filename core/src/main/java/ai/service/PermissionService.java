@@ -1,5 +1,6 @@
 package ai.service;
 
+import ai.annotation.Audited;
 import ai.dto.own.request.PermissionCreateRequestDto;
 import ai.dto.own.request.PermissionUpdateRequestDto;
 import ai.dto.own.request.filter.PermissionFilterDto;
@@ -8,6 +9,8 @@ import ai.dto.own.response.PermissionWithRoleScopeResponseDto;
 import ai.entity.postgres.PermissionEntity;
 import ai.entity.postgres.RolePermissionEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.AuditAction;
+import ai.enums.AuditResource;
 import ai.exeption.AppException;
 import ai.mapper.PermissionMapper;
 import ai.model.CustomPairModel;
@@ -40,6 +43,7 @@ public class  PermissionService {
         return new CustomPairModel<>(page.getTotalElements(),page.getContent().stream().map(permissionMapper::entityToResponseDto).toList());
     }
 
+    @Audited(action = AuditAction.CREATE, resource = AuditResource.PERMISSION, description = "Tạo quyền: {0}")
     public PermissionResponseDto create(PermissionCreateRequestDto createRequestDto){
         if(permissionRepository.existsByName(createRequestDto.getName()))
             throw new AppException(ApiResponseStatus.PERMISSION_NAME_EXISTED);
@@ -48,6 +52,7 @@ public class  PermissionService {
         return permissionMapper.entityToResponseDto(permissionRepository.save(newEntity));
     }
 
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.PERMISSION, resourceIdExpression = "#arg0", description = "Cập nhật quyền: {0}")
     public PermissionResponseDto update(UUID id, PermissionUpdateRequestDto updateRequestDto){
         PermissionEntity entity = permissionRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.PERMISSION_ID_NOT_EXISTS));
         permissionMapper.updateEntity(entity, updateRequestDto);
@@ -55,6 +60,7 @@ public class  PermissionService {
         return permissionMapper.entityToResponseDto(permissionRepository.save(entity));
     }
 
+    @Audited(action = AuditAction.DELETE, resource = AuditResource.PERMISSION, resourceIdExpression = "#arg0", description = "Xoá quyền: {0}")
     public void delete(UUID id){
         permissionRepository.deleteById(id);
     }

@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import ai.annotation.Audited;
 import ai.dto.own.request.NoteCreateByNoteBookRequestDto;
 import ai.dto.own.request.NoteCreateByTopicRequestDto;
 import ai.dto.own.request.NoteCreateRequestDto;
@@ -18,6 +19,8 @@ import ai.entity.postgres.NoteBookEntity;
 import ai.entity.postgres.NoteEntity;
 import ai.entity.postgres.TopicEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.AuditAction;
+import ai.enums.AuditResource;
 import ai.enums.NoteSourceBy;
 import ai.enums.NoteSourceType;
 import ai.exeption.AppException;
@@ -74,6 +77,7 @@ public class NoteService {
                 page.getContent().stream().map(noteMapper::entityToResponseDto).toList());
     }
 
+    @Audited(action = AuditAction.CREATE, resource = AuditResource.NOTE, description = "Tạo ghi chú: {0}")
     public NoteResponseDto create(NoteCreateRequestDto requestDto) {
         UUID userId = JwtUtil.getUserId();
         UUID orgId = JwtUtil.getOrgId();
@@ -131,6 +135,7 @@ public class NoteService {
         return noteMapper.entityToResponseDto(getEntityById(noteId));
     }
 
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.NOTE, resourceIdExpression = "#arg0", description = "Cập nhật ghi chú: {0}")
     public NoteResponseDto update(UUID noteId, NoteUpdateRequestDto requestDto) {
         UUID userId = JwtUtil.getUserId();
         UUID orgId = JwtUtil.getOrgId();
@@ -151,6 +156,7 @@ public class NoteService {
         return noteMapper.entityToResponseDto(noteRepository.save(note));
     }
 
+    @Audited(action = AuditAction.DELETE, resource = AuditResource.NOTE, resourceIdExpression = "#arg0", description = "Xoá ghi chú: {0}")
     public void delete(UUID noteId) {
         UUID userId = JwtUtil.getUserId();
         validateNoteOfUser(noteId, userId);
