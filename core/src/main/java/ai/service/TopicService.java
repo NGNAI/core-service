@@ -7,12 +7,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import ai.annotation.Audited;
 import ai.dto.own.request.TopicCreateRequestDto;
 import ai.dto.own.request.TopicRenameTitleRequestDto;
 import ai.dto.own.request.filter.TopicFilterDto;
 import ai.dto.own.response.TopicResponseDto;
 import ai.entity.postgres.TopicEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.AuditAction;
+import ai.enums.AuditResource;
 import ai.exeption.AppException;
 import ai.mapper.TopicMapper;
 import ai.model.CustomPairModel;
@@ -68,6 +71,7 @@ public class TopicService {
         return new CustomPairModel<>(page.getTotalElements(),page.getContent().stream().map(topicMapper::entityToResponseDto).toList());
     }
 
+    @Audited(action = AuditAction.CREATE, resource = AuditResource.TOPIC, description = "Tạo chủ đề: {0}")
     public TopicResponseDto create(TopicCreateRequestDto createRequestDto){
         TopicEntity newEntity = topicMapper.createRequestDtoToEntity(createRequestDto);
         newEntity.setOwner(userService.getEntityById(JwtUtil.getUserId()));
@@ -76,6 +80,7 @@ public class TopicService {
         return topicMapper.entityToResponseDto(topicRepository.save(newEntity));
     }
 
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.TOPIC, resourceIdExpression = "#arg0", description = "Đổi tên chủ đề: {0}")
     public TopicResponseDto renameTitle(UUID id, TopicRenameTitleRequestDto requestDto){
         validateTopicOfUser(id,JwtUtil.getUserId());
         TopicEntity entity = topicRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.TOPIC_ID_NOT_EXISTS));
@@ -84,6 +89,7 @@ public class TopicService {
         return topicMapper.entityToResponseDto(topicRepository.save(entity));
     }
 
+    @Audited(action = AuditAction.DELETE, resource = AuditResource.TOPIC, resourceIdExpression = "#arg0", description = "Xoá chủ đề: {0}")
     public void delete(UUID id){
         validateTopicOfUser(id,JwtUtil.getUserId());
         topicRepository.deleteById(id);

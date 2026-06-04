@@ -9,13 +9,17 @@ import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
+import ai.dto.own.request.filter.AuditLogFilterDto;
+import ai.dto.own.response.AuditLogResponseDto;
 import ai.dto.own.response.dashboard.DashboardOverviewDto;
 import ai.dto.own.response.dashboard.DataIngestionStatisticsDto;
 import ai.dto.own.response.dashboard.DraftStatisticsDto;
+import ai.dto.own.response.dashboard.RecentActivitiesDto;
 import ai.dto.own.response.dashboard.TimelineStatisticsDto;
 import ai.enums.DataScope;
 import ai.enums.DataSource;
 import ai.enums.IngestionStatus;
+import ai.model.CustomPairModel;
 import ai.repository.DataIngestionRepository;
 import ai.repository.DraftRepository;
 import ai.repository.NoteBookRepository;
@@ -37,6 +41,7 @@ public class DashboardService {
     NoteBookRepository noteBookRepository;
     UserRepository userRepository;
     OrganizationRepository organizationRepository;
+    AuditLogService auditLogService;
 
     public DashboardOverviewDto getOverview() {
         DashboardOverviewDto dto = new DashboardOverviewDto();
@@ -121,6 +126,18 @@ public class DashboardService {
         }
         
         dto.setDailyStatistics(dailyStats);
+        return dto;
+    }
+
+    /**
+     * Lấy các hoạt động gần đây nhất trong hệ thống dựa trên audit log.
+     * Hỗ trợ filter theo userId, orgId, action, resource, status, khoảng thời gian và keyword.
+     */
+    public RecentActivitiesDto getRecentActivities(AuditLogFilterDto filterDto) {
+        CustomPairModel<Long, List<AuditLogResponseDto>> result = auditLogService.getRecentActivities(filterDto);
+        RecentActivitiesDto dto = new RecentActivitiesDto();
+        dto.setTotal(result.getFirst());
+        dto.setItems(result.getSecond());
         return dto;
     }
 }

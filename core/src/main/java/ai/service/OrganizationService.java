@@ -3,6 +3,9 @@ package ai.service;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import ai.annotation.Audited;
+import ai.enums.AuditAction;
+import ai.enums.AuditResource;
 import ai.enums.PermissionAction;
 import ai.enums.PermissionResource;
 import ai.model.PermissionGrantModel;
@@ -120,6 +123,7 @@ public class OrganizationService {
         return new CustomPairModel<>(page.getTotalElements(),organizations);
     }
 
+    @Audited(action = AuditAction.CREATE, resource = AuditResource.ORG, description = "Tạo tổ chức mới: {0}")
     public OrganizationResponseDto create(OrganizationCreateRequestDto requestDto){
         OrganizationEntity org = orgMapper.createRequestDtoToEntity(requestDto);
 
@@ -131,6 +135,7 @@ public class OrganizationService {
         return orgMapper.entityToResponseDto(orgRepository.save(org));
     }
 
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.ORG, resourceIdExpression = "#arg0", description = "Cập nhật tổ chức: {0}")
     public OrganizationResponseDto update(UUID id, OrganizationUpdateRequestDto requestDto){
         OrganizationEntity org = orgRepository.findById(id).orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
 
@@ -150,6 +155,7 @@ public class OrganizationService {
         return orgMapper.entityToResponseDto(orgRepository.save(org));
     }
 
+    @Audited(action = AuditAction.DELETE, resource = AuditResource.ORG, resourceIdExpression = "#arg0", description = "Xoá tổ chức: {0}")
     public void delete(UUID id) {
         if(orgRepository.countByParentId(id)>0)
             throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EMPTY);

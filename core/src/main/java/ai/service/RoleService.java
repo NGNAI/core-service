@@ -1,5 +1,6 @@
 package ai.service;
 
+import ai.annotation.Audited;
 import ai.dto.own.request.PermissionAssignRequestDto;
 import ai.dto.own.request.RoleCreateRequestDto;
 import ai.dto.own.request.RolePermissionUpdateRequestDto;
@@ -10,6 +11,8 @@ import ai.dto.own.response.RoleResponseDto;
 import ai.entity.postgres.PermissionEntity;
 import ai.entity.postgres.RoleEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.AuditAction;
+import ai.enums.AuditResource;
 import ai.exeption.AppException;
 import ai.mapper.RoleMapper;
 import ai.model.CustomPairModel;
@@ -60,6 +63,7 @@ public class RoleService {
         return new CustomPairModel<>(page.getTotalElements(),roles);
     }
 
+    @Audited(action = AuditAction.CREATE, resource = AuditResource.ROLE, description = "Tạo vai trò: {0}")
     public RoleResponseDto create(RoleCreateRequestDto createRequestDto){
         if(roleRepository.existsByName(createRequestDto.getName()))
             throw new AppException(ApiResponseStatus.ROLE_NAME_EXISTED);
@@ -72,6 +76,7 @@ public class RoleService {
         return roleMapper.entityToResponseDto(roleRepository.save(newEntity));
     }
 
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.ROLE, resourceIdExpression = "#arg0", description = "Cập nhật vai trò: {0}")
     public RoleResponseDto update(UUID id, RoleUpdateRequestDto updateRequestDto){
         if(updateRequestDto.isDefaultAssign())
             roleRepository.deActiveAllDefaultAssign();
@@ -83,6 +88,7 @@ public class RoleService {
         return roleMapper.entityToResponseDto(roleRepository.save(entity));
     }
 
+    @Audited(action = AuditAction.ASSIGN, resource = AuditResource.ROLE, resourceIdExpression = "#arg0", description = "Phân quyền cho vai trò: {0}")
     public RoleResponseDto assignPermissions(UUID roleId, RolePermissionUpdateRequestDto requestDto){
         List<PermissionEntity> permissions = permissionRepository.findAllById(requestDto.getPermissions().stream().map(PermissionAssignRequestDto::getId).collect(Collectors.toSet()));
         RoleEntity roleEntity = roleRepository.findById(roleId).orElseThrow(() -> new AppException(ApiResponseStatus.ROLE_ID_NOT_EXISTS));
@@ -125,6 +131,7 @@ public class RoleService {
                 ));
     }
 
+    @Audited(action = AuditAction.DELETE, resource = AuditResource.ROLE, resourceIdExpression = "#arg0", description = "Xoá vai trò: {0}")
     public void delete(UUID id){
         roleRepository.deleteById(id);
     }

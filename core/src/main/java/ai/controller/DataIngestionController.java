@@ -9,6 +9,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -124,6 +125,7 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Upload data ingestion file", description = "Upload a data ingestion file to MinIO and optionally trigger ingestion")
+        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'CREATE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'CREATE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'CREATE',null)")
         @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> upload(
                         @Valid @ModelAttribute DataIngestionUploadRequestDto requestDto) {
@@ -135,6 +137,7 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Create data ingestion folder", description = "Create a folder node in the data ingestion tree without file upload")
+        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'CREATE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'CREATE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'CREATE',null)")
         @PostMapping("/folders")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> createFolder(
                         @Valid @RequestBody DataIngestionCreateFolderRequestDto requestDto) {
@@ -146,6 +149,7 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Get data ingestion list (folders and files)", description = "Get paginated list of data ingestion items with optional filters. Use formSources to filter by multiple sources (e.g. formSources=SYSTEM&formSources=DOCUMENT)")
+        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'READ',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'READ',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'READ',null)")
         @GetMapping
         ResponseEntity<ApiResponseModel<List<DataIngestionResponseDto>>> list(
                         @ModelAttribute DataIngestionFilterDto filterDto) {
@@ -163,6 +167,7 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Rename or move folder", description = "Update folder name and/or move folder to another parent")
+        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'UPDATE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'UPDATE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'UPDATE',null)")
         @PutMapping("/folders/{dataIngestionId}")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> updateFolder(
                         @PathVariable UUID dataIngestionId,
@@ -175,6 +180,7 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Retry ingestion with failed data file", description = "Retry pushing failed data ingestion into ingestion pipeline")
+        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'UPDATE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'UPDATE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'UPDATE',null)")
         @PostMapping("/{dataIngestionId}/ingestion/retry")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> retryIngestion(
                         @PathVariable UUID dataIngestionId) {
@@ -186,6 +192,7 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Get ingestion job status", description = "Poll ingestion processing status for a data ingestion item")
+        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'READ',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'READ',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'READ',null)")
         @GetMapping("/{dataIngestionId}/ingestion/job-status")
         ResponseEntity<ApiResponseModel<DataIngestionJobStatusResponseDto>> ingestionJobStatus(
                         @PathVariable UUID dataIngestionId) {
@@ -208,6 +215,7 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Delete data ingestion", description = "Delete a single data ingestion item by its ID")
+        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'DELETE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'DELETE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'DELETE',null)")
         @DeleteMapping("/{dataIngestionId}")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> delete(@PathVariable UUID dataIngestionId) {
                 return ResponseEntity.ok(
@@ -218,6 +226,7 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Delete folder", description = "Delete a single folder by its ID, and all its descendant data ingestion items will be deleted as well")
+        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'DELETE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'DELETE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'DELETE',null)")
         @DeleteMapping("/folders/{dataIngestionId}")
         ResponseEntity<ApiResponseModel<Void>> deleteFolder(@PathVariable UUID dataIngestionId) {
                 dataIngestionService.deleteFolderById(dataIngestionId);

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import ai.AppProperties;
+import ai.annotation.Audited;
 import ai.constant.CacheName;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
@@ -29,6 +30,8 @@ import ai.entity.postgres.DataIngestionEntity;
 import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.AuditAction;
+import ai.enums.AuditResource;
 import ai.enums.DataIngestionDeleteStatus;
 import ai.enums.DataScope;
 import ai.enums.DataSource;
@@ -106,6 +109,7 @@ public class DataIngestionService {
      * @param requestDto
      * @return
      */
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Tải lên dữ liệu ingestion")
     @Transactional(noRollbackFor = AppException.class)
     public DataIngestionResponseDto uploadDataIngestion(DataIngestionUploadRequestDto requestDto, DataSource fromSource) {
         return uploadDataIngestion(requestDto, JwtUtil.getUserId(), JwtUtil.getOrgId(), fromSource);
@@ -194,7 +198,8 @@ public class DataIngestionService {
      * Định nghĩa phương thức để tạo thư mục mới, phương thức này sẽ được gọi khi người dùng tạo thư mục mới thông qua API, phương thức sẽ thực hiện các bước sau: 1) xác thực người dùng và tổ chức từ JWT token, 2) tạo bản ghi data ingestion mới trong database với thông tin về thư mục và đánh dấu là folder, trạng thái ingestion sẽ để null vì thư mục không cần ingest, 3) nếu có cung cấp parentId thì sẽ gán thư mục cha cho thư mục mới tạo, nếu parentId không tồn tại hoặc không phải là folder thì sẽ trả về lỗi, tránh trường hợp dữ liệu bị lỗi không thể retry được
      * @param requestDto
      * @return
-     */
+     Audited(action = AuditAction.CREATE, resource = AuditResource.DATA_INGESTION, description = "Tạo thư mục dữ liệu: {0}")
+    @*/
     @Transactional
     public DataIngestionResponseDto createFolder(DataIngestionCreateFolderRequestDto requestDto, DataSource fromSource) {
         UserEntity user = userService.getEntityById(JwtUtil.getUserId());
@@ -481,6 +486,7 @@ public class DataIngestionService {
      * @param requestDto
      * @return
      */
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.DATA_INGESTION, resourceIdExpression = "#arg0", description = "Cập nhật thư mục dữ liệu: {0}")
     @CacheEvict(value = CacheName.DATA_INGESTION_DTO_DETAILS, key = "#dataIngestionId", condition = "#dataIngestionId != null")
     @Transactional
     public DataIngestionResponseDto updateFolder(UUID dataIngestionId, DataIngestionUpdateFolderRequestDto requestDto) {
@@ -554,7 +560,8 @@ public class DataIngestionService {
      * Định nghĩa phương thức để retry một data ingestion đã bị lỗi, phương thức này sẽ được gọi khi người dùng muốn thử lại quá trình ingest cho một data ingestion cụ thể đã ở trạng thái FAILED, phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion theo ID, nếu không tồn tại thì trả về lỗi, 2) kiểm tra xem data ingestion này có hợp lệ để retry hay không (ví dụ: không phải là folder, đang ở trạng thái FAILED, không đang ở trạng thái pending delete), nếu không hợp lệ thì trả về lỗi, 3) gọi MinioService để tải file từ MinIO theo object path đã lưu trong data ingestion, nếu có lỗi xảy ra khi tải file thì trả về lỗi, 4) gọi API của ingestion service để đẩy file sang ingestion service để xử lý lại, nếu có lỗi xảy ra khi gọi API của ingestion service hoặc response trả về không hợp lệ thì sẽ cập nhật trạng thái ingestion của data ingestion này thành FAILED để tránh bị treo ở trạng thái PENDING mãi mãi, đồng thời trả về response cho client để client có thể hiển thị thông báo lỗi chính xác. Phương thức này sẽ không cache kết quả vì kết quả có thể thay đổi sau khi retry
      * @param dataIngestionId
      * @return
-     */
+     Audited(action = AuditAction.INGEST, resource = AuditResource.DATA_INGESTION, resourceIdExpression = "#arg0", description = "Thử lại ingestion: {0}")
+    @*/
     @Transactional(noRollbackFor = AppException.class)
     public DataIngestionResponseDto retryIngestion(UUID dataIngestionId) {
         DataIngestionEntity dataIngestion = dataIngestionRepository.findById(dataIngestionId)
@@ -673,7 +680,8 @@ public class DataIngestionService {
      * Định nghĩa phương thức để xóa một data ingestion theo ID, phương thức này sẽ được gọi khi người dùng muốn xóa một data ingestion cụ thể, phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion theo ID, nếu không tồn tại thì trả về lỗi, 2) kiểm tra xem data ingestion này có hợp lệ để xóa hay không (ví dụ: nếu là folder thì không cho phép xóa bằng API file mà phải gọi API xóa folder, nếu đang ở trạng thái pending delete thì không cho phép xóa nữa), nếu không hợp lệ thì trả về lỗi, 3) cập nhật trạng thái delete của data ingestion thành PENDING_DELETE để đánh dấu là đang chờ xóa, sau đó trả về thông tin data ingestion đã được cập nhật cho client. Thực tế việc xóa sẽ được thực hiện bởi một tiến trình riêng biệt định kỳ gọi phương thức processPendingDeleteQueue để xử lý các data ingestion đang ở trạng thái pending delete nhằm đảm bảo việc xóa được thực hiện kịp thời và tránh trường hợp dữ liệu bị treo ở trạng thái pending delete mãi mãi do lỗi khi xóa trên MinIO hoặc lỗi khi xóa trong database. Phương thức này sẽ xóa cache chi tiết của data ingestion này để lần sau truy cập sẽ lấy thông tin mới nhất từ database
      * @param dataIngestionId
      * @return
-     */
+     Audited(action = AuditAction.DELETE, resource = AuditResource.DATA_INGESTION, resourceIdExpression = "#arg0", description = "Xoá tệp dữ liệu: {0}")
+    @*/
     @CacheEvict(value = CacheName.DATA_INGESTION_DTO_DETAILS, key = "#dataIngestionId", condition = "#dataIngestionId != null")
     @Transactional
     public DataIngestionResponseDto deleteFileById(UUID dataIngestionId) {
@@ -707,7 +715,8 @@ public class DataIngestionService {
      * Định nghĩa phương thức để xóa một thư mục data ingestion theo ID, phương thức này sẽ được gọi khi người dùng muốn xóa một thư mục data ingestion cụ thể, phương thức sẽ thực hiện các bước sau: 1) truy vấn database để lấy thông tin data ingestion theo ID, nếu không tồn tại thì trả về lỗi, 2) kiểm tra xem data ingestion này có phải là folder hay không, nếu không phải là folder thì trả về lỗi vì chỉ cho phép xóa thư mục bằng API này, 3) xóa trực tiếp thư mục này trong database vì việc xóa thư mục sẽ tự động cascade xóa tất cả các data ingestion con bên dưới nó, đồng thời xóa cache chi tiết của data ingestion này để lần sau truy cập sẽ lấy thông tin mới nhất từ database. Phương thức này sẽ không đánh dấu trạng thái delete thành PENDING_DELETE như phương thức xóa file mà sẽ xóa trực tiếp vì việc xóa thư mục thường ít gặp lỗi hơn so với việc xóa file (ví dụ: không cần phải xóa trên MinIO) nên có thể thực hiện trực tiếp để tránh trường hợp dữ liệu bị treo ở trạng thái pending delete mãi mãi do lỗi khi xóa trên MinIO hoặc lỗi khi xóa trong database
      * @param dataIngestionId
      * @return
-     */
+     Audited(action = AuditAction.DELETE, resource = AuditResource.DATA_INGESTION, resourceIdExpression = "#arg0", description = "Xoá mục dữ liệu: {0}")
+    @*/
     @CacheEvict(value = CacheName.DATA_INGESTION_DTO_DETAILS, key = "#dataIngestionId", condition = "#dataIngestionId != null")
     @Transactional
     public DataIngestionResponseDto deleteById(UUID dataIngestionId) {
@@ -749,6 +758,7 @@ public class DataIngestionService {
      * @param dataIngestionId
      */
     @CacheEvict(value = CacheName.DATA_INGESTION_DTO_DETAILS, key = "#dataIngestionId", condition = "#dataIngestionId != null")
+    @Audited(action = AuditAction.DELETE, resource = AuditResource.DATA_INGESTION, resourceIdExpression = "#arg0", description = "Xoá thư mục dữ liệu: {0}")
     @Transactional
     public void deleteFolderById(UUID dataIngestionId) {
         DataIngestionEntity dataIngestion = dataIngestionRepository.findById(dataIngestionId).orElseThrow(() -> new AppException(ApiResponseStatus.DATA_INGESTION_NOT_EXISTS));
