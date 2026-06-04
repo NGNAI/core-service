@@ -1,13 +1,13 @@
 package ai.repository;
 
-import ai.entity.postgres.NoteBookEntity;
-import ai.entity.postgres.TopicEntity;
+import java.util.UUID;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.UUID;
+import ai.entity.postgres.NoteBookEntity;
 
 @Repository
 public interface NoteBookRepository extends JpaRepository<NoteBookEntity, UUID>, JpaSpecificationExecutor<NoteBookEntity> {
@@ -18,4 +18,7 @@ public interface NoteBookRepository extends JpaRepository<NoteBookEntity, UUID>,
           AND t.owner.id = :ownerId
     """)
     boolean existsByIdAndOwnerId(UUID id, UUID ownerId);
+    
+    @Query("SELECT COUNT(n) FROM NoteBookEntity n")
+    long countAllNoteBooks();
 }

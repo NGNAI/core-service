@@ -1,17 +1,17 @@
 package ai.repository;
 
-import ai.entity.postgres.DataIngestionEntity;
-import ai.enums.IngestionStatus;
-import ai.enums.DataIngestionDeleteStatus;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
-import java.util.Optional;
-import java.util.UUID;
+import ai.entity.postgres.DataIngestionEntity;
+import ai.enums.DataIngestionDeleteStatus;
+import ai.enums.IngestionStatus;
 
 @Repository
 public interface DataIngestionRepository extends JpaRepository<DataIngestionEntity, UUID>, JpaSpecificationExecutor<DataIngestionEntity> {
@@ -38,4 +38,16 @@ public interface DataIngestionRepository extends JpaRepository<DataIngestionEnti
             UUID ownerId,
             UUID organizationId,
             DataIngestionDeleteStatus deleteStatus);
+            
+    @Query("SELECT COUNT(d) FROM DataIngestionEntity d")
+    long countAllDataIngestions();
+    
+    @Query("SELECT d.ingestionStatus, COUNT(d) FROM DataIngestionEntity d GROUP BY d.ingestionStatus")
+    java.util.List<java.lang.Object[]> countByStatus();
+    
+    @Query("SELECT d.fromSource, COUNT(d) FROM DataIngestionEntity d GROUP BY d.fromSource")
+    java.util.List<java.lang.Object[]> countBySource();
+    
+    @Query("SELECT d.accessLevel, COUNT(d) FROM DataIngestionEntity d GROUP BY d.accessLevel")
+    java.util.List<java.lang.Object[]> countByAccessLevel();
 }

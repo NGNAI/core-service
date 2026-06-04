@@ -24,4 +24,13 @@ public interface DraftRepository extends JpaRepository<DraftEntity, UUID> {
             UUID ownerId,
             UUID organizationId,
             Pageable pageable);
+            
+    @Query("SELECT COUNT(d) FROM DraftEntity d")
+    long countAllDrafts();
+    
+    @Query("SELECT d.type, COUNT(d) FROM DraftEntity d GROUP BY d.type")
+    java.util.List<java.lang.Object[]> countByType();
+    
+    @Query("SELECT d.presentationStyle, COUNT(d) FROM DraftEntity d GROUP BY d.presentationStyle")
+    java.util.List<java.lang.Object[]> countByPresentationStyle();
 }

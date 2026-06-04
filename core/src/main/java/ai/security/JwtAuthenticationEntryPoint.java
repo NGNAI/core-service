@@ -14,6 +14,10 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException {
         System.out.println("############################ Unauthorized error: " + authException.getMessage());
-        ServletUtil.makeResponse(response, ApiResponseStatus.UNAVAILABLE_FOR_LEGAL_REASONS);
+        if(authException.getMessage().contains("Token invalid")) {
+            ServletUtil.makeResponse(response, ApiResponseStatus.UNAVAILABLE_FOR_LEGAL_REASONS);
+        } else {
+            ServletUtil.makeResponse(response, ApiResponseStatus.UNAUTHENTICATED);
+        }
     }
 }

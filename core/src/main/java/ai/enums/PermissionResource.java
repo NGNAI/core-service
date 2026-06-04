@@ -13,7 +13,10 @@ public enum PermissionResource {
     ORG("ORG", "Đơn vị"),
     USER("USER", "Người dùng"),
     ROLE("ROLE", "Vai trò"),
-    PERMISSION("PERMISSION", "Quyền");
+    PERMISSION("PERMISSION", "Quyền"),
+    DATASET_PERSONAL("DATASET_PERSONAL", "Bộ dữ liệu cá nhân"),
+    DATASET_LOCAL("DATASET_LOCAL", "Bộ dữ liệu đơn vị"),
+    DATASET_GLOBAL("DATASET_GLOBAL", "Bộ dữ liệu công cộng");
 
     String key;
     String name;
