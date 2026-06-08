@@ -113,7 +113,7 @@ public class DataIngestionService {
     @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Tải lên dữ liệu ingestion")
     @Transactional(noRollbackFor = AppException.class)
     public DataIngestionResponseDto uploadDataIngestion(DataIngestionUploadRequestDto requestDto, DataSource fromSource) {
-        return uploadDataIngestion(requestDto, JwtUtil.getUserId(), JwtUtil.getOrgId(), fromSource);
+        return uploadDataIngestion(requestDto, JwtUtil.getUserId(), requestDto.getOrganizationId(), fromSource);
     }
 
     /**
@@ -204,7 +204,7 @@ public class DataIngestionService {
     @Transactional
     public DataIngestionResponseDto createFolder(DataIngestionCreateFolderRequestDto requestDto, DataSource fromSource) {
         UserEntity user = userService.getEntityById(JwtUtil.getUserId());
-        OrganizationEntity organization = organizationService.getEntityById(JwtUtil.getOrgId());
+        OrganizationEntity organization = organizationService.getEntityById(requestDto.getOrganizationId());
 
         DataIngestionEntity dataIngestion = new DataIngestionEntity();
         dataIngestion.setName(requestDto.getName().trim());

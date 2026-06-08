@@ -22,6 +22,10 @@ public class DataIngestionCreateFolderRequestDto {
     @Schema(description = "ID của thư mục cha, nếu muốn tạo thư mục con. Nếu không cung cấp hoặc để null, thư mục sẽ được tạo ở root", example = "123e4567-e89b-12d3-a456-426614174000")
     UUID parentId;
 
+    @NotNull(message = InputValidateKey.DATA_INGESTION_ACCESS_LEVEL_INVALID)
+    @Schema(description = "Organization ID for permission checking, should be provided if the folder is not created under personal scope", example = "123e4567-e89b-12d3-a456-426614174000")
+    UUID organizationId;
+
     @Schema(description = "Mức độ truy cập/phạm vi sử dụng", exampleClasses = DataScope.class) 
     @NotNull(message = InputValidateKey.DATA_INGESTION_ACCESS_LEVEL_INVALID)
     @EnumValue(enumClass = DataScope.class, message = InputValidateKey.DATA_INGESTION_ACCESS_LEVEL_INVALID)

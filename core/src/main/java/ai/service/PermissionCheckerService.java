@@ -39,7 +39,7 @@ public class PermissionCheckerService {
                     return true;
                 }
                 case OWN -> {
-                    //if(permission.getOrgId().equals(targetOrg))
+                    if(permission.getOrgId().equals(targetOrg))
                         return true;
                 }
                 case DESCENDANT -> {
