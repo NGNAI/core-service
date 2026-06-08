@@ -24,7 +24,7 @@ public class PermissionCheckerService {
 
     public boolean canAccess(UUID targetOrg, String resource, String action, String targetResource){
         List<PermissionGrantModel> permissions = ourService.getPermissionGrant(JwtUtil.getUserId(), JwtUtil.getOrgId());
-        System.out.println("permissions: " + permissions.size());
+        System.out.println("Check permissions: " + permissions.size());
         
         if(permissions==null || permissions.isEmpty())
             return false;
@@ -39,7 +39,7 @@ public class PermissionCheckerService {
                     return true;
                 }
                 case OWN -> {
-                    if(permission.getOrgId().equals(targetOrg))
+                    //if(permission.getOrgId().equals(targetOrg))
                         return true;
                 }
                 case DESCENDANT -> {
@@ -54,7 +54,7 @@ public class PermissionCheckerService {
         return false;
     }
 
-    private boolean matchResourceAction(PermissionGrantModel p, PermissionResource resource, PermissionAction action, PermissionResource targetResource) {
+    public boolean matchResourceAction(PermissionGrantModel p, PermissionResource resource, PermissionAction action, PermissionResource targetResource) {
         boolean resourceMatch =
                 p.getResource().equals(resource) || p.getResource().equals(PermissionResource.ALL);
 
@@ -65,4 +65,5 @@ public class PermissionCheckerService {
 
         return resourceMatch && actionMatch && targetResourceMatch;
     }
+
 }

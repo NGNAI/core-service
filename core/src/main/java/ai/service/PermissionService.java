@@ -1,5 +1,13 @@
 package ai.service;
 
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.stereotype.Service;
+
 import ai.annotation.Audited;
 import ai.dto.own.request.PermissionCreateRequestDto;
 import ai.dto.own.request.PermissionUpdateRequestDto;
@@ -18,14 +26,6 @@ import ai.repository.PermissionRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.data.domain.Page;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -45,8 +45,8 @@ public class  PermissionService {
 
     @Audited(action = AuditAction.CREATE, resource = AuditResource.PERMISSION, description = "Tạo quyền: {0}")
     public PermissionResponseDto create(PermissionCreateRequestDto createRequestDto){
-        if(permissionRepository.existsByName(createRequestDto.getName()))
-            throw new AppException(ApiResponseStatus.PERMISSION_NAME_EXISTED);
+        // if(permissionRepository.existsByName(createRequestDto.getName()))
+        //     throw new AppException(ApiResponseStatus.PERMISSION_NAME_EXISTED);
         PermissionEntity newEntity = permissionMapper.createRequestDtoToEntity(createRequestDto);
 
         return permissionMapper.entityToResponseDto(permissionRepository.save(newEntity));

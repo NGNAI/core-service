@@ -2,6 +2,7 @@ package ai.service;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -544,14 +545,19 @@ public class DataIngestionService {
     @Transactional(readOnly = true)
     public Page<DataIngestionResponseDto> getAll(DataIngestionFilterDto filterDto) {
 
-        UUID userId = JwtUtil.getUserId();
-        UUID orgId = JwtUtil.getOrgId();
-
         Specification<DataIngestionEntity> spec = filterDto.createSpec().and((root, query, criteriaBuilder) -> {
-            Predicate orgIdPredicate = criteriaBuilder.equal(root.get("organization").get("id"), orgId);
-            Predicate ownerPredicate = criteriaBuilder.equal(root.get("owner").get("id"), userId);
-            return criteriaBuilder.and(orgIdPredicate, ownerPredicate);
+            List<Predicate> predicates = new ArrayList<Predicate>();
+            if(filterDto.getOrganizationId() !=null ) {
+                predicates.add(criteriaBuilder.equal(root.get("organization").get("id"), filterDto.getOrganizationId()));
+            }
+
+            if(filterDto.getOwnerId() != null){
+                predicates.add(criteriaBuilder.equal(root.get("owner").get("id"), filterDto.getOwnerId()));
+            }
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         });
+
+
         return dataIngestionRepository.findAll(spec, filterDto.createPageable())
                 .map(dataIngestionMapper::entityToResponseDto);
     }

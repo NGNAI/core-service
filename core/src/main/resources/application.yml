@@ -21,7 +21,7 @@ spring:
     database-platform: "org.hibernate.dialect.PostgreSQLDialect"
     hibernate:
       ddl-auto: "update"
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -37,7 +37,10 @@ spring:
 
 logging:
   level:
-    org.springframework.jdbc.core: "DEBUG"
+    org.springframework.jdbc.core: "ERROR"
+    org.springframework.web: "DEBUG"
+    root: "INFO"
+    com.baeldung: "TRACE"
   file:
     name: "logs/application.log"
     path: "logs"

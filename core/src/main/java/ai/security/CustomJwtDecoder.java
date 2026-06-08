@@ -33,10 +33,10 @@ public class CustomJwtDecoder implements JwtDecoder {
     @Override
     public Jwt decode(String token) throws JwtException {
         boolean isValid = authService.introspect(IntrospectRequestDto.builder().token(token).build()).isValid();
-        System.out.println("############################ Token: " + token + ", isValid: " + isValid);
+        //System.out.println("############################ Token: " + token + ", isValid: " + isValid);
 
         if(!isValid) {
-            System.out.println("############################ Token invalid: " + token);
+            //System.out.println("############################ Token invalid: " + token);
             throw new BadJwtException("Token invalid");
         }
 

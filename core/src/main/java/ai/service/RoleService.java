@@ -30,12 +30,10 @@ import ai.util.StringUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
-@Slf4j
 public class RoleService {
     PermissionService permissionService;
 
@@ -103,10 +101,6 @@ public class RoleService {
         roleEntity.getRolePermissions().clear();
 
         Map<UUID, String> mapPermissionScope = requestDto.getPermissions().stream().collect(Collectors.toMap(PermissionAssignRequestDto::getId,PermissionAssignRequestDto::getScope));
-        mapPermissionScope.forEach((k,v)->{
-           System.out.println("Permission ID: " + k + ", Scope: " + v);
-           log.info("Permission ID: {}, Scope: {}", k, v);
-        });
 
         permissions.forEach(permission->{roleEntity.addPermission(permission,mapPermissionScope.get(permission.getId()));});
 
@@ -117,7 +111,7 @@ public class RoleService {
 
 //    @Cacheable(cacheNames = CacheName.ROLE_AND_PERMISSION)
     public Map<UUID, Map<String, Map<String, Map<String, String>>>> getPermissionListOfRole() {
-        System.out.println("getting permission of role");
+        //System.out.println("getting permission of role");
         RoleFilterDto roleFilter = new RoleFilterDto();
         roleFilter.setPageSize(50);
 

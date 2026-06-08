@@ -1,7 +1,22 @@
 package ai.service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+
 import ai.annotation.Audited;
-import ai.dto.own.request.*;
+import ai.dto.own.request.OrganizationAssignRoleRequestDto;
+import ai.dto.own.request.OrganizationAssignUserRequestDto;
+import ai.dto.own.request.OrganizationRemoveRoleRequestDto;
+import ai.dto.own.request.OrganizationRemoveUserRequestDto;
+import ai.dto.own.request.OrganizationReplaceRoleRequestDto;
+import ai.dto.own.request.OrganizationResetRoleRequestDto;
 import ai.dto.own.request.filter.UserFilterDto;
 import ai.dto.own.response.RoleSimplifyResponseDto;
 import ai.dto.own.response.UserResponseDto;
@@ -25,17 +40,15 @@ import ai.repository.OrganizationRepository;
 import ai.repository.OrganizationUserRoleRepository;
 import ai.repository.RoleRepository;
 import ai.repository.UserRepository;
-import jakarta.persistence.criteria.*;
+import jakarta.persistence.criteria.Fetch;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.data.domain.Page;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Service;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -51,7 +64,7 @@ public class OrganizationUserRoleService {
 
 //    @Cacheable(cacheNames = CacheName.USER_PERMISSION_IN_ORG, key = "#userId + ':' + #orgId")
     public List<PermissionGrantModel> getPermissionGrant(UUID userId, UUID orgId) {
-        System.out.println("Getting permission grant");
+        //System.out.println("Getting permission grant");
         Map<UUID, Map<String, Map<String, Map<String, String>>>> mapRolePermission = roleService.getPermissionListOfRole();
 
         return ourRepository.findByUserAndOrgWithPermission(userId, orgId).stream()

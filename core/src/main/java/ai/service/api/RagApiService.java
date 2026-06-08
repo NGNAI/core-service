@@ -1,14 +1,16 @@
 package ai.service.api;
 
-import ai.api.RagApiCore;
-import ai.dto.outer.rag.request.RagCompletionRequestDto;
+import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import ai.api.RagApiCore;
+import ai.dto.outer.rag.request.RagCompletionRequestDto;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
@@ -23,7 +25,7 @@ public class RagApiService {
     }
 
     public Flux<String> noteBookChat(RagCompletionRequestDto requestDto) throws JsonProcessingException {
-        return apiCore.post("/notebook/v1/chat/completions", requestDto);
+        return apiCore.post("/notebook/v2/chat/completions", requestDto);
     }
 
     public String general(RagCompletionRequestDto requestDto) throws JsonProcessingException {
