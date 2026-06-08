@@ -30,12 +30,15 @@ import ai.dto.own.response.DataIngestionDownloadData;
 import ai.dto.own.response.DataIngestionJobStatusResponseDto;
 import ai.dto.own.response.DataIngestionPresignedUrlResponseDto;
 import ai.dto.own.response.DataIngestionResponseDto;
+import ai.entity.postgres.DataIngestionEntity;
+import ai.enums.ApiResponseStatus;
 import ai.enums.DataScope;
 import ai.enums.DataSource;
 import ai.enums.IngestionStatus;
 import ai.enums.PermissionAction;
 import ai.enums.PermissionResource;
 import ai.enums.PermissionScope;
+import ai.exeption.AppException;
 import ai.model.ApiResponseModel;
 import ai.model.PermissionGrantModel;
 import ai.service.DataIngestionService;
@@ -98,6 +101,10 @@ public class DataIngestionController {
         @Operation(summary = "Get details info by id (folder or file)", description = "Get detail of a single data ingestion item")
         @GetMapping("/{dataIngestionId}")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> get(@PathVariable UUID dataIngestionId) {
+                DataIngestionEntity dataIngestion = dataIngestionService.getEntityById(dataIngestionId);
+                if(!permissionCheckerService.canAccess(dataIngestion.getOrganization().getId(), "DATASET_" + dataIngestion.getAccessLevel().name(), "READ", null)){
+                        throw new RuntimeException("You don't have permission to access this data ingestion");
+                }
                 return ResponseEntity.ok(
                                 ApiResponseModel.<DataIngestionResponseDto>builder()
                                                 .message("Get data ingestion successfully")
@@ -136,7 +143,7 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Upload data ingestion file", description = "Upload a data ingestion file to MinIO and optionally trigger ingestion")
-        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'CREATE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'CREATE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'CREATE',null)")
+        @PreAuthorize("@perm.canAccess(#requestDto.organizationId, 'DATASET_' + #requestDto.accessLevel.name(), 'CREATE',null)")
         @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> upload(
                         @Valid @ModelAttribute DataIngestionUploadRequestDto requestDto) {
@@ -148,7 +155,7 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Create data ingestion folder", description = "Create a folder node in the data ingestion tree without file upload")
-        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'CREATE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'CREATE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'CREATE',null)")
+        @PreAuthorize("@perm.canAccess(#requestDto.organizationId, 'DATASET_' + #requestDto.accessLevel.name(), 'CREATE',null)")
         @PostMapping("/folders")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> createFolder(
                         @Valid @RequestBody DataIngestionCreateFolderRequestDto requestDto) {
@@ -160,7 +167,7 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Get data ingestion list (folders and files)", description = "Get paginated list of data ingestion items with optional filters. Use formSources to filter by multiple sources (e.g. formSources=SYSTEM&formSources=DOCUMENT)")
-        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'READ',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'READ',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'READ',null)")
+        @PreAuthorize("@perm.canAccess(#filterDto.organizationId, 'DATASET_' + #filterDto.accessLevel.name(), 'READ',null)")
         @GetMapping("")
         ResponseEntity<ApiResponseModel<List<DataIngestionResponseDto>>> list(
                         @ModelAttribute @Valid DataIngestionFilterDto filterDto) {
@@ -171,22 +178,27 @@ public class DataIngestionController {
                                 filterDto.setOwnerId(JwtUtil.getUserId());
                         }
                         case LOCAL -> {
+                                boolean hasAllScope = false;
                                 // Nếu scope là ALL thì sẽ lấy tất cả data ingestion của org, không cần filter theo owner
                                 for (PermissionGrantModel p : permissions) {
                                         if (p.getResource().equals(PermissionResource.DATASET_LOCAL) && p.getAction().equals(PermissionAction.READ) && p.getScope().equals(PermissionScope.ALL)) {
                                                 filterDto.setOwnerId(null);
+                                                hasAllScope = true;
                                                 break;
                                         }
                                 }
                                 // Nếu scope là OWN thì sẽ filter theo owner
-                                if(filterDto.getOwnerId()==null)
+                                if(!hasAllScope && filterDto.getOwnerId() == null)
                                         filterDto.setOwnerId(JwtUtil.getUserId());
                         }
                         case GLOBAL -> {
+                                boolean hasAllScope = false;
+                                boolean hasDescendantScope = false;
                                 // Nếu scope là ALL thì sẽ lấy tất cả data ingestion của org, không cần filter theo owner
                                 for (PermissionGrantModel p : permissions) {
                                         if (p.getResource().equals(PermissionResource.DATASET_GLOBAL) && p.getAction().equals(PermissionAction.READ) && p.getScope().equals(PermissionScope.ALL)) {
                                                 filterDto.setOwnerId(null);
+                                                hasAllScope = true;
                                                 break;
                                         }
                                 }
@@ -194,11 +206,12 @@ public class DataIngestionController {
                                 // Nếu scope là DESCENDANT thì sẽ lấy tất cả data ingestion của org và descendant org, không cần filter theo owner
                                 if(organizationService.isDescendant(JwtUtil.getOrgId(), filterDto.getOrganizationId())) {
                                         filterDto.setOwnerId(null);
+                                        hasDescendantScope = true;
                                         break;
                                 }
 
                                 // Nếu scope là OWN thì sẽ filter theo owner
-                                if(filterDto.getOwnerId()==null)
+                                if(!hasAllScope && !hasDescendantScope && filterDto.getOwnerId() == null)
                                         filterDto.setOwnerId(JwtUtil.getUserId());
                         } 
                 }                
@@ -217,7 +230,7 @@ public class DataIngestionController {
         
 
         @Operation(summary = "Rename or move folder", description = "Update folder name and/or move folder to another parent")
-        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'CREATE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'CREATE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'CREATE',null)")
+        @PreAuthorize("@perm.canAccess(#requestDto.organizationId, 'DATASET_' + #requestDto.accessLevel.name(), 'CREATE',null)")
         @PutMapping("/folders/{dataIngestionId}")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> updateFolder(
                         @PathVariable UUID dataIngestionId,
@@ -263,9 +276,13 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Delete data ingestion", description = "Delete a single data ingestion item by its ID")
-        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'DELETE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'DELETE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'DELETE',null)")
         @DeleteMapping("/{dataIngestionId}")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> delete(@PathVariable UUID dataIngestionId) {
+                DataIngestionEntity dataIngestion = dataIngestionService.getEntityById(dataIngestionId);
+                if(!permissionCheckerService.canAccess(dataIngestion.getOrganization().getId(), "DATASET_" + dataIngestion.getAccessLevel().name(), "DELETE", null)){
+                        throw new AppException(ApiResponseStatus.PERMISSION_DENIED);
+                }
+
                 return ResponseEntity.ok(
                                 ApiResponseModel.<DataIngestionResponseDto>builder()
                                                 .message("Delete data ingestion successfully")
@@ -274,9 +291,13 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Delete folder", description = "Delete a single folder by its ID, and all its descendant data ingestion items will be deleted as well")
-        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'DELETE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'DELETE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'DELETE',null)")
         @DeleteMapping("/folders/{dataIngestionId}")
         ResponseEntity<ApiResponseModel<Void>> deleteFolder(@PathVariable UUID dataIngestionId) {
+                DataIngestionEntity dataIngestion = dataIngestionService.getEntityById(dataIngestionId);
+                if(!permissionCheckerService.canAccess(dataIngestion.getOrganization().getId(), "DATASET_" + dataIngestion.getAccessLevel().name(), "DELETE", null)){
+                        throw new AppException(ApiResponseStatus.PERMISSION_DENIED);
+                }
+
                 dataIngestionService.deleteFolderById(dataIngestionId);
                 return ResponseEntity.ok(
                                 ApiResponseModel.<Void>builder()
