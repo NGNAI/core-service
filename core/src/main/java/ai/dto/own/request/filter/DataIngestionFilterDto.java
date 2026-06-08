@@ -12,13 +12,15 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 import ai.entity.postgres.DataIngestionEntity;
-import ai.enums.DataSource;
 import ai.enums.ApiResponseStatus;
 import ai.enums.DataScope;
+import ai.enums.DataSource;
 import ai.exeption.AppException;
 import ai.specification.DataIngestionEntitySpecification;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -46,15 +48,24 @@ public class DataIngestionFilterDto extends PageableFilterDto {
             "updatedAt", "audit.updatedAt"
     );
 
-    @Schema(description = "Parent ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
-    UUID parentId;
+    @Schema(description = "Organization ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
+    @NotNull(message = "Organization ID cannot be null")
+    UUID organizationId;
 
     @Schema(description = "Data scope to filter data ingestion", exampleClasses = DataScope.class)
+    @NotNull(message = "Data scope cannot be null")
     DataScope accessLevel;
+
+    @Schema(description = "Owner ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
+    UUID ownerId;
+
+    @Schema(description = "Parent ID to filter data ingestion", example = "123e4567-e89b-12d3-a456-426614174000")
+    UUID parentId;
 
     @Schema(description = "Data source to filter data ingestion", exampleClasses = DataSource.class)
     DataSource fromSource;
 
+    @Hidden
     @Schema(description = "List of data sources to filter data ingestion (supports multiple values)")
     List<DataSource> formSources;
 

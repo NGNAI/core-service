@@ -30,11 +30,19 @@ import ai.dto.own.response.DataIngestionDownloadData;
 import ai.dto.own.response.DataIngestionJobStatusResponseDto;
 import ai.dto.own.response.DataIngestionPresignedUrlResponseDto;
 import ai.dto.own.response.DataIngestionResponseDto;
+import ai.enums.DataScope;
 import ai.enums.DataSource;
 import ai.enums.IngestionStatus;
-import ai.enums.DataScope;
+import ai.enums.PermissionAction;
+import ai.enums.PermissionResource;
+import ai.enums.PermissionScope;
 import ai.model.ApiResponseModel;
+import ai.model.PermissionGrantModel;
 import ai.service.DataIngestionService;
+import ai.service.OrganizationService;
+import ai.service.OrganizationUserRoleService;
+import ai.service.PermissionCheckerService;
+import ai.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,6 +58,9 @@ import lombok.experimental.FieldDefaults;
 @RestController
 public class DataIngestionController {
         DataIngestionService dataIngestionService;
+        OrganizationUserRoleService ourService;
+        PermissionCheckerService permissionCheckerService;
+        OrganizationService organizationService;
 
         @Operation(summary = "Get list of available data ingestion access levels", description = "Get list of available data ingestion access levels")
         @GetMapping("/level")
@@ -150,9 +161,47 @@ public class DataIngestionController {
 
         @Operation(summary = "Get data ingestion list (folders and files)", description = "Get paginated list of data ingestion items with optional filters. Use formSources to filter by multiple sources (e.g. formSources=SYSTEM&formSources=DOCUMENT)")
         @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'READ',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'READ',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'READ',null)")
-        @GetMapping
+        @GetMapping("")
         ResponseEntity<ApiResponseModel<List<DataIngestionResponseDto>>> list(
-                        @ModelAttribute DataIngestionFilterDto filterDto) {
+                        @ModelAttribute @Valid DataIngestionFilterDto filterDto) {
+                List<PermissionGrantModel> permissions = ourService.getPermissionGrant(JwtUtil.getUserId(), JwtUtil.getOrgId());
+                switch (filterDto.getAccessLevel()){
+                        case PERSONAL -> {
+                                // Nếu scope là OWN thì sẽ filter theo owner
+                                filterDto.setOwnerId(JwtUtil.getUserId());
+                        }
+                        case LOCAL -> {
+                                // Nếu scope là ALL thì sẽ lấy tất cả data ingestion của org, không cần filter theo owner
+                                for (PermissionGrantModel p : permissions) {
+                                        if (p.getResource().equals(PermissionResource.DATASET_LOCAL) && p.getAction().equals(PermissionAction.READ) && p.getScope().equals(PermissionScope.ALL)) {
+                                                filterDto.setOwnerId(null);
+                                                break;
+                                        }
+                                }
+                                // Nếu scope là OWN thì sẽ filter theo owner
+                                if(filterDto.getOwnerId()==null)
+                                        filterDto.setOwnerId(JwtUtil.getUserId());
+                        }
+                        case GLOBAL -> {
+                                // Nếu scope là ALL thì sẽ lấy tất cả data ingestion của org, không cần filter theo owner
+                                for (PermissionGrantModel p : permissions) {
+                                        if (p.getResource().equals(PermissionResource.DATASET_GLOBAL) && p.getAction().equals(PermissionAction.READ) && p.getScope().equals(PermissionScope.ALL)) {
+                                                filterDto.setOwnerId(null);
+                                                break;
+                                        }
+                                }
+
+                                // Nếu scope là DESCENDANT thì sẽ lấy tất cả data ingestion của org và descendant org, không cần filter theo owner
+                                if(organizationService.isDescendant(JwtUtil.getOrgId(), filterDto.getOrganizationId())) {
+                                        filterDto.setOwnerId(null);
+                                        break;
+                                }
+
+                                // Nếu scope là OWN thì sẽ filter theo owner
+                                if(filterDto.getOwnerId()==null)
+                                        filterDto.setOwnerId(JwtUtil.getUserId());
+                        } 
+                }                
 
                 // Lấy formSource là SYSTEM và DOCUMENT
                 filterDto.setFormSources(Arrays.asList(DataSource.SYSTEM, DataSource.DOCUMENT));
@@ -165,9 +214,10 @@ public class DataIngestionController {
                                                 .data(page.getContent())
                                                 .build());
         }
+        
 
         @Operation(summary = "Rename or move folder", description = "Update folder name and/or move folder to another parent")
-        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'UPDATE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'UPDATE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'UPDATE',null)")
+        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'CREATE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'CREATE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'CREATE',null)")
         @PutMapping("/folders/{dataIngestionId}")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> updateFolder(
                         @PathVariable UUID dataIngestionId,
@@ -180,7 +230,6 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Retry ingestion with failed data file", description = "Retry pushing failed data ingestion into ingestion pipeline")
-        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'UPDATE',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'UPDATE',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'UPDATE',null)")
         @PostMapping("/{dataIngestionId}/ingestion/retry")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> retryIngestion(
                         @PathVariable UUID dataIngestionId) {
@@ -192,7 +241,6 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Get ingestion job status", description = "Poll ingestion processing status for a data ingestion item")
-        @PreAuthorize("@perm.canAccess(null, 'DATASET_PERSONAL', 'READ',null) || @perm.canAccess(null, 'DATASET_LOCAL', 'READ',null) || @perm.canAccess(null, 'DATASET_GLOBAL', 'READ',null)")
         @GetMapping("/{dataIngestionId}/ingestion/job-status")
         ResponseEntity<ApiResponseModel<DataIngestionJobStatusResponseDto>> ingestionJobStatus(
                         @PathVariable UUID dataIngestionId) {
