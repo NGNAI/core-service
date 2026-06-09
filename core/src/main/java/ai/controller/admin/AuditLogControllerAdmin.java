@@ -32,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/admin/audit-logs")
 @RestController
-public class AuditLogController {
+public class AuditLogControllerAdmin {
 
     AuditLogService auditLogService;
 

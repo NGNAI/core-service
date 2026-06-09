@@ -31,7 +31,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/admin/permissions")
 @RestController
-public class PermissionController {
+public class PermissionControllerAdmin {
     PermissionService permissionService;
 
     @GetMapping
