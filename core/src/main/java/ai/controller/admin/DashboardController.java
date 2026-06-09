@@ -1,4 +1,4 @@
-package ai.controller;
+package ai.controller.admin;
 
 import java.time.LocalDate;
 

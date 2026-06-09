@@ -1,6 +1,24 @@
-package ai.controller;
+package ai.controller.admin;
 
-import ai.dto.own.request.*;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import ai.dto.own.request.OrganizationAssignRoleRequestDto;
+import ai.dto.own.request.OrganizationAssignUserRequestDto;
+import ai.dto.own.request.OrganizationRemoveRoleRequestDto;
+import ai.dto.own.request.OrganizationRemoveUserRequestDto;
+import ai.dto.own.request.OrganizationReplaceRoleRequestDto;
+import ai.dto.own.request.OrganizationResetRoleRequestDto;
 import ai.dto.own.request.filter.UserFilterDto;
 import ai.dto.own.response.UserResponseDto;
 import ai.dto.own.response.UserWithRoleInOrgResponseDto;
@@ -11,13 +29,6 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)

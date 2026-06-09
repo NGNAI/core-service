@@ -1,18 +1,7 @@
-package ai.controller;
-
-import java.util.List;
-import java.util.UUID;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+package ai.controller.admin;
 
 import ai.constant.InputValidateKey;
+import ai.dto.own.request.*;
 import ai.dto.own.request.filter.OrganizationFilterDto;
 import ai.dto.own.response.OrganizationResponseDto;
 import ai.model.ApiResponseModel;
@@ -23,10 +12,16 @@ import jakarta.validation.constraints.Min;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequestMapping("/user/organizations")
+@RequestMapping("/admin/organizations")
 @RestController
 public class OrganizationController {
     OrganizationService organizationService;
@@ -42,7 +37,20 @@ public class OrganizationController {
                         .build()
         );
     }
-    
+
+    @GetMapping
+    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
+    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getAll(@Valid @ModelAttribute OrganizationFilterDto filterDto){
+        CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getAll(filterDto);
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<OrganizationResponseDto>>builder()
+                        .message("Get list organizations successfully")
+                        .count(result.getFirst())
+                        .data(result.getSecond())
+                        .build()
+        );
+    }
+
     @GetMapping("/on-permission")
     ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getByPermission(@Valid @ModelAttribute OrganizationFilterDto filterDto){
         CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getByPermission(filterDto);
@@ -80,5 +88,37 @@ public class OrganizationController {
         );
     }
 
-   
+    @PostMapping
+    @PreAuthorize("@perm.canAccess(#requestDto.parentId, 'ORG', 'CREATE',null)")
+    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> create(@Valid @RequestBody OrganizationCreateRequestDto requestDto){
+        return ResponseEntity.ok(
+                ApiResponseModel.<OrganizationResponseDto>builder()
+                        .message("Create organization successfully")
+                        .data(organizationService.create(requestDto))
+                        .build()
+        );
+    }
+
+    @PutMapping("/{organizationId}")
+    @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'UPDATE',null)")
+    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> update(@PathVariable UUID organizationId,@Valid @RequestBody OrganizationUpdateRequestDto requestDto){
+        return ResponseEntity.ok(
+                ApiResponseModel.<OrganizationResponseDto>builder()
+                        .message("Update organization successfully")
+                        .data(organizationService.update(organizationId, requestDto))
+                        .build()
+        );
+    }
+
+    @DeleteMapping("/{organizationId}")
+    @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'DELETE',null)")
+    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID organizationId){
+        organizationService.delete(organizationId);
+
+        return ResponseEntity.ok(
+                ApiResponseModel.<Void>builder()
+                        .message("Delete organization successfully")
+                        .build()
+        );
+    }
 }
