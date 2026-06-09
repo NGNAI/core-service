@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -17,15 +16,11 @@ import com.nimbusds.jose.JOSEException;
 import ai.dto.own.request.OrganizationSelectRequestDto;
 import ai.dto.own.request.UserPasswordUpdateRequestDto;
 import ai.dto.own.request.UserProfileUpdateRequestDto;
-import ai.dto.own.request.filter.OrganizationFilterDto;
-import ai.dto.own.response.OrganizationResponseDto;
 import ai.dto.own.response.OrganizationSelectResponseDto;
 import ai.dto.own.response.OrganizationWithUserRoleDto;
 import ai.dto.own.response.UserProfileResponseDto;
 import ai.model.ApiResponseModel;
-import ai.model.CustomPairModel;
 import ai.service.AuthService;
-import ai.service.OrganizationService;
 import ai.service.UserProfileService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -39,7 +34,6 @@ import lombok.experimental.FieldDefaults;
 public class UserProfileController {
     UserProfileService userProfileService;
     AuthService authService;
-    OrganizationService organizationService;
 
     @GetMapping()
     ResponseEntity<ApiResponseModel<UserProfileResponseDto>> getProfile(){
@@ -91,15 +85,4 @@ public class UserProfileController {
         );
     }
 
-    @GetMapping("/list-org-on-permission")
-    ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getByPermission(@Valid @ModelAttribute OrganizationFilterDto filterDto){
-        CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getByPermission(filterDto);
-        return ResponseEntity.ok(
-                ApiResponseModel.<List<OrganizationResponseDto>>builder()
-                        .message("Get list organizations successfully")
-                        .count(result.getFirst())
-                        .data(result.getSecond())
-                        .build()
-        );
-    }
 }
