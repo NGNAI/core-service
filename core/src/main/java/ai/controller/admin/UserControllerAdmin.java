@@ -31,7 +31,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/admin/users")
 @RestController
-public class UserController {
+public class UserControllerAdmin {
     UserService userService;
 
     @GetMapping("/{userId}")

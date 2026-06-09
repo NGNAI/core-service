@@ -165,6 +165,8 @@ public class RagService {
         return ragApiService.topicChat(ragCompletionRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"topicId\": \"%s\"}", topicId))
+                // Trả thêm về dto assistant message luôn
+                .startWith(String.format("{\"assistantMessage\": %s}", new ObjectMapper().writeValueAsString(assistantMessage)))
                 .doOnNext(raw -> {
                     try {
                         if (!raw.trim().equals("[DONE]")) {
@@ -272,6 +274,8 @@ public class RagService {
         return ragApiService.noteBookChat(ragCompletionRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"noteBookId\": \"%s\"}", noteBookId))
+                // Trả thêm về dto assistant message luôn
+                .startWith(String.format("{\"assistantMessage\": %s}", new ObjectMapper().writeValueAsString(assistantMessage)))
                 .doOnNext(raw -> {
                     try {
                         if (!raw.trim().equals("[DONE]")) {

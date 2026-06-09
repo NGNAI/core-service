@@ -36,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/admin/dashboard")
 @RestController
-public class DashboardController {
+public class DashboardControllerAdmin {
 
     DashboardService dashboardService;
 

@@ -34,7 +34,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/admin/organizations/{organizationId}")
 @RestController
-public class OrganizationUserRoleController {
+public class OrganizationUserRoleControllerAdmin {
     OrganizationUserRoleService ourService;
 
     @GetMapping("/users")
