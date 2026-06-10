@@ -143,7 +143,7 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Upload data ingestion file", description = "Upload a data ingestion file to MinIO and optionally trigger ingestion")
-        @PreAuthorize("@perm.canAccess(#requestDto.organizationId, 'DATASET_' + #requestDto.accessLevel.name(), 'CREATE',null)")
+        @PreAuthorize("@perm.canAccess(#requestDto.organizationId, 'DATASET_' + #requestDto.accessLevel, 'CREATE',null)")
         @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> upload(
                         @Valid @ModelAttribute DataIngestionUploadRequestDto requestDto) {
@@ -155,7 +155,7 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Create data ingestion folder", description = "Create a folder node in the data ingestion tree without file upload")
-        @PreAuthorize("@perm.canAccess(#requestDto.organizationId, 'DATASET_' + #requestDto.accessLevel.name(), 'CREATE',null)")
+        @PreAuthorize("@perm.canAccess(#requestDto.organizationId, 'DATASET_' + #requestDto.accessLevel, 'CREATE',null)")
         @PostMapping("/folders")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> createFolder(
                         @Valid @RequestBody DataIngestionCreateFolderRequestDto requestDto) {
@@ -231,7 +231,7 @@ public class DataIngestionController {
         
 
         @Operation(summary = "Rename or move folder", description = "Update folder name and/or move folder to another parent")
-        @PreAuthorize("@perm.canAccess(#requestDto.organizationId, 'DATASET_' + #requestDto.accessLevel.name(), 'CREATE',null)")
+        @PreAuthorize("@perm.canAccess(#requestDto.organizationId, 'DATASET_' + #requestDto.accessLevel, 'CREATE',null)")
         @PutMapping("/folders/{dataIngestionId}")
         ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> updateFolder(
                         @PathVariable UUID dataIngestionId,
