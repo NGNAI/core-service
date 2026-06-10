@@ -166,6 +166,7 @@ public class DataIngestionController {
                                                 .build());
         }
 
+        // Làm sao thêm mô tả cho swagger biết api đang PreAuthorize theo source, action và target resource nào, để người dùng có thể dễ dàng hiểu và biết được cần có permission gì để gọi api này
         @Operation(summary = "Get data ingestion list (folders and files)", description = "Get paginated list of data ingestion items with optional filters. Use formSources to filter by multiple sources (e.g. formSources=SYSTEM&formSources=DOCUMENT)")
         @PreAuthorize("@perm.canAccess(#filterDto.organizationId, 'DATASET_' + #filterDto.accessLevel.name(), 'READ',null)")
         @GetMapping("")
@@ -276,13 +277,12 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Delete data ingestion", description = "Delete a single data ingestion item by its ID")
+        @PreAuthorize("@perm.canAccess(#organizationId, 'DATASET_' + #accessLevel, 'DELETE',null)")
         @DeleteMapping("/{dataIngestionId}")
-        ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> delete(@PathVariable UUID dataIngestionId) {
-                DataIngestionEntity dataIngestion = dataIngestionService.getEntityById(dataIngestionId);
-                if(!permissionCheckerService.canAccess(dataIngestion.getOrganization().getId(), "DATASET_" + dataIngestion.getAccessLevel().name(), "DELETE", null)){
-                        throw new AppException(ApiResponseStatus.PERMISSION_DENIED);
-                }
-
+        ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> delete(@PathVariable UUID dataIngestionId,
+                @RequestParam(required = true) UUID organizationId,
+                @RequestParam(required = true) String accessLevel
+        ) {
                 return ResponseEntity.ok(
                                 ApiResponseModel.<DataIngestionResponseDto>builder()
                                                 .message("Delete data ingestion successfully")
@@ -291,13 +291,12 @@ public class DataIngestionController {
         }
 
         @Operation(summary = "Delete folder", description = "Delete a single folder by its ID, and all its descendant data ingestion items will be deleted as well")
+        @PreAuthorize("@perm.canAccess(#organizationId, 'DATASET_' + #accessLevel, 'DELETE',null)")
         @DeleteMapping("/folders/{dataIngestionId}")
-        ResponseEntity<ApiResponseModel<Void>> deleteFolder(@PathVariable UUID dataIngestionId) {
-                DataIngestionEntity dataIngestion = dataIngestionService.getEntityById(dataIngestionId);
-                if(!permissionCheckerService.canAccess(dataIngestion.getOrganization().getId(), "DATASET_" + dataIngestion.getAccessLevel().name(), "DELETE", null)){
-                        throw new AppException(ApiResponseStatus.PERMISSION_DENIED);
-                }
-
+        ResponseEntity<ApiResponseModel<Void>> deleteFolder(@PathVariable UUID dataIngestionId,
+                @RequestParam(required = true) UUID organizationId,
+                @RequestParam(required = true) String accessLevel
+        ) {
                 dataIngestionService.deleteFolderById(dataIngestionId);
                 return ResponseEntity.ok(
                                 ApiResponseModel.<Void>builder()
