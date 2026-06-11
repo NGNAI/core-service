@@ -18,11 +18,6 @@ import lombok.experimental.FieldDefaults;
         "detailedDescription",
         "presentationStyle",
         "language",
-        "tone",
-        "targetAudience",
-        "outputLength",
-        "formatInstruction",
-        "additionalInstruction",
         "latestVersionNumber",
         "latestContentPreview"
 })
@@ -38,11 +33,6 @@ public class DraftResponseDto extends AuditResponseDto {
     String detailedDescription;
     String presentationStyle;
     String language;
-    String tone;
-    String targetAudience;
-    String outputLength;
-    String formatInstruction;
-    String additionalInstruction;
     Integer latestVersionNumber;
     String latestContentPreview;
 }

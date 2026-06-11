@@ -3,10 +3,12 @@ package ai.dto.own.request;
 import ai.constant.InputValidateKey;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
 @Data
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class DraftSaveVersionRequestDto {
     String type;

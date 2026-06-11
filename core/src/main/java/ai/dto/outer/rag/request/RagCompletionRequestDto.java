@@ -44,6 +44,9 @@ public class RagCompletionRequestDto {
         @JsonProperty("notebook_id")
         UUID notebook_id;
 
+        @JsonProperty("draft_id")
+        UUID draft_id;
+
         @JsonProperty("scopes")
         Set<String> scopes;
         

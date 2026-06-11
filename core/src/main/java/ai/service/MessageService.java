@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
@@ -17,6 +18,8 @@ import ai.dto.own.request.MessageUpdateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.response.MessageFeedbackHistoryResponseDto;
 import ai.dto.own.response.MessageResponseDto;
+import ai.entity.postgres.DraftEntity;
+import ai.entity.postgres.DraftMessageEntity;
 import ai.entity.postgres.MessageEntity;
 import ai.entity.postgres.MessageFeedbackHistoryEntity;
 import ai.entity.postgres.NoteBookEntity;
@@ -31,6 +34,7 @@ import ai.exeption.AppException;
 import ai.interfaces.MessageRelationEntity;
 import ai.mapper.MessageMapper;
 import ai.model.CustomPairModel;
+import ai.repository.DraftMessagesRepository;
 import ai.repository.MessageFeedbackHistoryRepository;
 import ai.repository.MessageRepository;
 import ai.repository.NotebookMessagesRepository;
@@ -53,6 +57,8 @@ public class MessageService {
 
     TopicService topicService;
     NoteBookService noteBookService;
+    @Lazy
+    DraftService draftService;
 
     MessageRepository messageRepository;
     MessageFeedbackHistoryRepository messageFeedbackHistoryRepository;
@@ -60,6 +66,7 @@ public class MessageService {
     MessageMapper messageMapper;
     ObjectMapper objectMapper;
     NotebookMessagesRepository notebookMessagesRepository;
+    DraftMessagesRepository draftMessagesRepository;
 
     public CustomPairModel<Long,List<MessageResponseDto>> getAll(UUID parentId,MessageParentType parentType, MessageFilterDto filterDto){
         Page<? extends MessageRelationEntity> page = null;
@@ -114,6 +121,27 @@ public class MessageService {
 
                 filterDto.setSortPrefix("message");
                 page = notebookMessagesRepository.findAll(spec,filterDto.createPageable());
+            }
+            case DRAFT -> {
+                draftService.validateDraftOfUser(parentId, JwtUtil.getUserId());
+                Specification<DraftMessageEntity> spec = (root, query, criteriaBuilder) -> {
+                    boolean isCountQuery = query.getResultType() == Long.class || query.getResultType() == long.class;
+
+                    From<DraftMessageEntity, MessageEntity> messageNode;
+
+                    if (isCountQuery) {
+                        messageNode = root.join("message", JoinType.INNER);
+                    } else {
+                        messageNode = (Join<DraftMessageEntity, MessageEntity>) (Object) root.fetch("message", JoinType.INNER);
+                    }
+
+                    Predicate messageSearch = filterDto.createSpec((Join<DraftMessageEntity, MessageEntity>) messageNode, criteriaBuilder);
+                    Predicate draftIdSearch = criteriaBuilder.equal(root.get("draft").get("id"), parentId);
+
+                    return criteriaBuilder.and(messageSearch, draftIdSearch);
+                };
+                filterDto.setSortPrefix("message");
+                page = draftMessagesRepository.findAll(spec, filterDto.createPageable());
             }
         }
         if(page == null)
@@ -177,6 +205,30 @@ public class MessageService {
         }).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<MessageResponseDto> getDraftMessagesAfter(UUID draftId, UUID messageId) {
+        draftService.validateDraftOfUser(draftId, JwtUtil.getUserId());
+        return getDraftMessagesAfterInternal(draftId, messageId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MessageResponseDto> getDraftMessagesAfterInternal(UUID draftId, UUID messageId) {
+        List<DraftMessageEntity> draftMessages = messageId == null
+                ? draftMessagesRepository.findByDraft_IdOrderById_MessageIdAsc(draftId)
+                : draftMessagesRepository.findByDraft_IdAndId_MessageIdGreaterThanOrderById_MessageIdAsc(draftId, messageId);
+
+        return mapDraftMessages(draftMessages, draftId);
+    }
+
+    private List<MessageResponseDto> mapDraftMessages(List<DraftMessageEntity> draftMessages, UUID draftId) {
+        return draftMessages.stream().map(entity -> {
+            MessageResponseDto responseDto = messageMapper.entityToResponseDto(entity.getMessageEntity());
+            responseDto.setParentId(draftId);
+            responseDto.setParentType(MessageParentType.DRAFT.getValue());
+            return responseDto;
+        }).toList();
+    }
+
     public MessageResponseDto create(UUID parentId, MessageParentType parentType, MessageCreateRequestDto createRequestDto){
         MessageEntity newEntity = messageRepository.save(messageMapper.createRequestDtoToEntity(createRequestDto));
 
@@ -190,6 +242,11 @@ public class MessageService {
                 noteBookService.validateNoteBookOfUser(parentId, JwtUtil.getUserId());
                 NoteBookEntity topicEntity = noteBookService.getEntityById(parentId);
                 notebookMessagesRepository.save(new NotebookMessageEntity(topicEntity,newEntity));
+            }
+            case DRAFT -> {
+                draftService.validateDraftOfUser(parentId, JwtUtil.getUserId());
+                DraftEntity draftEntity = draftService.getEntityById(parentId);
+                draftMessagesRepository.save(new DraftMessageEntity(draftEntity, newEntity));
             }
         }
         MessageResponseDto responseDto = messageMapper.entityToResponseDto(newEntity);
@@ -253,6 +310,25 @@ public class MessageService {
     public CustomPairModel<Long, List<MessageFeedbackHistoryResponseDto>> getNoteBookMessageFeedbackHistory(UUID noteBookId, UUID messageId, int pageNumber, int pageSize) {
         noteBookService.validateNoteBookOfUser(noteBookId, JwtUtil.getUserId());
         if (!notebookMessagesRepository.existsByNotebook_IdAndMessage_Id(noteBookId, messageId)) {
+            throw new AppException(ApiResponseStatus.MESSAGE_ID_NOT_EXISTS);
+        }
+
+        return getMessageFeedbackHistory(messageId, pageNumber, pageSize);
+    }
+
+    public MessageResponseDto updateDraftMessageFeedback(UUID draftId, UUID messageId, String feedbackValue) {
+        draftService.validateDraftOfUser(draftId, JwtUtil.getUserId());
+        if (!draftMessagesRepository.existsByDraft_IdAndMessage_Id(draftId, messageId)) {
+            throw new AppException(ApiResponseStatus.MESSAGE_ID_NOT_EXISTS);
+        }
+
+        return updateFeedback(messageId, feedbackValue);
+    }
+
+    @Transactional(readOnly = true)
+    public CustomPairModel<Long, List<MessageFeedbackHistoryResponseDto>> getDraftMessageFeedbackHistory(UUID draftId, UUID messageId, int pageNumber, int pageSize) {
+        draftService.validateDraftOfUser(draftId, JwtUtil.getUserId());
+        if (!draftMessagesRepository.existsByDraft_IdAndMessage_Id(draftId, messageId)) {
             throw new AppException(ApiResponseStatus.MESSAGE_ID_NOT_EXISTS);
         }
 

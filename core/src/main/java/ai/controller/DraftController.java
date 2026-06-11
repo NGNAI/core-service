@@ -4,9 +4,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,25 +19,30 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import ai.dto.own.request.DraftGenerateRequestDto;
+import ai.dto.own.request.DraftChatRequestDto;
+import ai.dto.own.request.DraftCreateRequestDto;
 import ai.dto.own.request.DraftRollbackRequestDto;
-import ai.dto.own.request.DraftSaveRequestDto;
 import ai.dto.own.request.DraftSaveVersionRequestDto;
-import ai.dto.own.response.DraftPreviewResponseDto;
+import ai.dto.own.request.MessageFeedbackRequestDto;
+import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.response.DraftResponseDto;
 import ai.dto.own.response.DraftVersionResponseDto;
+import ai.dto.own.response.MessageFeedbackHistoryResponseDto;
+import ai.dto.own.response.MessageResponseDto;
 import ai.enums.DraftPresentationStyle;
 import ai.enums.DraftType;
+import ai.enums.MessageParentType;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.DraftService;
-import ai.service.RagService;
+import ai.service.MessageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import reactor.core.publisher.Flux;
 
 @Tag(name = "Draft", description = "AI drafting APIs with preview and version history")
 @RequiredArgsConstructor
@@ -42,8 +50,8 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/user/drafts")
 @RestController
 public class DraftController {
-        RagService ragService;
         DraftService draftService;
+        MessageService messageService;
 
         @Operation(summary = "Get draft types", description = "Lấy danh sách loại soạn thảo hỗ trợ")
         @GetMapping("/types")
@@ -65,22 +73,10 @@ public class DraftController {
                                                 .build());
         }
 
-        @Operation(summary = "Preview draft by AI", description = "Sinh bản nháp mẫu dựa trên yêu cầu của user, không lưu vào hệ thống, chỉ để user tham khảo trước khi tạo bản nháp chính thức")
-        @PostMapping("/preview")
-        public ResponseEntity<ApiResponseModel<DraftPreviewResponseDto>> preview(
-                        @Valid @RequestBody DraftGenerateRequestDto requestDto)
-                        throws JsonProcessingException {
-                return ResponseEntity.ok(
-                                ApiResponseModel.<DraftPreviewResponseDto>builder()
-                                                .message("Generate draft preview successfully")
-                                                .data(ragService.previewDraft(requestDto))
-                                                .build());
-        }
-
-        @Operation(summary = "Create draft", description = "Lưu bản nháp đã được user chấp nhận thành draft version 1")
+        @Operation(summary = "Create draft", description = "Tạo bản nháp mới với nội dung được sinh từ AI")
         @PostMapping
         public ResponseEntity<ApiResponseModel<DraftResponseDto>> create(
-                        @Valid @RequestBody DraftSaveRequestDto requestDto) {
+                        @Valid @RequestBody DraftCreateRequestDto requestDto) {
                 return ResponseEntity.ok(
                                 ApiResponseModel.<DraftResponseDto>builder()
                                                 .message("Create draft successfully")
@@ -126,6 +122,29 @@ public class DraftController {
                                                 .build());
         }
 
+        @Operation(summary = "Chat with draft", description = "Gửi yêu cầu chỉnh sửa draft từ nội dung chat, server sẽ gọi AI sinh lại bản draft mới dựa trên lịch sử hội thoại và lưu thành 1 version mới")
+        @PostMapping(value = "/{draftId}/messages", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+        public Flux<String> chatWithDraft(
+                        @PathVariable UUID draftId,
+                        @Valid @RequestBody DraftChatRequestDto requestDto) throws JsonProcessingException {
+                return draftService.chatDraft(draftId, requestDto);
+        }
+
+        @Operation(summary = "Get draft chat messages", description = "Lấy lịch sử chat draft")
+        @GetMapping("/{draftId}/messages")
+        public ResponseEntity<ApiResponseModel<List<MessageResponseDto>>> getDraftMessages(
+                        @PathVariable UUID draftId,
+                        @Valid @ModelAttribute MessageFilterDto filterDto) {
+                CustomPairModel<Long, List<MessageResponseDto>> result = messageService.getAll(
+                                draftId, MessageParentType.DRAFT, filterDto);
+                return ResponseEntity.ok(
+                                ApiResponseModel.<List<MessageResponseDto>>builder()
+                                                .message("Get draft messages successfully")
+                                                .count(result.getFirst())
+                                                .data(result.getSecond())
+                                                .build());
+        }
+
         @Operation(summary = "Get drafts", description = "Lấy danh sách draft của user")
         @GetMapping
         public ResponseEntity<ApiResponseModel<List<DraftResponseDto>>> getAll(
@@ -163,6 +182,39 @@ public class DraftController {
                 return ResponseEntity.ok(
                                 ApiResponseModel.<List<DraftVersionResponseDto>>builder()
                                                 .message("Get draft versions successfully")
+                                                .count(result.getFirst())
+                                                .data(result.getSecond())
+                                                .build());
+        }
+
+        @Operation(summary = "Update draft message feedback", description = "Cập nhật feedback (like/dislike) cho 1 message trong cuộc hội thoại chỉnh sửa draft")
+        @PatchMapping("/{draftId}/messages/{messageId}/feedback")
+        public ResponseEntity<ApiResponseModel<MessageResponseDto>> updateMessageFeedback(
+                        @PathVariable UUID draftId,
+                        @PathVariable UUID messageId,
+                        @Valid @RequestBody MessageFeedbackRequestDto requestDto) {
+                return ResponseEntity.ok(
+                                ApiResponseModel.<MessageResponseDto>builder()
+                                                .message("Update draft message feedback successfully")
+                                                .data(messageService.updateDraftMessageFeedback(
+                                                                draftId,
+                                                                messageId,
+                                                                requestDto.getFeedback()))
+                                                .build());
+        }
+
+        @Operation(summary = "Get draft message feedback history", description = "Lấy lịch sử feedback của 1 message trong cuộc hội thoại chỉnh sửa draft")
+        @GetMapping("/{draftId}/messages/{messageId}/feedback/history")
+        public ResponseEntity<ApiResponseModel<List<MessageFeedbackHistoryResponseDto>>> getMessageFeedbackHistory(
+                        @PathVariable UUID draftId,
+                        @PathVariable UUID messageId,
+                        @RequestParam(defaultValue = "0") int pageNumber,
+                        @RequestParam(defaultValue = "20") int pageSize) {
+                CustomPairModel<Long, List<MessageFeedbackHistoryResponseDto>> result = messageService
+                                .getDraftMessageFeedbackHistory(draftId, messageId, pageNumber, pageSize);
+                return ResponseEntity.ok(
+                                ApiResponseModel.<List<MessageFeedbackHistoryResponseDto>>builder()
+                                                .message("Get draft message feedback history successfully")
                                                 .count(result.getFirst())
                                                 .data(result.getSecond())
                                                 .build());
