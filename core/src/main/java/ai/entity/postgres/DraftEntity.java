@@ -54,21 +54,6 @@ public class DraftEntity {
     @Column(name = "language", nullable = false)
     String language;
 
-    @Column(name = "tone")
-    String tone;
-
-    @Column(name = "target_audience")
-    String targetAudience;
-
-    @Column(name = "output_length")
-    String outputLength;
-
-    @Column(name = "format_instruction")
-    String formatInstruction;
-
-    @Column(name = "additional_instruction", columnDefinition = "TEXT")
-    String additionalInstruction;
-
     @Column(name = "latest_version_number", nullable = false)
     Integer latestVersionNumber;
 

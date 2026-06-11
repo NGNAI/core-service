@@ -1,30 +1,35 @@
 package ai.service;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import ai.annotation.Audited;
-import ai.dto.own.request.DraftSaveRequestDto;
+import ai.dto.own.request.DraftChatRequestDto;
+import ai.dto.own.request.DraftCreateRequestDto;
+import ai.dto.own.request.DraftGenerateRequestDto;
 import ai.dto.own.request.DraftSaveVersionRequestDto;
-import ai.dto.own.response.AuditResponseDto;
+import ai.dto.own.response.DraftPreviewResponseDto;
 import ai.dto.own.response.DraftResponseDto;
 import ai.dto.own.response.DraftVersionResponseDto;
 import ai.entity.postgres.DraftEntity;
 import ai.entity.postgres.DraftVersionEntity;
-import ai.entity.postgres.embeddable.AuditEmbed;
 import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
 import ai.enums.AuditResource;
 import ai.enums.DraftPresentationStyle;
 import ai.enums.DraftType;
 import ai.exeption.AppException;
+import ai.mapper.DraftMapper;
 import ai.model.CustomPairModel;
 import ai.repository.DraftRepository;
 import ai.repository.DraftVersionRepository;
@@ -32,6 +37,8 @@ import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
+import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -46,6 +53,12 @@ public class DraftService {
     UserService userService;
     OrganizationService organizationService;
 
+    @Autowired
+    @Lazy
+    @NonFinal
+    RagService ragService;
+    DraftMapper draftMapper;
+
     public void validateDraftOfUser(UUID draftId, UUID userId) {
         if (!draftRepository.existsByIdAndOwnerId(draftId, userId)) {
             throw new AppException(ApiResponseStatus.PERMISSION_DENIED);
@@ -57,47 +70,62 @@ public class DraftService {
                 .orElseThrow(() -> new AppException(ApiResponseStatus.DRAFT_ID_NOT_EXISTS));
     }
 
-    @Audited(action = AuditAction.CREATE, resource = AuditResource.DRAFT, description = "Tạo bản nháp: {0}")
+    @Audited(action = AuditAction.CREATE, resource = AuditResource.DRAFT, description = "Tạo bản soạn thảo: {0}")
     @Transactional
-    public DraftResponseDto create(DraftSaveRequestDto requestDto) {
+    public DraftResponseDto create(DraftCreateRequestDto requestDto) {
         UUID userId = JwtUtil.getUserId();
         UUID organizationId = JwtUtil.getOrgId();
 
         DraftEntity entity = new DraftEntity();
         entity.setType(normalizeDraftType(requestDto.getType()));
         entity.setTitle(normalizeRequired(requestDto.getTitle(), ApiResponseStatus.DRAFT_TITLE_CAN_NOT_BE_NULL_OR_EMPTY));
-        entity.setDetailedDescription(normalizeRequired(
-                requestDto.getDetailedDescription(),
-                ApiResponseStatus.DRAFT_DESCRIPTION_CAN_NOT_BE_NULL_OR_EMPTY));
+        entity.setDetailedDescription(normalizeRequired(requestDto.getDetailedDescription(), ApiResponseStatus.DRAFT_DESCRIPTION_CAN_NOT_BE_NULL_OR_EMPTY));
         entity.setPresentationStyle(normalizePresentationStyle(requestDto.getPresentationStyle()));
         entity.setLanguage(normalizeRequired(requestDto.getLanguage(), ApiResponseStatus.DRAFT_LANGUAGE_CAN_NOT_BE_NULL_OR_EMPTY));
-        entity.setTone(normalizeNullable(requestDto.getTone()));
-        entity.setTargetAudience(normalizeNullable(requestDto.getTargetAudience()));
-        entity.setOutputLength(normalizeNullable(requestDto.getOutputLength()));
-        entity.setFormatInstruction(normalizeNullable(requestDto.getFormatInstruction()));
-        entity.setAdditionalInstruction(normalizeNullable(requestDto.getAdditionalInstruction()));
         entity.setLatestVersionNumber(0);
         entity.setOwner(userService.getEntityById(userId));
         entity.setOrganization(organizationService.getEntityById(organizationId));
 
         DraftEntity savedDraft = draftRepository.save(entity);
 
-        String generatedContent = normalizeRequired(
-                requestDto.getGeneratedContent(),
-                ApiResponseStatus.DRAFT_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY);
+        // Gọi RAG service để sinh nội dung draft
+        DraftGenerateRequestDto generateRequest = new DraftGenerateRequestDto();
+        generateRequest.setType(requestDto.getType());
+        generateRequest.setTitle(requestDto.getTitle());
+        generateRequest.setDetailedDescription(requestDto.getDetailedDescription());
+        generateRequest.setPresentationStyle(requestDto.getPresentationStyle());
+        generateRequest.setLanguage(requestDto.getLanguage());
+        generateRequest.setDraftId(savedDraft.getId());
+        
+        // Gọi previewDraft để sinh nội dung
+        DraftPreviewResponseDto previewResponse = null;
+        try {
+            previewResponse = ragService.previewDraft(generateRequest);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
+        if(previewResponse == null || previewResponse.getGeneratedContent() == null) {
+            throw new AppException(ApiResponseStatus.DRAFT_CONTENT_GENERATION_FAILED);
+        }
+        String generatedContent = previewResponse.getGeneratedContent();
 
         DraftVersionEntity savedVersion = draftVersionRepository.save(
                 buildVersion(
                         savedDraft,
                         1,
                         entity.getDetailedDescription(),
-                        requestDto.getChangeRequest(),
+                        null,
                         generatedContent));
 
         savedDraft.setLatestVersionNumber(savedVersion.getVersionNumber());
         savedDraft.setLatestContentPreview(buildContentPreview(savedVersion.getGeneratedContent()));
 
-        return mapDraft(draftRepository.save(savedDraft));
+        return draftMapper.entityToResponseDto(draftRepository.save(savedDraft));
+    }
+
+    public Flux<String> chatDraft(UUID draftId, DraftChatRequestDto requestDto) throws JsonProcessingException {
+        return ragService.chatDraft(draftId, requestDto);
     }
 
     @Transactional
@@ -132,7 +160,7 @@ public class DraftService {
         draft.setLatestContentPreview(buildContentPreview(generatedContent));
         draftRepository.save(draft);
 
-        return mapVersion(savedVersion);
+        return draftMapper.versionEntityToResponseDto(savedVersion);
     }
 
     @Audited(action = AuditAction.DELETE, resource = AuditResource.DRAFT_VERSION, resourceIdExpression = "#arg0", description = "Xoá phiên bản: {0}")
@@ -183,14 +211,14 @@ public class DraftService {
         draft.setLatestContentPreview(buildContentPreview(targetVersion.getGeneratedContent()));
         draftRepository.save(draft);
 
-        return mapVersion(savedRollbackVersion);
+        return draftMapper.versionEntityToResponseDto(savedRollbackVersion);
     }
 
     @Transactional(readOnly = true)
     public DraftResponseDto getById(UUID draftId) {
         UUID userId = JwtUtil.getUserId();
         validateDraftOfUser(draftId, userId);
-        return mapDraft(getEntityById(draftId));
+        return draftMapper.entityToResponseDto(getEntityById(draftId));
     }
 
     @Transactional(readOnly = true)
@@ -207,7 +235,7 @@ public class DraftService {
                 PageRequest.of(normalizedPageNumber, normalizedPageSize));
 
         List<DraftResponseDto> data = page.getContent().stream()
-                .map(this::mapDraft)
+                .map(draftMapper::entityToResponseDto)
                 .toList();
 
         return new CustomPairModel<>(page.getTotalElements(), data);
@@ -226,7 +254,7 @@ public class DraftService {
                 PageRequest.of(normalizedPageNumber, normalizedPageSize));
 
         List<DraftVersionResponseDto> data = page.getContent().stream()
-                .map(this::mapVersion)
+                .map(draftMapper::versionEntityToResponseDto)
                 .toList();
 
         return new CustomPairModel<>(page.getTotalElements(), data);
@@ -283,31 +311,6 @@ public class DraftService {
         if (language != null) {
             draft.setLanguage(language);
         }
-
-        String tone = normalizeNullable(requestDto.getTone());
-        if (tone != null) {
-            draft.setTone(tone);
-        }
-
-        String targetAudience = normalizeNullable(requestDto.getTargetAudience());
-        if (targetAudience != null) {
-            draft.setTargetAudience(targetAudience);
-        }
-
-        String outputLength = normalizeNullable(requestDto.getOutputLength());
-        if (outputLength != null) {
-            draft.setOutputLength(outputLength);
-        }
-
-        String formatInstruction = normalizeNullable(requestDto.getFormatInstruction());
-        if (formatInstruction != null) {
-            draft.setFormatInstruction(formatInstruction);
-        }
-
-        String additionalInstruction = normalizeNullable(requestDto.getAdditionalInstruction());
-        if (additionalInstruction != null) {
-            draft.setAdditionalInstruction(additionalInstruction);
-        }
     }
 
     private DraftVersionEntity buildVersion(
@@ -323,54 +326,6 @@ public class DraftService {
         versionEntity.setChangeRequest(normalizeNullable(changeRequest));
         versionEntity.setGeneratedContent(generatedContent);
         return versionEntity;
-    }
-
-    private DraftResponseDto mapDraft(DraftEntity entity) {
-        DraftResponseDto responseDto = new DraftResponseDto();
-        responseDto.setId(entity.getId());
-        responseDto.setOwnerId(entity.getOwner() != null ? entity.getOwner().getId() : null);
-        responseDto.setOrganizationId(entity.getOrganization() != null ? entity.getOrganization().getId() : null);
-        responseDto.setType(entity.getType());
-        responseDto.setTitle(entity.getTitle());
-        responseDto.setDetailedDescription(entity.getDetailedDescription());
-        responseDto.setPresentationStyle(entity.getPresentationStyle());
-        responseDto.setLanguage(entity.getLanguage());
-        responseDto.setTone(entity.getTone());
-        responseDto.setTargetAudience(entity.getTargetAudience());
-        responseDto.setOutputLength(entity.getOutputLength());
-        responseDto.setFormatInstruction(entity.getFormatInstruction());
-        responseDto.setAdditionalInstruction(entity.getAdditionalInstruction());
-        responseDto.setLatestVersionNumber(entity.getLatestVersionNumber());
-        responseDto.setLatestContentPreview(entity.getLatestContentPreview());
-        applyAudit(responseDto, entity.getAudit());
-        return responseDto;
-    }
-
-    private DraftVersionResponseDto mapVersion(DraftVersionEntity entity) {
-        DraftVersionResponseDto responseDto = new DraftVersionResponseDto();
-        responseDto.setId(entity.getId());
-        responseDto.setDraftId(entity.getDraft() != null ? entity.getDraft().getId() : null);
-        responseDto.setVersionNumber(entity.getVersionNumber());
-        responseDto.setDetailedDescription(entity.getDetailedDescription());
-        responseDto.setChangeRequest(entity.getChangeRequest());
-        responseDto.setGeneratedContent(entity.getGeneratedContent());
-        applyAudit(responseDto, entity.getAudit());
-        return responseDto;
-    }
-
-    private void applyAudit(AuditResponseDto responseDto, AuditEmbed audit) {
-        if (audit == null) {
-            return;
-        }
-
-        responseDto.setCreatedAt(formatInstant(audit.getCreatedAt()));
-        responseDto.setCreatedBy(audit.getCreatedBy());
-        responseDto.setUpdatedAt(formatInstant(audit.getUpdatedAt()));
-        responseDto.setUpdatedBy(audit.getUpdatedBy());
-    }
-
-    private String formatInstant(Instant instant) {
-        return instant == null ? null : instant.toString();
     }
 
     private String normalizeDraftType(String type) {
@@ -446,4 +401,6 @@ public class DraftService {
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
+
+   
 }

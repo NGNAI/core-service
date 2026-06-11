@@ -13,7 +13,8 @@ import java.util.Objects;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum MessageParentType {
     TOPIC("topic"),
-    NOTEBOOK("notebook")
+    NOTEBOOK("notebook"),
+    DRAFT("draft")
 
     ;
     String value;
