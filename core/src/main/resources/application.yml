@@ -7,6 +7,9 @@ spring:
   application:
     name: "NGN AI core"
 
+  main:
+    allow-circular-references: true
+
   servlet:
     multipart:
       max-file-size: "100MB"
@@ -119,4 +122,3 @@ auto-ingestion:
   access-level: "GLOBAL"
   from-source: "SYSTEM"
   delete-local-after-success: true
-

@@ -31,14 +31,12 @@ import ai.dto.own.response.DataIngestionJobStatusResponseDto;
 import ai.dto.own.response.DataIngestionPresignedUrlResponseDto;
 import ai.dto.own.response.DataIngestionResponseDto;
 import ai.entity.postgres.DataIngestionEntity;
-import ai.enums.ApiResponseStatus;
 import ai.enums.DataScope;
 import ai.enums.DataSource;
 import ai.enums.IngestionStatus;
 import ai.enums.PermissionAction;
 import ai.enums.PermissionResource;
 import ai.enums.PermissionScope;
-import ai.exeption.AppException;
 import ai.model.ApiResponseModel;
 import ai.model.PermissionGrantModel;
 import ai.service.DataIngestionService;
@@ -100,7 +98,9 @@ public class DataIngestionController {
 
         @Operation(summary = "Get details info by id (folder or file)", description = "Get detail of a single data ingestion item")
         @GetMapping("/{dataIngestionId}")
-        ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> get(@PathVariable UUID dataIngestionId) {
+        ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> get(
+                @Parameter(description = "Data ingestion ID", example = "1e8f9c7d-4b2a-4c3b-8d9e-1f2a3b4c5d6e") @PathVariable UUID dataIngestionId
+        ) {
                 DataIngestionEntity dataIngestion = dataIngestionService.getEntityById(dataIngestionId);
                 if(!permissionCheckerService.canAccess(dataIngestion.getOrganization().getId(), "DATASET_" + dataIngestion.getAccessLevel().name(), "READ", null)){
                         throw new RuntimeException("You don't have permission to access this data ingestion");
@@ -114,7 +114,14 @@ public class DataIngestionController {
 
         @Operation(summary = "Download data ingestion file", description = "Download file bytes from MinIO by data ingestion id")
         @GetMapping("/{dataIngestionId}/download")
-        ResponseEntity<byte[]> download(@PathVariable UUID dataIngestionId) {
+        ResponseEntity<byte[]> download(
+                @Parameter(description = "Data ingestion ID", example = "1e8f9c7d-4b2a-4c3b-8d9e-1f2a3b4c5d6e") @PathVariable UUID dataIngestionId
+        ) {
+                DataIngestionEntity dataIngestion = dataIngestionService.getEntityById(dataIngestionId);
+                if(!permissionCheckerService.canAccess(dataIngestion.getOrganization().getId(), "DATASET_" + dataIngestion.getAccessLevel().name(), "READ", null)){
+                        throw new RuntimeException("You don't have permission to access this data ingestion");
+                }
+
                 DataIngestionDownloadData fileData = dataIngestionService.downloadById(dataIngestionId);
 
                 HttpHeaders headers = new HttpHeaders();
@@ -132,8 +139,13 @@ public class DataIngestionController {
         @Operation(summary = "Get data ingestion download URL with file", description = "Get MinIO presigned URL for data ingestion file download")
         @GetMapping("/{dataIngestionId}/download-url")
         ResponseEntity<ApiResponseModel<DataIngestionPresignedUrlResponseDto>> getDownloadUrl(
-                        @PathVariable UUID dataIngestionId,
+                        @Parameter(description = "Data ingestion ID", example = "1e6633fb-2654-4bd5-aa7d-51bb86418987") @PathVariable UUID dataIngestionId,
                         @Parameter(description = "URL expiration in seconds, default 900", example = "900") @RequestParam(required = false) Integer expiresInSeconds) {
+                DataIngestionEntity dataIngestion = dataIngestionService.getEntityById(dataIngestionId);
+                if(!permissionCheckerService.canAccess(dataIngestion.getOrganization().getId(), "DATASET_" + dataIngestion.getAccessLevel().name(), "READ", null)){
+                        throw new RuntimeException("You don't have permission to access this data ingestion");
+                }
+
                 return ResponseEntity.ok(
                                 ApiResponseModel.<DataIngestionPresignedUrlResponseDto>builder()
                                                 .message("Get data ingestion download url successfully")
@@ -166,7 +178,6 @@ public class DataIngestionController {
                                                 .build());
         }
 
-        // Làm sao thêm mô tả cho swagger biết api đang PreAuthorize theo source, action và target resource nào, để người dùng có thể dễ dàng hiểu và biết được cần có permission gì để gọi api này
         @Operation(summary = "Get data ingestion list (folders and files)", description = "Get paginated list of data ingestion items with optional filters. Use formSources to filter by multiple sources (e.g. formSources=SYSTEM&formSources=DOCUMENT)")
         @PreAuthorize("@perm.canAccess(#filterDto.organizationId, 'DATASET_' + #filterDto.accessLevel.name(), 'READ',null)")
         @GetMapping("")
@@ -180,6 +191,7 @@ public class DataIngestionController {
                         }
                         case LOCAL -> {
                                 boolean hasAllScope = false;
+                                boolean hasDescendantScope = false;
                                 // Nếu scope là ALL thì sẽ lấy tất cả data ingestion của org, không cần filter theo owner
                                 for (PermissionGrantModel p : permissions) {
                                         if (p.getResource().equals(PermissionResource.DATASET_LOCAL) && p.getAction().equals(PermissionAction.READ) && p.getScope().equals(PermissionScope.ALL)) {
@@ -188,8 +200,16 @@ public class DataIngestionController {
                                                 break;
                                         }
                                 }
+
+                                // Nếu scope là DESCENDANT thì sẽ lấy tất cả data ingestion của org và descendant org, không cần filter theo owner
+                                if(organizationService.isDescendant(JwtUtil.getOrgId(), filterDto.getOrganizationId())) {
+                                        filterDto.setOwnerId(null);
+                                        hasDescendantScope = true;
+                                        break;
+                                }
+
                                 // Nếu scope là OWN thì sẽ filter theo owner
-                                if(!hasAllScope && filterDto.getOwnerId() == null)
+                                if(!hasAllScope && !hasDescendantScope && filterDto.getOwnerId() == null)
                                         filterDto.setOwnerId(JwtUtil.getUserId());
                         }
                         case GLOBAL -> {

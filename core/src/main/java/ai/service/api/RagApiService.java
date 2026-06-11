@@ -21,11 +21,15 @@ public class RagApiService {
     ObjectMapper objectMapper;
 
     public Flux<String> topicChat(RagCompletionRequestDto requestDto) throws JsonProcessingException {
-        return apiCore.post("/rag/v1/chat/completions", requestDto);
+        return apiCore.post("/rag/v2/chat/completions", requestDto);
     }
 
     public Flux<String> noteBookChat(RagCompletionRequestDto requestDto) throws JsonProcessingException {
         return apiCore.post("/notebook/v2/chat/completions", requestDto);
+    }
+
+    public Flux<String> draftChat(RagCompletionRequestDto requestDto) throws JsonProcessingException {
+        return apiCore.post("/rag/v1/chat/completions", requestDto);
     }
 
     public String general(RagCompletionRequestDto requestDto) throws JsonProcessingException {

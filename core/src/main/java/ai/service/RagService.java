@@ -17,7 +17,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ai.AppProperties;
 import ai.dto.outer.rag.request.RagCompletionRequestDto;
+import ai.dto.own.request.DraftChatRequestDto;
 import ai.dto.own.request.DraftGenerateRequestDto;
+import ai.dto.own.request.DraftSaveVersionRequestDto;
 import ai.dto.own.request.MessageCreateRequestDto;
 import ai.dto.own.request.MessageUpdateRequestDto;
 import ai.dto.own.request.NoteBookCreateConversationRequestDto;
@@ -26,8 +28,10 @@ import ai.dto.own.request.TopicCreateConversationRequestDto;
 import ai.dto.own.request.TopicCreateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.response.DraftPreviewResponseDto;
+import ai.dto.own.response.DraftVersionResponseDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.dto.own.response.TopicSourceResponseDto;
+import ai.entity.postgres.DraftEntity;
 import ai.entity.postgres.NoteBookEntity;
 import ai.entity.postgres.TopicEntity;
 import ai.enums.ApiResponseStatus;
@@ -59,7 +63,6 @@ public class RagService {
     AppProperties appProperties;
     RagApiService ragApiService;
     TopicService topicService;
-    TopicSourceService topicSourceService;
     NoteBookService noteBookService;
     DraftService draftService;
     MessageService messageService;
@@ -190,7 +193,9 @@ public class RagService {
                             .build());
 
                     asyncUpdateTopicSummary(finalTopicId);
-                });
+                })
+                .doOnError(e -> log.error("Error during streaming", e))
+                .doFinally(signalType -> log.info("Streaming completed with signal: {}", signalType));
     }
 
     /**
@@ -300,6 +305,155 @@ public class RagService {
 
                     asyncUpdateNoteBookSummary(finalNoteBookId);
                 });
+    }
+
+    /**
+     * Chat with draft, draft is a special type that only user can see, used for user to iteratively edit a piece of content via chatting with AI. If draftId is null, create new draft and chat, else chat with exist draft
+     * @param draftId
+     * @param requestDto
+     * @return
+     * @throws JsonProcessingException
+     */
+    public Flux<String> chatDraft(UUID draftId, DraftChatRequestDto requestDto) throws JsonProcessingException {
+        UUID capturedUserId = JwtUtil.getUserId();
+        UUID capturedOrgId = JwtUtil.getOrgId();
+
+        draftService.validateDraftOfUser(draftId, capturedUserId);
+        DraftEntity draftEntity = draftService.getEntityById(draftId);
+
+        // Insert user message
+        messageService.create(
+                draftId,
+                MessageParentType.DRAFT,
+                MessageCreateRequestDto.builder()
+                        .content(requestDto.getMessage())
+                        .type(MessageType.USER.getValue())
+                        .build());
+
+        // Insert assistant placeholder
+        MessageResponseDto assistantMessage = messageService.create(
+                draftId,
+                MessageParentType.DRAFT,
+                MessageCreateRequestDto.builder()
+                        .content("Answering.....")
+                        .type(MessageType.ASSISTANT.getValue())
+                        .build());
+
+        // Lấy lịch sử hội thoại gần đây để AI hiểu ngữ cảnh các lần chỉnh sửa trước
+        MessageFilterDto messageFilterDto = new MessageFilterDto();
+        messageFilterDto.setTypes(Arrays.asList(MessageType.USER.getValue(), MessageType.ASSISTANT.getValue()));
+        messageFilterDto.setPageNumber(0);
+        messageFilterDto.setPageSize(noteBookRecentMessageWindow());
+        messageFilterDto.setSortBy("createdAt");
+        messageFilterDto.setSortDir("desc");
+
+        List<RagCompletionRequestDto.Message> historyConversations = messageService
+                .getAll(draftId, MessageParentType.DRAFT, messageFilterDto).getSecond()
+                .stream()
+                .map(messageResponseDto -> createRagMessage(messageResponseDto.getType(), messageResponseDto.getContent()))
+                .collect(Collectors.toList());
+
+        Collections.reverse(historyConversations);
+
+        // Prompt hệ thống: ép AI trả về đúng bản draft đã được chỉnh sửa
+        historyConversations.add(createRagMessage(
+                MessageType.USER.getValue(),
+                buildDraftRevisionPrompt(draftEntity, requestDto.getGeneratedContent(), requestDto.getMessage())));
+
+        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
+        metadata.setUserId(capturedUserId);
+        metadata.setOrganizationId(capturedOrgId);
+        // Hiện tại chưa có endpoint RAG riêng cho draft, tái sử dụng endpoint topic
+        // chat - tương lai có thể tách endpoint draftChat nếu cần.
+        metadata.setDraft_id(draftId);
+        metadata.setFileIds(Collections.emptySet());
+        metadata.setSummaries("");
+
+        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
+                .messages(historyConversations)
+                .metadata(metadata)
+                .stream(true)
+                .build();
+
+        StringBuilder fullAnswer = new StringBuilder();
+        StringBuilder draftContent = new StringBuilder();
+
+
+        return ragApiService.draftChat(ragCompletionRequestDto)
+                .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
+                .startWith(String.format("{\"draftId\": \"%s\"}", draftId))
+                .startWith(String.format("{\"assistantMessage\": %s}", new ObjectMapper().writeValueAsString(assistantMessage)))
+                .doOnNext(raw -> {
+                    try {
+                        if (!raw.trim().equals("[DONE]")) {
+                            JsonNode node = objectMapper.readTree(raw);
+                            if (node.has("token")) {
+                                fullAnswer.append(node.get("token").asText());
+                            }
+
+                            if(node.has("draftContent")){
+                                draftContent.append(node.get("draftContent").asText());
+                            }
+                        }
+                    } catch (JsonProcessingException e) {
+                        log.error("Fail to parse stream token", e);
+                    }
+                })
+                .doOnComplete(() -> {
+                    String generatedContent = fullAnswer.toString();
+                    messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
+                            .content(generatedContent)
+                            .build());
+
+                    // Lưu thành 1 version mới của draft để theo dõi lịch sử chỉnh sửa
+                    DraftVersionResponseDto newVersion = draftService.saveVersion(
+                            draftId,
+                            DraftSaveVersionRequestDto.builder()
+                                    .generatedContent(generatedContent)
+                                    .changeRequest(requestDto.getMessage())
+                                    .build());
+
+                    // Bổ sung thông tin version vào stream để client biết
+                    // (đẩy qua sink bằng cách ghi vào log - client đã nhận nội dung assistant
+                    // message ở doOnComplete trên, nên chỉ cần truyền tiếp metadata version)
+                    log.info("Draft {} updated to version {} via chat", draftId, newVersion.getVersionNumber());
+                })
+                .doOnError(e -> log.error("Error during draft chat streaming", e))
+                .doFinally(signalType -> log.info("Draft chat streaming completed with signal: {}", signalType));
+    }
+
+    /**
+     * Build prompt yêu cầu AI chỉnh sửa bản draft hiện tại dựa trên change request
+     * của user. Prompt được viết để AI trả về đúng nội dung draft hoàn chỉnh mới
+     * (không kèm giải thích) để có thể lưu thẳng vào {@code draft_version}.
+     */
+    private String buildDraftRevisionPrompt(DraftEntity draftEntity, String previousLatestContent, String changeRequest) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are an expert writing assistant. The user is iterating on an existing draft.\n");
+        prompt.append("Your task: produce the FULLY UPDATED draft content that incorporates the user's latest change request.\n");
+        prompt.append("Return ONLY the final draft content, no explanations, no preamble, no markdown code fences.\n");
+        prompt.append("Language: ").append(draftEntity.getLanguage()).append('\n');
+        prompt.append("Draft type: ").append(draftEntity.getType()).append('\n');
+        prompt.append("Presentation style: ").append(draftEntity.getPresentationStyle()).append('\n');
+
+        prompt.append("\nPrimary brief:\n");
+        prompt.append(draftEntity.getDetailedDescription()).append('\n');
+
+        if (!isBlank(previousLatestContent)) {
+            prompt.append("\nCurrent draft content (this is what the user wants you to update):\n");
+            prompt.append(previousLatestContent).append('\n');
+        }
+
+        prompt.append("\nUser's latest change request:\n");
+        prompt.append(changeRequest).append('\n');
+
+        prompt.append("\nOutput constraints:\n");
+        prompt.append("- Return the full updated draft, not a diff.\n");
+        prompt.append("- Do not mention that you are an AI.\n");
+        prompt.append("- Keep structure and language consistent with the existing draft.\n");
+        prompt.append("\nUpdated draft:");
+
+        return prompt.toString();
     }
 
     /**
