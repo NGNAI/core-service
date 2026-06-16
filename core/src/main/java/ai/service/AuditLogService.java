@@ -38,9 +38,10 @@ public class AuditLogService {
     OrganizationRepository organizationRepository;
 
     /**
-     * Record an audit log entry. Persists asynchronously and in a new transaction
-     * so that the failure of the underlying business transaction does not roll back
-     * the audit entry and vice versa.
+     * Bất đồng bộ ghi log. 
+     * Sử dụng trong hầu hết các trường hợp để tránh ảnh hưởng đến hiệu năng của luồng chính. 
+     * Trong trường hợp caller cần đảm bảo log đã được ghi trước khi tiếp tục, có thể sử dụng method recordSync.
+     * @param request
      */
     @Async
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -77,8 +78,9 @@ public class AuditLogService {
     }
 
     /**
-     * Synchronous record. Useful in test paths or when the caller wants to ensure
-     * the log is written before the call returns.
+     * Đồng bộ ghi log, đảm bảo log đã được lưu vào database trước khi tiếp tục. 
+     * Sử dụng trong trường hợp caller cần chắc chắn log đã được ghi lại, ví dụ như trong các luồng xử lý quan trọng hoặc khi cần kiểm tra log ngay sau đó.
+     * @param request
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordSync(AuditLogRequest request) {
