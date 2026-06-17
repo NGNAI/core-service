@@ -12,15 +12,15 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)    
 public enum DraftType {
-    EMAIL("email", "Email", "Bản nháp email chuyên nghiệp và trực tiếp."),
     REPORT("report", "Báo cáo", "Bản nháp báo cáo chi tiết, mang tính phân tích."),
     PROPOSAL("proposal", "Đề xuất", "Bản nháp đề xuất dự án hoặc ý tưởng."),
+    ANNOUNCEMENT("announcement", "Thông báo", "Bản nháp thông báo chính thức hoặc nội bộ."),
+    MEMO("memo", "Công văn/Bản ghi nhớ", "Bản nháp công văn hoặc bản ghi nhớ nội bộ."),
+    CONTRACT("contract", "Hợp đồng", "Bản nháp hợp đồng pháp lý hoặc thỏa thuận."),
+    SUMMARY("summary", "Tóm tắt", "Bản nháp tóm tắt tài liệu dài hoặc cuộc họp."),
     PLAN("plan", "Kế hoạch", "Bản nháp kế hoạch hành động chi tiết."),
-    ARTICLE("article", "Bài viết", "Bản nháp bài viết blog hoặc bài báo."),
-    SOCIAL_POST("social_post", "Bài đăng mạng xã hội", "Bản nháp nội dung cho mạng xã hội."),
-    SCRIPT("script", "Kịch bản", "Bản nháp kịch bản video hoặc thuyết trình."),
-    MEETING_NOTE("meeting_note", "Ghi chú cuộc họp", "Bản nháp ghi chú cuộc họp."),
-    OTHER("other", "Khác", "Các loại bản nháp khác.");
+    LETTER("letter", "Thư", "Bản nháp thư cá nhân hoặc công việc."),
+    GENERAL("general", "Tổng quát", "Bản nháp văn bản tổng quát không thuộc loại cụ thể.");
 
     String value;
     String caption;

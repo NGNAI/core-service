@@ -2,6 +2,7 @@ package ai.service;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,9 +17,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import ai.annotation.Audited;
 import ai.dto.own.request.DraftChatRequestDto;
 import ai.dto.own.request.DraftCreateRequestDto;
-import ai.dto.own.request.DraftGenerateRequestDto;
 import ai.dto.own.request.DraftSaveVersionRequestDto;
-import ai.dto.own.response.DraftPreviewResponseDto;
 import ai.dto.own.response.DraftResponseDto;
 import ai.dto.own.response.DraftVersionResponseDto;
 import ai.entity.postgres.DraftEntity;
@@ -86,42 +85,7 @@ public class DraftService {
         entity.setOwner(userService.getEntityById(userId));
         entity.setOrganization(organizationService.getEntityById(organizationId));
 
-        DraftEntity savedDraft = draftRepository.save(entity);
-
-        // Gọi RAG service để sinh nội dung draft
-        DraftGenerateRequestDto generateRequest = new DraftGenerateRequestDto();
-        generateRequest.setType(requestDto.getType());
-        generateRequest.setTitle(requestDto.getTitle());
-        generateRequest.setDetailedDescription(requestDto.getDetailedDescription());
-        generateRequest.setPresentationStyle(requestDto.getPresentationStyle());
-        generateRequest.setLanguage(requestDto.getLanguage());
-        generateRequest.setDraftId(savedDraft.getId());
-        
-        // Gọi previewDraft để sinh nội dung
-        DraftPreviewResponseDto previewResponse = null;
-        try {
-            previewResponse = ragService.previewDraft(generateRequest);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-
-        if(previewResponse == null || previewResponse.getGeneratedContent() == null) {
-            throw new AppException(ApiResponseStatus.DRAFT_CONTENT_GENERATION_FAILED);
-        }
-        String generatedContent = previewResponse.getGeneratedContent();
-
-        DraftVersionEntity savedVersion = draftVersionRepository.save(
-                buildVersion(
-                        savedDraft,
-                        1,
-                        entity.getDetailedDescription(),
-                        null,
-                        generatedContent));
-
-        savedDraft.setLatestVersionNumber(savedVersion.getVersionNumber());
-        savedDraft.setLatestContentPreview(buildContentPreview(savedVersion.getGeneratedContent()));
-
-        return draftMapper.entityToResponseDto(draftRepository.save(savedDraft));
+        return draftMapper.entityToResponseDto(draftRepository.save(entity));
     }
 
     public Flux<String> chatDraft(UUID draftId, DraftChatRequestDto requestDto) throws JsonProcessingException {
@@ -142,7 +106,7 @@ public class DraftService {
         draft.setDetailedDescription(resolvedDescription);
 
         Integer currentVersion = draft.getLatestVersionNumber();
-        int nextVersion = java.util.Objects.requireNonNullElse(currentVersion, 0) + 1;
+        int nextVersion = Objects.requireNonNullElse(currentVersion, 0) + 1;
 
         String generatedContent = normalizeRequired(
                 requestDto.getGeneratedContent(),

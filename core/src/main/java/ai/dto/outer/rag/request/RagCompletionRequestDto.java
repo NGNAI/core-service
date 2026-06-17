@@ -58,5 +58,33 @@ public class RagCompletionRequestDto {
         
         @JsonProperty("user_instruction")
         String userInstruction;
+
+        @JsonProperty("draft_settings")
+        DraftSettings draftSettings;
+        @Data
+        @NoArgsConstructor
+        @FieldDefaults(level = AccessLevel.PRIVATE)
+        public static class DraftSettings {
+            @JsonProperty("draft_id")
+            UUID draftId;
+
+            @JsonProperty("type")
+            String type;
+
+            @JsonProperty("presentation_style")
+            String presentationStyle;
+
+            @JsonProperty("language")
+            String language;
+
+            @JsonProperty("title")
+            String title;
+
+            @JsonProperty("detailed_description")
+            String detailedDescription;
+
+            @JsonProperty("generated_content")
+            String generatedContent;
+        }
     }
 }
