@@ -3,7 +3,6 @@ package ai.service;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -18,7 +17,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ai.AppProperties;
 import ai.dto.outer.rag.request.RagCompletionRequestDto;
 import ai.dto.own.request.DraftChatRequestDto;
-import ai.dto.own.request.DraftGenerateRequestDto;
 import ai.dto.own.request.DraftSaveVersionRequestDto;
 import ai.dto.own.request.MessageCreateRequestDto;
 import ai.dto.own.request.MessageUpdateRequestDto;
@@ -27,7 +25,6 @@ import ai.dto.own.request.NoteBookCreateRequestDto;
 import ai.dto.own.request.TopicCreateConversationRequestDto;
 import ai.dto.own.request.TopicCreateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
-import ai.dto.own.response.DraftPreviewResponseDto;
 import ai.dto.own.response.DraftVersionResponseDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.dto.own.response.TopicSourceResponseDto;
@@ -35,8 +32,6 @@ import ai.entity.postgres.DraftEntity;
 import ai.entity.postgres.NoteBookEntity;
 import ai.entity.postgres.TopicEntity;
 import ai.enums.ApiResponseStatus;
-import ai.enums.DraftPresentationStyle;
-import ai.enums.DraftType;
 import ai.enums.MessageParentType;
 import ai.enums.MessageType;
 import ai.enums.SystemEventSource;
@@ -335,7 +330,7 @@ public class RagService {
                 draftId,
                 MessageParentType.DRAFT,
                 MessageCreateRequestDto.builder()
-                        .content("Answering.....")
+                        .content("Thinking .....")
                         .type(MessageType.ASSISTANT.getValue())
                         .build());
 
@@ -355,17 +350,30 @@ public class RagService {
 
         Collections.reverse(historyConversations);
 
-        // Prompt hệ thống: ép AI trả về đúng bản draft đã được chỉnh sửa
-        historyConversations.add(createRagMessage(
+        if(historyConversations.isEmpty()) {
+           historyConversations.add(createRagMessage(
                 MessageType.USER.getValue(),
                 buildDraftRevisionPrompt(draftEntity, requestDto.getGeneratedContent(), requestDto.getMessage())));
+        } else {
+            if (requestDto.getMessage() == null || requestDto.getMessage().isBlank()) {
+                throw new AppException(ApiResponseStatus.CHANGE_REQUEST_MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY);
+            }
+        }
+
+        RagCompletionRequestDto.Metadata.DraftSettings draftSettings = new RagCompletionRequestDto.Metadata.DraftSettings();
+        draftSettings.setDraftId(draftId);
+        draftSettings.setType(draftEntity.getType());
+        draftSettings.setPresentationStyle(draftEntity.getPresentationStyle());
+        draftSettings.setLanguage(draftEntity.getLanguage());
+        draftSettings.setDetailedDescription(draftEntity.getDetailedDescription());
+        draftSettings.setTitle(draftEntity.getTitle());
+        draftSettings.setGeneratedContent(requestDto.getGeneratedContent());
 
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
         metadata.setUserId(capturedUserId);
         metadata.setOrganizationId(capturedOrgId);
-        // Hiện tại chưa có endpoint RAG riêng cho draft, tái sử dụng endpoint topic
-        // chat - tương lai có thể tách endpoint draftChat nếu cần.
         metadata.setDraft_id(draftId);
+        metadata.setDraftSettings(draftSettings);
         metadata.setFileIds(Collections.emptySet());
         metadata.setSummaries("");
 
@@ -377,7 +385,6 @@ public class RagService {
 
         StringBuilder fullAnswer = new StringBuilder();
         StringBuilder draftContent = new StringBuilder();
-
 
         return ragApiService.draftChat(ragCompletionRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
@@ -405,18 +412,17 @@ public class RagService {
                             .content(generatedContent)
                             .build());
 
-                    // Lưu thành 1 version mới của draft để theo dõi lịch sử chỉnh sửa
-                    DraftVersionResponseDto newVersion = draftService.saveVersion(
-                            draftId,
-                            DraftSaveVersionRequestDto.builder()
-                                    .generatedContent(generatedContent)
-                                    .changeRequest(requestDto.getMessage())
-                                    .build());
-
-                    // Bổ sung thông tin version vào stream để client biết
-                    // (đẩy qua sink bằng cách ghi vào log - client đã nhận nội dung assistant
-                    // message ở doOnComplete trên, nên chỉ cần truyền tiếp metadata version)
-                    log.info("Draft {} updated to version {} via chat", draftId, newVersion.getVersionNumber());
+                    // Lưu thành 1 version mới của draft để theo dõi lịch sử chỉnh sửa nếu có draftContent
+                    String draftContentStr = draftContent.toString();
+                    if(!draftContentStr.isEmpty()) {
+                        DraftVersionResponseDto newVersion = draftService.saveVersion(
+                                draftId,
+                                DraftSaveVersionRequestDto.builder()
+                                        .generatedContent(draftContentStr)
+                                        .changeRequest(requestDto.getMessage())
+                                        .build());
+                        log.info("Draft {} updated to version {} via chat", draftId, newVersion.getVersionNumber());
+                    }
                 })
                 .doOnError(e -> log.error("Error during draft chat streaming", e))
                 .doFinally(signalType -> log.info("Draft chat streaming completed with signal: {}", signalType));
@@ -613,220 +619,6 @@ public class RagService {
                 .build();
 
         return ragApiService.general(ragCompletionRequestDto);
-    }
-
-    public DraftPreviewResponseDto previewDraft(DraftGenerateRequestDto requestDto) throws JsonProcessingException {
-        String draftType = normalizeDraftTypeForPreview(requestDto.getType());
-        String presentationStyle = normalizePresentationStyleForPreview(requestDto.getPresentationStyle());
-        String language = normalizeRequiredDraftField(
-                requestDto.getLanguage(),
-                ApiResponseStatus.DRAFT_LANGUAGE_CAN_NOT_BE_NULL_OR_EMPTY);
-        String detailedDescription = normalizeRequiredDraftField(
-                requestDto.getDetailedDescription(),
-                ApiResponseStatus.DRAFT_DESCRIPTION_CAN_NOT_BE_NULL_OR_EMPTY);
-
-        String previousSavedContent = null;
-        if (requestDto.getDraftId() != null) {
-            previousSavedContent = draftService.getLatestContentOfCurrentUser(requestDto.getDraftId());
-        }
-
-        String generatedContent = generalDraftContent(
-                requestDto,
-                draftType,
-                presentationStyle,
-                language,
-                detailedDescription,
-                previousSavedContent);
-
-        if (isBlank(generatedContent)) {
-            throw new AppException(ApiResponseStatus.DRAFT_GENERATION_FAILED);
-        }
-
-        String resolvedTitle = resolveDraftTitle(
-                requestDto.getTitle(),
-                generatedContent,
-                language,
-                detailedDescription);
-
-        DraftPreviewResponseDto responseDto = new DraftPreviewResponseDto();
-        responseDto.setDraftId(requestDto.getDraftId());
-        responseDto.setType(draftType);
-        responseDto.setTitle(resolvedTitle);
-        responseDto.setPresentationStyle(presentationStyle);
-        responseDto.setLanguage(language);
-        responseDto.setGeneratedContent(generatedContent.trim());
-        return responseDto;
-    }
-
-    public String generalDraftContent(
-            DraftGenerateRequestDto requestDto,
-            String draftType,
-            String presentationStyle,
-            String language,
-            String detailedDescription,
-            String previousSavedContent) throws JsonProcessingException {
-        String prompt = buildDraftPrompt(
-                requestDto,
-                draftType,
-                presentationStyle,
-                language,
-                detailedDescription,
-                previousSavedContent);
-
-        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
-                .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
-                .stream(false)
-                .build();
-
-        return ragApiService.general(ragCompletionRequestDto);
-    }
-
-    public String generalTitleOfDraft(String content, String language) throws JsonProcessingException {
-        String prompt = "Act as a professional editor. Generate a concise title for the draft below. "
-                + "Constraints: "
-                + "- Language must be " + language + ". "
-                + "- Keep it between 6 and 10 words. "
-                + "- Return only the title text, no prefix, no trailing punctuation. "
-                + "Draft content: " + content + " "
-                + "Generated title:";
-
-        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
-                .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
-                .stream(false)
-                .build();
-
-        return ragApiService.general(ragCompletionRequestDto);
-    }
-
-    private String buildDraftPrompt(
-            DraftGenerateRequestDto requestDto,
-            String draftType,
-            String presentationStyle,
-            String language,
-            String detailedDescription,
-            String previousSavedContent) {
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("You are an expert writing assistant. Create one polished draft content.\n");
-        prompt.append("Return only the final draft content. Do not explain your process.\n");
-        prompt.append("Language: ").append(language).append('\n');
-        prompt.append("Draft type: ").append(draftType).append('\n');
-        prompt.append("Presentation style: ").append(presentationStyle).append('\n');
-
-        if (!isBlank(requestDto.getTitle())) {
-            prompt.append("Preferred title: ").append(requestDto.getTitle().trim()).append('\n');
-        }
-        if (!isBlank(requestDto.getTone())) {
-            prompt.append("Tone: ").append(requestDto.getTone().trim()).append('\n');
-        }
-        if (!isBlank(requestDto.getTargetAudience())) {
-            prompt.append("Target audience: ").append(requestDto.getTargetAudience().trim()).append('\n');
-        }
-        if (!isBlank(requestDto.getOutputLength())) {
-            prompt.append("Desired length: ").append(requestDto.getOutputLength().trim()).append('\n');
-        }
-        if (!isBlank(requestDto.getFormatInstruction())) {
-            prompt.append("Format instruction: ").append(requestDto.getFormatInstruction().trim()).append('\n');
-        }
-        if (!isBlank(requestDto.getAdditionalInstruction())) {
-            prompt.append("Additional instruction: ").append(requestDto.getAdditionalInstruction().trim()).append('\n');
-        }
-
-        prompt.append("\nPrimary brief:\n");
-        prompt.append(detailedDescription).append('\n');
-
-        if (!isBlank(previousSavedContent)) {
-            prompt.append("\nLatest approved version:\n");
-            prompt.append(previousSavedContent.trim()).append('\n');
-        }
-
-        if (!isBlank(requestDto.getPreviousUnsavedContent())) {
-            prompt.append("\nPrevious unsaved attempt:\n");
-            prompt.append(requestDto.getPreviousUnsavedContent().trim()).append('\n');
-        }
-
-        if (!isBlank(requestDto.getChangeRequest())) {
-            prompt.append("\nChange request for this iteration:\n");
-            prompt.append(requestDto.getChangeRequest().trim()).append('\n');
-        }
-
-        prompt.append("\nOutput constraints:\n");
-        prompt.append("- Keep structure clear and practical.\n");
-        prompt.append("- Do not mention that you are an AI.\n");
-        prompt.append("- Keep content faithful to the provided brief.\n");
-        prompt.append("\nFinal draft:");
-
-        return prompt.toString();
-    }
-
-    private String resolveDraftTitle(
-            String requestedTitle,
-            String generatedContent,
-            String language,
-            String detailedDescription) throws JsonProcessingException {
-        String normalizedRequestedTitle = normalizeNullableText(requestedTitle);
-        if (!isBlank(normalizedRequestedTitle)) {
-            return normalizedRequestedTitle;
-        }
-
-        String generatedTitle = generalTitleOfDraft(generatedContent, language);
-        if (!isBlank(generatedTitle)) {
-            return generatedTitle.trim();
-        }
-
-        return fallbackDraftTitle(detailedDescription);
-    }
-
-    private String fallbackDraftTitle(String detailedDescription) {
-        String normalizedDescription = normalizeNullableText(detailedDescription);
-        if (isBlank(normalizedDescription)) {
-            return "Untitled draft";
-        }
-
-        String[] words = normalizedDescription.split("\\s+");
-        int maxWords = Math.min(words.length, 8);
-        return String.join(" ", Arrays.copyOf(words, maxWords));
-    }
-
-    private String normalizeDraftTypeForPreview(String draftType) {
-        String normalized = normalizeRequiredDraftField(
-                draftType,
-            ApiResponseStatus.DRAFT_TYPE_CAN_NOT_BE_NULL_OR_EMPTY).toLowerCase(Locale.ROOT);
-
-        if (!DraftType.isSupportedValue(normalized)) {
-            throw new AppException(ApiResponseStatus.INVALID_DRAFT_TYPE_VALUE);
-        }
-
-        return normalized;
-    }
-
-    private String normalizePresentationStyleForPreview(String presentationStyle) {
-        String normalized = normalizeRequiredDraftField(
-                presentationStyle,
-            ApiResponseStatus.DRAFT_PRESENTATION_STYLE_CAN_NOT_BE_NULL_OR_EMPTY).toLowerCase(Locale.ROOT);
-
-        if (!DraftPresentationStyle.isSupportedValue(normalized)) {
-            throw new AppException(ApiResponseStatus.INVALID_DRAFT_PRESENTATION_STYLE_VALUE);
-        }
-
-        return normalized;
-    }
-
-    private String normalizeRequiredDraftField(String value, ApiResponseStatus statusWhenBlank) {
-        String normalized = normalizeNullableText(value);
-        if (isBlank(normalized)) {
-            throw new AppException(statusWhenBlank);
-        }
-
-        return normalized;
-    }
-
-    private String normalizeNullableText(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private String buildSummaryMetadata(TopicEntity topicEntity) {

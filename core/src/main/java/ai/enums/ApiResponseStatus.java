@@ -179,7 +179,9 @@ public enum ApiResponseStatus {
 
     UNEXPECTED(9999, "An unexpected error occurred!",HttpStatus.INTERNAL_SERVER_ERROR),
     
-    NOTE_SOURCE_BY_NOT_ALLOW_UPDATE(1125, "Note source by not allow update", HttpStatus.BAD_REQUEST);
+    NOTE_SOURCE_BY_NOT_ALLOW_UPDATE(1125, "Note source by not allow update", HttpStatus.BAD_REQUEST), 
+    
+    CHANGE_REQUEST_MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1143, "Change request message cannot be null or empty", HttpStatus.BAD_REQUEST);
 
     int code;
     String message;

@@ -21,15 +21,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import ai.constant.InputValidateKey;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.own.request.DataIngestionCreateFolderRequestDto;
 import ai.dto.own.request.DataIngestionUpdateFolderRequestDto;
 import ai.dto.own.request.DataIngestionUploadRequestDto;
 import ai.dto.own.request.filter.DataIngestionFilterDto;
+import ai.dto.own.request.filter.OrganizationFilterDto;
 import ai.dto.own.response.DataIngestionDownloadData;
 import ai.dto.own.response.DataIngestionJobStatusResponseDto;
 import ai.dto.own.response.DataIngestionPresignedUrlResponseDto;
 import ai.dto.own.response.DataIngestionResponseDto;
+import ai.dto.own.response.OrganizationResponseDto;
 import ai.entity.postgres.DataIngestionEntity;
 import ai.enums.DataScope;
 import ai.enums.DataSource;
@@ -38,6 +41,7 @@ import ai.enums.PermissionAction;
 import ai.enums.PermissionResource;
 import ai.enums.PermissionScope;
 import ai.model.ApiResponseModel;
+import ai.model.CustomPairModel;
 import ai.model.PermissionGrantModel;
 import ai.service.DataIngestionService;
 import ai.service.OrganizationService;
@@ -48,6 +52,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -322,6 +327,76 @@ public class DataIngestionController {
                                 ApiResponseModel.<Void>builder()
                                                 .message("Delete data ingestion folder successfully")
                                                 .build());
+        }
+
+        @GetMapping("/organizations/{organizationId}/can-access-list")
+        @PreAuthorize("@perm.canAccess(#organizationId, 'DATASET_' + #accessLevel, 'READ',null)")
+        ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getOrganizationsCanAccess(
+                @PathVariable UUID organizationId, 
+                @Valid @Min(value = 0, message = InputValidateKey.NESTED_CHILD_VALUE_INVALID) @RequestParam(required = false) Integer nestedChild,
+                @RequestParam(required = true) String accessLevel){
+
+                List<PermissionGrantModel> permissions = ourService.getPermissionGrant(JwtUtil.getUserId(), JwtUtil.getOrgId());
+                boolean hasAllScope = false;
+                boolean hasDescendantScope = false;
+
+                switch (accessLevel){
+                        case "PERSONAL" -> {
+
+                        }
+                        case "LOCAL" -> {
+                                // Nếu scope là ALL thì sẽ lấy tất cả data ingestion của org, không cần filter theo owner
+                                for (PermissionGrantModel p : permissions) {
+                                        if (p.getResource().equals(PermissionResource.DATASET_LOCAL) && p.getAction().equals(PermissionAction.READ) && p.getScope().equals(PermissionScope.ALL)) {
+                                                hasAllScope = true;
+                                                break;
+                                        }
+                                }
+
+                                // Nếu scope là DESCENDANT thì sẽ lấy tất cả data ingestion của org và descendant org, không cần filter theo owner
+                                if(organizationService.isDescendant(JwtUtil.getOrgId(), organizationId)) {
+                                        hasDescendantScope = true;
+                                        break;
+                                }
+                        }
+                        case "GLOBAL" -> {
+                                // Nếu scope là ALL thì sẽ lấy tất cả data ingestion của org, không cần filter theo owner
+                                for (PermissionGrantModel p : permissions) {
+                                        if (p.getResource().equals(PermissionResource.DATASET_GLOBAL) && p.getAction().equals(PermissionAction.READ) && p.getScope().equals(PermissionScope.ALL)) {
+                                                hasAllScope = true;
+                                                break;
+                                        }
+                                }
+
+                                // Nếu scope là DESCENDANT thì sẽ lấy tất cả data ingestion của org và descendant org, không cần filter theo owner
+                                if(organizationService.isDescendant(JwtUtil.getOrgId(), organizationId)) {
+                                        hasDescendantScope = true;
+                                        break;
+                                }
+                        }
+                }
+
+                if(hasAllScope) {
+                        OrganizationResponseDto rootOrg = organizationService.getRoot(nestedChild);
+                        return ResponseEntity.ok(
+                                ApiResponseModel.<List<OrganizationResponseDto>>builder()
+                                                .message("Get list organizations can access successfully")
+                                                .data(List.of(rootOrg))
+                                                .build());
+                } else if (hasDescendantScope) {
+                        CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getChild(organizationId, nestedChild, new OrganizationFilterDto());
+                        return ResponseEntity.ok(
+                                ApiResponseModel.<List<OrganizationResponseDto>>builder()
+                                                .message("Get list organizations can access successfully")
+                                                .data(result.getSecond())
+                                                .build());
+                } else {
+                        return ResponseEntity.ok(
+                                ApiResponseModel.<List<OrganizationResponseDto>>builder()
+                                                .message("Get list organizations can access successfully")
+                                                .data(organizationService.getById(organizationId, nestedChild) != null ? List.of(organizationService.getById(organizationId, nestedChild)) : List.of())
+                                                .build());
+                }
         }
 
 }
