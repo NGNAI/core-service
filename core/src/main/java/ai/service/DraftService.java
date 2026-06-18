@@ -5,18 +5,12 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.checkerframework.checker.units.qual.A;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-
 import ai.annotation.Audited;
-import ai.dto.own.request.DraftChatRequestDto;
 import ai.dto.own.request.DraftCreateRequestDto;
 import ai.dto.own.request.DraftSaveVersionRequestDto;
 import ai.dto.own.response.DraftResponseDto;
@@ -36,10 +30,10 @@ import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
-import reactor.core.publisher.Flux;
+import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
+@Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class DraftService {
@@ -88,17 +82,12 @@ public class DraftService {
     }
 
     public void delete(UUID draftId) {
-        UUID userId = JwtUtil.getUserId();
-        validateDraftOfUser(draftId, userId);
         draftRepository.deleteById(draftId);
     }
    
     @Transactional
     @Audited(action = AuditAction.SAVE_VERSION, resource = AuditResource.DRAFT_VERSION, resourceIdExpression = "#arg0", description = "Lưu phiên bản mới cho draft: {0}")
     public DraftVersionResponseDto saveVersion(UUID draftId, DraftSaveVersionRequestDto requestDto) {
-        UUID userId = JwtUtil.getUserId();
-        validateDraftOfUser(draftId, userId);
-
         DraftEntity draft = getEntityById(draftId);
 
         String resolvedDescription = resolveDetailedDescription(draft.getDetailedDescription(), requestDto.getDetailedDescription());
