@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ai.api.RagApiCore;
 import ai.dto.outer.rag.request.RagCompletionRequestDto;
+import ai.dto.outer.rag.request.RagDraftCreateRequestDto;
+import ai.dto.outer.rag.request.RagDraftReviseRequestDto;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -28,8 +30,12 @@ public class RagApiService {
         return apiCore.post("/notebook/v2/chat/completions", requestDto);
     }
 
-    public Flux<String> draftChat(RagCompletionRequestDto requestDto) throws JsonProcessingException {
-        return apiCore.post("/rag/v1/chat/completions", requestDto);
+    public Flux<String> draftCreate(RagDraftCreateRequestDto requestDto) throws JsonProcessingException {
+        return apiCore.post("/draft/create", requestDto);
+    }
+
+    public Flux<String> draftRevise(RagDraftReviseRequestDto requestDto) throws JsonProcessingException {
+        return apiCore.post("/draft/revise", requestDto);
     }
 
     public String general(RagCompletionRequestDto requestDto) throws JsonProcessingException {

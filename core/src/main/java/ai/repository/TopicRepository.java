@@ -21,4 +21,7 @@ public interface TopicRepository extends JpaRepository<TopicEntity, UUID>, JpaSp
     
     @Query("SELECT COUNT(t) FROM TopicEntity t")
     long countAllTopics();
+    
+    @Query("SELECT COUNT(t) FROM TopicEntity t WHERE t.organization.id = :orgId")
+    long countAllTopicsByOrgId(UUID orgId);
 }

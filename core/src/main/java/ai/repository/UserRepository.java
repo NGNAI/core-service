@@ -17,4 +17,7 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID>, JpaSpec
     
     @Query("SELECT COUNT(u) FROM UserEntity u")
     long countAllUsers();
+    
+    @Query("SELECT COUNT(u) FROM UserEntity u WHERE u.organization.id = :orgId")
+    long countAllUsersByOrgId(UUID orgId);
 }
