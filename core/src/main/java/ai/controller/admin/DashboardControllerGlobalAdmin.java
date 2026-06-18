@@ -31,26 +31,26 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Tag(name = "Dashboard", description = "Dashboard statistics APIs")
+@Tag(name = "Dashboard Global Administrator", description = "Global administrator dashboard statistics APIs (full system access)")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequestMapping("/admin/dashboard")
+@RequestMapping("/admin/global/dashboard")
 @RestController
-public class DashboardControllerAdmin {
+public class DashboardControllerGlobalAdmin {
 
     DashboardService dashboardService;
 
     @Operation(
-        summary = "Get dashboard overview",
-        description = "Retrieve overall statistics for the dashboard including totals for drafts, topics, notebooks, data ingestions, users, and organizations"
+        summary = "Get dashboard overview (full system)",
+        description = "Retrieve overall statistics for the entire system including totals for drafts, topics, notebooks, data ingestions, users, and organizations"
     )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved dashboard overview", 
         content = @Content(mediaType = "application/json", 
             schema = @Schema(implementation = DashboardOverviewDto.class)))
     @GetMapping("/overview")
-    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
+    @PreAuthorize("@perm.canAccess(null, 'DASHBOARD_GLOBAL', 'READ',null)")
     public ResponseEntity<ApiResponseModel<DashboardOverviewDto>> getOverview() {
-        DashboardOverviewDto overview = dashboardService.getOverview(false);
+        DashboardOverviewDto overview = dashboardService.getOverview(true);
         return ResponseEntity.ok(
                 ApiResponseModel.<DashboardOverviewDto>builder()
                         .message("Get dashboard overview successfully")
@@ -59,16 +59,16 @@ public class DashboardControllerAdmin {
     }
 
     @Operation(
-        summary = "Get draft statistics",
+        summary = "Get draft statistics (full system)",
         description = "Retrieve statistics for drafts including total count and breakdown by type and presentation style"
     )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved draft statistics", 
         content = @Content(mediaType = "application/json", 
             schema = @Schema(implementation = DraftStatisticsDto.class)))
     @GetMapping("/drafts/statistics")
-    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
+    @PreAuthorize("@perm.canAccess(null, 'DASHBOARD_GLOBAL', 'READ',null)")
     public ResponseEntity<ApiResponseModel<DraftStatisticsDto>> getDraftStatistics() {
-        DraftStatisticsDto statistics = dashboardService.getDraftStatistics(false);
+        DraftStatisticsDto statistics = dashboardService.getDraftStatistics(true);
         return ResponseEntity.ok(
                 ApiResponseModel.<DraftStatisticsDto>builder()
                         .message("Get draft statistics successfully")
@@ -77,16 +77,16 @@ public class DashboardControllerAdmin {
     }
 
     @Operation(
-        summary = "Get data ingestion statistics",
+        summary = "Get data ingestion statistics (full system)",
         description = "Retrieve statistics for data ingestions including total count and breakdown by status and source"
     )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved data ingestion statistics", 
         content = @Content(mediaType = "application/json", 
             schema = @Schema(implementation = DataIngestionStatisticsDto.class)))
     @GetMapping("/data-ingestion/statistics")
-    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
+    @PreAuthorize("@perm.canAccess(null, 'DASHBOARD_GLOBAL', 'READ',null)")
     public ResponseEntity<ApiResponseModel<DataIngestionStatisticsDto>> getDataIngestionStatistics() {
-        DataIngestionStatisticsDto statistics = dashboardService.getDataIngestionStatistics(false);
+        DataIngestionStatisticsDto statistics = dashboardService.getDataIngestionStatistics(true);
         return ResponseEntity.ok(
                 ApiResponseModel.<DataIngestionStatisticsDto>builder()
                         .message("Get data ingestion statistics successfully")
@@ -95,20 +95,20 @@ public class DashboardControllerAdmin {
     }
 
     @Operation(
-        summary = "Get timeline statistics",
+        summary = "Get timeline statistics (full system)",
         description = "Retrieve daily statistics for a date range including counts of drafts, topics, notebooks, and data ingestions"
     )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved timeline statistics", 
         content = @Content(mediaType = "application/json", 
             schema = @Schema(implementation = TimelineStatisticsDto.class)))
     @GetMapping("/timeline")
-    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
+    @PreAuthorize("@perm.canAccess(null, 'DASHBOARD_GLOBAL', 'READ',null)")
     public ResponseEntity<ApiResponseModel<TimelineStatisticsDto>> getTimelineStatistics(
             @Parameter(description = "Start date for timeline statistics (format: yyyy-MM-dd)", required = true)
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @Parameter(description = "End date for timeline statistics (format: yyyy-MM-dd)", required = true)
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        TimelineStatisticsDto statistics = dashboardService.getTimelineStatistics(from, to, false);
+        TimelineStatisticsDto statistics = dashboardService.getTimelineStatistics(from, to, true);
         return ResponseEntity.ok(
                 ApiResponseModel.<TimelineStatisticsDto>builder()
                         .message("Get timeline statistics successfully")
@@ -117,20 +117,20 @@ public class DashboardControllerAdmin {
     }
 
     @Operation(
-        summary = "Get recent activities (audit log)",
-        description = "Retrieve the most recent activities in the system. Supports filters: userId, orgId, action, resource, status, from, to, keyword; paginated by pageNumber/pageSize, ordered by createdAt DESC."
+        summary = "Get recent activities (audit log) - full system",
+        description = "Retrieve the most recent activities in the entire system. Supports filters: userId, orgId, action, resource, status, from, to, keyword; paginated by pageNumber/pageSize, ordered by createdAt DESC."
     )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved recent activities",
         content = @Content(mediaType = "application/json",
             schema = @Schema(implementation = RecentActivitiesDto.class)))
     @GetMapping("/activities")
-    @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
+    @PreAuthorize("@perm.canAccess(null, 'DASHBOARD_GLOBAL', 'READ',null)")
     public ResponseEntity<ApiResponseModel<RecentActivitiesDto>> getRecentActivities(
             @ModelAttribute AuditLogFilterDto filterDto) {
         if (filterDto.getPageSize() == null) {
             filterDto.setPageSize(20);
         }
-        RecentActivitiesDto activities = dashboardService.getRecentActivities(filterDto, false);
+        RecentActivitiesDto activities = dashboardService.getRecentActivities(filterDto, true);
         return ResponseEntity.ok(
                 ApiResponseModel.<RecentActivitiesDto>builder()
                         .message("Get recent activities successfully")

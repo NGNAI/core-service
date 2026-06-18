@@ -21,4 +21,7 @@ public interface NoteBookRepository extends JpaRepository<NoteBookEntity, UUID>,
     
     @Query("SELECT COUNT(n) FROM NoteBookEntity n")
     long countAllNoteBooks();
+    
+    @Query("SELECT COUNT(n) FROM NoteBookEntity n WHERE n.organization.id = :orgId")
+    long countAllNoteBooksByOrgId(UUID orgId);
 }

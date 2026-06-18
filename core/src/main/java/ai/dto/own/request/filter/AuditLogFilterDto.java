@@ -19,15 +19,16 @@ import ai.entity.postgres.AuditLogEntity;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @FieldDefaults(level = AccessLevel.PROTECTED)
 public class AuditLogFilterDto {
     @Schema(description = "Filter by user id", example = "00000000-0000-0000-0000-000000000000")
-    String userId;
+    UUID userId;
 
     @Schema(description = "Filter by organization id", example = "00000000-0000-0000-0000-000000000000")
-    String orgId;
+    UUID orgId;
 
     @Schema(description = "Filter by action (e.g. CREATE, UPDATE, DELETE)")
     AuditAction action;
@@ -60,20 +61,12 @@ public class AuditLogFilterDto {
         return (root, query, criteriaBuilder) -> {
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
 
-            if (userId != null && !userId.isBlank()) {
-                try {
-                    predicates.add(criteriaBuilder.equal(root.get("userId"), java.util.UUID.fromString(userId)));
-                } catch (IllegalArgumentException ignore) {
-                    // ignore invalid uuid -> empty filter
-                }
+            if (userId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("userId"), userId));
             }
 
-            if (orgId != null && !orgId.isBlank()) {
-                try {
-                    predicates.add(criteriaBuilder.equal(root.get("orgId"), java.util.UUID.fromString(orgId)));
-                } catch (IllegalArgumentException ignore) {
-                    // ignore invalid uuid -> empty filter
-                }
+            if (orgId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("orgId"), orgId));
             }
 
             if (action != null) {

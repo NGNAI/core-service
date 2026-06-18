@@ -5,6 +5,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
@@ -25,7 +26,6 @@ import ai.entity.postgres.DraftVersionEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
 import ai.enums.AuditResource;
-import ai.enums.DraftPresentationStyle;
 import ai.enums.DraftType;
 import ai.exeption.AppException;
 import ai.mapper.DraftMapper;
@@ -52,10 +52,11 @@ public class DraftService {
     UserService userService;
     OrganizationService organizationService;
 
-    @Autowired
-    @Lazy
-    @NonFinal
-    RagService ragService;
+    // @Autowired
+    // @Lazy
+    // @NonFinal
+    // RagService ragService;
+    
     DraftMapper draftMapper;
 
     public void validateDraftOfUser(UUID draftId, UUID userId) {
@@ -79,8 +80,6 @@ public class DraftService {
         entity.setType(normalizeDraftType(requestDto.getType()));
         entity.setTitle(normalizeRequired(requestDto.getTitle(), ApiResponseStatus.DRAFT_TITLE_CAN_NOT_BE_NULL_OR_EMPTY));
         entity.setDetailedDescription(normalizeRequired(requestDto.getDetailedDescription(), ApiResponseStatus.DRAFT_DESCRIPTION_CAN_NOT_BE_NULL_OR_EMPTY));
-        entity.setPresentationStyle(normalizePresentationStyle(requestDto.getPresentationStyle()));
-        entity.setLanguage(normalizeRequired(requestDto.getLanguage(), ApiResponseStatus.DRAFT_LANGUAGE_CAN_NOT_BE_NULL_OR_EMPTY));
         entity.setLatestVersionNumber(0);
         entity.setOwner(userService.getEntityById(userId));
         entity.setOrganization(organizationService.getEntityById(organizationId));
@@ -88,10 +87,12 @@ public class DraftService {
         return draftMapper.entityToResponseDto(draftRepository.save(entity));
     }
 
-    public Flux<String> chatDraft(UUID draftId, DraftChatRequestDto requestDto) throws JsonProcessingException {
-        return ragService.chatDraft(draftId, requestDto);
+    public void delete(UUID draftId) {
+        UUID userId = JwtUtil.getUserId();
+        validateDraftOfUser(draftId, userId);
+        draftRepository.deleteById(draftId);
     }
-
+   
     @Transactional
     @Audited(action = AuditAction.SAVE_VERSION, resource = AuditResource.DRAFT_VERSION, resourceIdExpression = "#arg0", description = "Lưu phiên bản mới cho draft: {0}")
     public DraftVersionResponseDto saveVersion(UUID draftId, DraftSaveVersionRequestDto requestDto) {
@@ -99,8 +100,6 @@ public class DraftService {
         validateDraftOfUser(draftId, userId);
 
         DraftEntity draft = getEntityById(draftId);
-
-        applyDraftConfigUpdates(draft, requestDto);
 
         String resolvedDescription = resolveDetailedDescription(draft.getDetailedDescription(), requestDto.getDetailedDescription());
         draft.setDetailedDescription(resolvedDescription);
@@ -255,27 +254,6 @@ public class DraftService {
         draftRepository.save(draft);
     }
 
-    private void applyDraftConfigUpdates(DraftEntity draft, DraftSaveVersionRequestDto requestDto) {
-        String title = normalizeNullable(requestDto.getTitle());
-        if (title != null) {
-            draft.setTitle(title);
-        }
-
-        String type = normalizeNullable(requestDto.getType());
-        if (type != null) {
-            draft.setType(normalizeDraftType(type));
-        }
-
-        String presentationStyle = normalizeNullable(requestDto.getPresentationStyle());
-        if (presentationStyle != null) {
-            draft.setPresentationStyle(normalizePresentationStyle(presentationStyle));
-        }
-
-        String language = normalizeNullable(requestDto.getLanguage());
-        if (language != null) {
-            draft.setLanguage(language);
-        }
-    }
 
     private DraftVersionEntity buildVersion(
             DraftEntity draft,
@@ -298,17 +276,6 @@ public class DraftService {
 
         if (!DraftType.isSupportedValue(normalized)) {
             throw new AppException(ApiResponseStatus.INVALID_DRAFT_TYPE_VALUE);
-        }
-
-        return normalized;
-    }
-
-    private String normalizePresentationStyle(String style) {
-        String normalized = normalizeRequired(style, ApiResponseStatus.DRAFT_PRESENTATION_STYLE_CAN_NOT_BE_NULL_OR_EMPTY)
-                .toLowerCase(Locale.ROOT);
-
-        if (!DraftPresentationStyle.isSupportedValue(normalized)) {
-            throw new AppException(ApiResponseStatus.INVALID_DRAFT_PRESENTATION_STYLE_VALUE);
         }
 
         return normalized;
@@ -366,5 +333,12 @@ public class DraftService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.DRAFT, resourceIdExpression = "#arg0", description = "Cập nhật sessionId cho draft: {0}")
+    @Transactional
+    public void updateSessionId(UUID id, String sessionIdStr) {
+        DraftEntity draft = getEntityById(id);
+        draft.setSessionId(sessionIdStr);
+        draftRepository.save(draft);
+    }
    
 }

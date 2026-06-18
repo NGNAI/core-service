@@ -17,7 +17,4 @@ public class DraftStatisticsDto {
     
     @Schema(description = "Breakdown of drafts by type")
     Map<String, Long> draftsByType;
-    
-    @Schema(description = "Breakdown of drafts by presentation style")
-    Map<String, Long> draftsByPresentationStyle;
 }

@@ -42,12 +42,24 @@ public interface DataIngestionRepository extends JpaRepository<DataIngestionEnti
     @Query("SELECT COUNT(d) FROM DataIngestionEntity d")
     long countAllDataIngestions();
     
+    @Query("SELECT COUNT(d) FROM DataIngestionEntity d WHERE d.organization.id = :orgId")
+    long countAllDataIngestionsByOrgId(UUID orgId);
+    
     @Query("SELECT d.ingestionStatus, COUNT(d) FROM DataIngestionEntity d GROUP BY d.ingestionStatus")
     java.util.List<java.lang.Object[]> countByStatus();
+    
+    @Query("SELECT d.ingestionStatus, COUNT(d) FROM DataIngestionEntity d WHERE d.organization.id = :orgId GROUP BY d.ingestionStatus")
+    java.util.List<java.lang.Object[]> countByStatusByOrgId(UUID orgId);
     
     @Query("SELECT d.fromSource, COUNT(d) FROM DataIngestionEntity d GROUP BY d.fromSource")
     java.util.List<java.lang.Object[]> countBySource();
     
+    @Query("SELECT d.fromSource, COUNT(d) FROM DataIngestionEntity d WHERE d.organization.id = :orgId GROUP BY d.fromSource")
+    java.util.List<java.lang.Object[]> countBySourceByOrgId(UUID orgId);
+    
     @Query("SELECT d.accessLevel, COUNT(d) FROM DataIngestionEntity d GROUP BY d.accessLevel")
     java.util.List<java.lang.Object[]> countByAccessLevel();
+    
+    @Query("SELECT d.accessLevel, COUNT(d) FROM DataIngestionEntity d WHERE d.organization.id = :orgId GROUP BY d.accessLevel")
+    java.util.List<java.lang.Object[]> countByAccessLevelByOrgId(UUID orgId);
 }
