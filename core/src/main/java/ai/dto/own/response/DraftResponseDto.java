@@ -31,8 +31,7 @@ public class DraftResponseDto extends AuditResponseDto {
     String type;
     String title;
     String detailedDescription;
-    String presentationStyle;
-    String language;
     Integer latestVersionNumber;
     String latestContentPreview;
+    String sessionId;
 }

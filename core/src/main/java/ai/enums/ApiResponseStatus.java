@@ -171,7 +171,6 @@ public enum ApiResponseStatus {
     DRAFT_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY(1135, "Draft content cannot be null or empty", HttpStatus.BAD_REQUEST),
     DRAFT_GENERATION_FAILED(1136, "Draft generation failed", HttpStatus.BAD_GATEWAY),
     INVALID_DRAFT_TYPE_VALUE(1137, "Invalid draft type value", HttpStatus.BAD_REQUEST),
-    INVALID_DRAFT_PRESENTATION_STYLE_VALUE(1138, "Invalid draft presentation style value", HttpStatus.BAD_REQUEST),
     DRAFT_VERSION_NOT_EXISTS(1139, "Draft version does not exist", HttpStatus.NOT_FOUND),
     DRAFT_ROLLBACK_REASON_CAN_NOT_BE_NULL_OR_EMPTY(1140, "Draft rollback reason cannot be null or empty", HttpStatus.BAD_REQUEST),
     DRAFT_LAST_VERSION_CAN_NOT_BE_DELETED(1141, "Cannot delete the last draft version", HttpStatus.CONFLICT),

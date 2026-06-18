@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -36,6 +38,7 @@ import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.DraftService;
 import ai.service.MessageService;
+import ai.service.RagService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -52,6 +55,7 @@ import reactor.core.publisher.Flux;
 public class DraftController {
         DraftService draftService;
         MessageService messageService;
+        RagService ragService;
 
         @Operation(summary = "Get draft types", description = "Lấy danh sách loại soạn thảo hỗ trợ")
         @GetMapping("/types")
@@ -127,7 +131,19 @@ public class DraftController {
         public Flux<String> chatWithDraft(
                         @PathVariable UUID draftId,
                         @Valid @RequestBody DraftChatRequestDto requestDto) throws JsonProcessingException {
-                return draftService.chatDraft(draftId, requestDto);
+                DraftResponseDto draftResponse = draftService.getById(draftId);
+                if(draftResponse == null) {
+                        return Flux.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Draft not found"));
+                } 
+
+                // Nếu chưa có sessionId thì tạo mới draft, nếu đã có sessionId thì gọi API chatDraft
+                if(draftResponse.getSessionId() == null || draftResponse.getSessionId().isEmpty()) {
+                        return ragService.draftCreate(draftResponse);
+                } 
+                // Nếu đã có sessionId thì gọi API chatDraft
+                else {
+                        return ragService.chatDraft(draftId, requestDto);
+                }
         }
 
         @Operation(summary = "Get draft chat messages", description = "Lấy lịch sử chat draft")

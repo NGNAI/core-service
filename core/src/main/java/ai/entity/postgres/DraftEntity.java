@@ -45,14 +45,8 @@ public class DraftEntity {
     @Column(name = "title", nullable = false)
     String title;
 
-    @Column(name = "detailed_description", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "detailed_description", nullable = true, columnDefinition = "TEXT")
     String detailedDescription;
-
-    @Column(name = "presentation_style", nullable = false)
-    String presentationStyle;
-
-    @Column(name = "language", nullable = false)
-    String language;
 
     @Column(name = "latest_version_number", nullable = false)
     Integer latestVersionNumber;
@@ -73,4 +67,7 @@ public class DraftEntity {
 
     @OneToMany(mappedBy = "draft")
     List<DraftVersionEntity> versions;
+
+    @Column(name = "session_id", nullable = true)
+    String sessionId;
 }

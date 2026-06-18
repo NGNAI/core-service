@@ -16,7 +16,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ai.AppProperties;
 import ai.dto.outer.rag.request.RagCompletionRequestDto;
+import ai.dto.outer.rag.request.RagDraftCreateRequestDto;
+import ai.dto.outer.rag.request.RagDraftReviseRequestDto;
 import ai.dto.own.request.DraftChatRequestDto;
+import ai.dto.own.request.DraftCreateRequestDto;
 import ai.dto.own.request.DraftSaveVersionRequestDto;
 import ai.dto.own.request.MessageCreateRequestDto;
 import ai.dto.own.request.MessageUpdateRequestDto;
@@ -25,19 +28,18 @@ import ai.dto.own.request.NoteBookCreateRequestDto;
 import ai.dto.own.request.TopicCreateConversationRequestDto;
 import ai.dto.own.request.TopicCreateRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
+import ai.dto.own.response.DraftResponseDto;
 import ai.dto.own.response.DraftVersionResponseDto;
 import ai.dto.own.response.MessageResponseDto;
 import ai.dto.own.response.TopicSourceResponseDto;
 import ai.entity.postgres.DraftEntity;
 import ai.entity.postgres.NoteBookEntity;
 import ai.entity.postgres.TopicEntity;
-import ai.enums.ApiResponseStatus;
 import ai.enums.MessageParentType;
 import ai.enums.MessageType;
 import ai.enums.SystemEventSource;
 import ai.enums.SystemEventType;
 import ai.enums.TopicType;
-import ai.exeption.AppException;
 import ai.service.api.RagApiService;
 import ai.util.JwtUtil;
 import lombok.AccessLevel;
@@ -302,6 +304,102 @@ public class RagService {
                 });
     }
 
+    public Flux<String> draftCreate(DraftResponseDto draftResponse) throws JsonProcessingException {
+        UUID capturedUserId = JwtUtil.getUserId();
+        UUID capturedOrgId = JwtUtil.getOrgId();
+
+        // Insert assistant placeholder
+        MessageResponseDto assistantMessage = messageService.create(
+                draftResponse.getId(),
+                MessageParentType.DRAFT,
+                MessageCreateRequestDto.builder()
+                        .content("Thinking .....")
+                        .type(MessageType.ASSISTANT.getValue())
+                        .build());
+
+        RagDraftCreateRequestDto ragDraftCreateRequestDto = RagDraftCreateRequestDto.builder()
+            .user_request(draftResponse.getTitle())
+            .document_type(draftResponse.getType())
+            .context(draftResponse.getDetailedDescription())
+            .userId(capturedUserId)
+            .organizationId(capturedOrgId)
+            .stream(true)
+            .build();
+
+        StringBuilder sessionId = new StringBuilder();
+        StringBuilder status = new StringBuilder();
+        StringBuilder questionForUser = new StringBuilder();
+        StringBuilder draftContent = new StringBuilder();
+        StringBuilder thoughts = new StringBuilder();
+
+        return ragApiService.draftCreate(ragDraftCreateRequestDto)
+                .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
+                .startWith(String.format("{\"draftId\": \"%s\"}", draftResponse.getId()))
+                .startWith(String.format("{\"assistantMessage\": %s}", new ObjectMapper().writeValueAsString(assistantMessage)))
+                .doOnNext(raw -> {
+                    try {
+                        JsonNode node = objectMapper.readTree(raw);
+                        if (node.has("type") && node.get("type").asText().equalsIgnoreCase("done")) {
+                            JsonNode response = node.get("response");
+                            if (response != null) {
+                                if (response.has("session_id")) {
+                                    sessionId.append(response.get("session_id").asText());
+                                }
+
+                                if (response.has("status")) {
+                                    status.append(response.get("status").asText());
+                                }
+
+                                if (response.has("question_for_user")) {
+                                    questionForUser.append(response.get("question_for_user").asText());
+                                }
+
+                                if (response.has("draft")) {
+                                    draftContent.append(response.get("draft").asText());
+                                }
+
+                                if (response.has("thoughts")) {
+                                    thoughts.append(response.get("thoughts"));
+                                }
+                            }
+                        }
+                    } catch (JsonProcessingException e) {
+                        log.error("Fail to parse stream token", e);
+                    }
+                })
+                .doOnComplete(() -> {
+                    // Update sessionId for draft
+                    String sessionIdStr = sessionId.toString();
+                    draftService.updateSessionId(draftResponse.getId(), sessionIdStr);
+
+                    // Update assistant message with generated content
+                    String generatedContent = questionForUser.toString();
+                    if(!status.isEmpty() && status.toString().equalsIgnoreCase("completed")) {
+                        generatedContent = "Đã hoàn thành";
+                    }
+                    messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
+                            .content(generatedContent.toString())
+                            .source(thoughts.toString())
+                            .build());
+
+                    // Lưu thành 1 version mới của draft để theo dõi lịch sử chỉnh sửa nếu có draftContent
+                    String draftContentStr = draftContent.toString();
+                    if(!draftContentStr.isEmpty()) {
+                        DraftVersionResponseDto newVersion = draftService.saveVersion(
+                                draftResponse.getId(),
+                                DraftSaveVersionRequestDto.builder()
+                                        .generatedContent(draftContentStr)
+                                        .changeRequest(null)
+                                        .build());
+                        log.info("Draft {} updated to version {} via chat", draftResponse.getId(), newVersion.getVersionNumber());
+                    }
+                })
+                .doOnError(e -> {
+                    log.error("Error during draft chat streaming", e);
+                })
+                .doFinally(signalType -> log.info("Draft chat streaming completed with signal: {}", signalType));
+    }
+
     /**
      * Chat with draft, draft is a special type that only user can see, used for user to iteratively edit a piece of content via chatting with AI. If draftId is null, create new draft and chat, else chat with exist draft
      * @param draftId
@@ -311,7 +409,6 @@ public class RagService {
      */
     public Flux<String> chatDraft(UUID draftId, DraftChatRequestDto requestDto) throws JsonProcessingException {
         UUID capturedUserId = JwtUtil.getUserId();
-        UUID capturedOrgId = JwtUtil.getOrgId();
 
         draftService.validateDraftOfUser(draftId, capturedUserId);
         DraftEntity draftEntity = draftService.getEntityById(draftId);
@@ -334,72 +431,42 @@ public class RagService {
                         .type(MessageType.ASSISTANT.getValue())
                         .build());
 
-        // Lấy lịch sử hội thoại gần đây để AI hiểu ngữ cảnh các lần chỉnh sửa trước
-        MessageFilterDto messageFilterDto = new MessageFilterDto();
-        messageFilterDto.setTypes(Arrays.asList(MessageType.USER.getValue(), MessageType.ASSISTANT.getValue()));
-        messageFilterDto.setPageNumber(0);
-        messageFilterDto.setPageSize(noteBookRecentMessageWindow());
-        messageFilterDto.setSortBy("createdAt");
-        messageFilterDto.setSortDir("desc");
+        RagDraftReviseRequestDto ragDraftReviseRequestDto = RagDraftReviseRequestDto.builder()
+            .session_id(draftEntity.getSessionId())
+            .feedback(requestDto.getMessage())
+            .stream(true)
+            .build();
 
-        List<RagCompletionRequestDto.Message> historyConversations = messageService
-                .getAll(draftId, MessageParentType.DRAFT, messageFilterDto).getSecond()
-                .stream()
-                .map(messageResponseDto -> createRagMessage(messageResponseDto.getType(), messageResponseDto.getContent()))
-                .collect(Collectors.toList());
-
-        Collections.reverse(historyConversations);
-
-        if(historyConversations.isEmpty()) {
-           historyConversations.add(createRagMessage(
-                MessageType.USER.getValue(),
-                buildDraftRevisionPrompt(draftEntity, requestDto.getGeneratedContent(), requestDto.getMessage())));
-        } else {
-            if (requestDto.getMessage() == null || requestDto.getMessage().isBlank()) {
-                throw new AppException(ApiResponseStatus.CHANGE_REQUEST_MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY);
-            }
-        }
-
-        RagCompletionRequestDto.Metadata.DraftSettings draftSettings = new RagCompletionRequestDto.Metadata.DraftSettings();
-        draftSettings.setDraftId(draftId);
-        draftSettings.setType(draftEntity.getType());
-        draftSettings.setPresentationStyle(draftEntity.getPresentationStyle());
-        draftSettings.setLanguage(draftEntity.getLanguage());
-        draftSettings.setDetailedDescription(draftEntity.getDetailedDescription());
-        draftSettings.setTitle(draftEntity.getTitle());
-        draftSettings.setGeneratedContent(requestDto.getGeneratedContent());
-
-        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
-        metadata.setUserId(capturedUserId);
-        metadata.setOrganizationId(capturedOrgId);
-        metadata.setDraft_id(draftId);
-        metadata.setDraftSettings(draftSettings);
-        metadata.setFileIds(Collections.emptySet());
-        metadata.setSummaries("");
-
-        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
-                .messages(historyConversations)
-                .metadata(metadata)
-                .stream(true)
-                .build();
-
-        StringBuilder fullAnswer = new StringBuilder();
+        StringBuilder status = new StringBuilder();
+        StringBuilder questionForUser = new StringBuilder();
         StringBuilder draftContent = new StringBuilder();
+        StringBuilder thoughts = new StringBuilder();
 
-        return ragApiService.draftChat(ragCompletionRequestDto)
+        return ragApiService.draftRevise(ragDraftReviseRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"draftId\": \"%s\"}", draftId))
                 .startWith(String.format("{\"assistantMessage\": %s}", new ObjectMapper().writeValueAsString(assistantMessage)))
                 .doOnNext(raw -> {
                     try {
-                        if (!raw.trim().equals("[DONE]")) {
-                            JsonNode node = objectMapper.readTree(raw);
-                            if (node.has("token")) {
-                                fullAnswer.append(node.get("token").asText());
-                            }
+                        JsonNode node = objectMapper.readTree(raw);
+                        if (node.has("type") && node.get("type").asText().equalsIgnoreCase("done")) {
+                            JsonNode response = node.get("response");
+                            if (response != null) {
+                                if (response.has("status")) {
+                                    status.append(response.get("status").asText());
+                                }
 
-                            if(node.has("draftContent")){
-                                draftContent.append(node.get("draftContent").asText());
+                                if (response.has("question_for_user")) {
+                                    questionForUser.append(response.get("question_for_user").asText());
+                                }
+
+                                if (response.has("draft")) {
+                                    draftContent.append(response.get("draft").asText());
+                                }
+
+                                if (response.has("thoughts")) {
+                                    thoughts.append(response.get("thoughts"));
+                                }
                             }
                         }
                     } catch (JsonProcessingException e) {
@@ -407,9 +474,14 @@ public class RagService {
                     }
                 })
                 .doOnComplete(() -> {
-                    String generatedContent = fullAnswer.toString();
+                    // Update assistant message with generated content
+                    String assistantMessageContent = questionForUser.toString();
+                    if(!status.isEmpty() && status.toString().equalsIgnoreCase("completed")) {
+                        assistantMessageContent = "Đã hoàn thành";
+                    }
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
-                            .content(generatedContent)
+                            .content(assistantMessageContent.toString())
+                            .source(thoughts.toString())
                             .build());
 
                     // Lưu thành 1 version mới của draft để theo dõi lịch sử chỉnh sửa nếu có draftContent
@@ -428,39 +500,6 @@ public class RagService {
                 .doFinally(signalType -> log.info("Draft chat streaming completed with signal: {}", signalType));
     }
 
-    /**
-     * Build prompt yêu cầu AI chỉnh sửa bản draft hiện tại dựa trên change request
-     * của user. Prompt được viết để AI trả về đúng nội dung draft hoàn chỉnh mới
-     * (không kèm giải thích) để có thể lưu thẳng vào {@code draft_version}.
-     */
-    private String buildDraftRevisionPrompt(DraftEntity draftEntity, String previousLatestContent, String changeRequest) {
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("You are an expert writing assistant. The user is iterating on an existing draft.\n");
-        prompt.append("Your task: produce the FULLY UPDATED draft content that incorporates the user's latest change request.\n");
-        prompt.append("Return ONLY the final draft content, no explanations, no preamble, no markdown code fences.\n");
-        prompt.append("Language: ").append(draftEntity.getLanguage()).append('\n');
-        prompt.append("Draft type: ").append(draftEntity.getType()).append('\n');
-        prompt.append("Presentation style: ").append(draftEntity.getPresentationStyle()).append('\n');
-
-        prompt.append("\nPrimary brief:\n");
-        prompt.append(draftEntity.getDetailedDescription()).append('\n');
-
-        if (!isBlank(previousLatestContent)) {
-            prompt.append("\nCurrent draft content (this is what the user wants you to update):\n");
-            prompt.append(previousLatestContent).append('\n');
-        }
-
-        prompt.append("\nUser's latest change request:\n");
-        prompt.append(changeRequest).append('\n');
-
-        prompt.append("\nOutput constraints:\n");
-        prompt.append("- Return the full updated draft, not a diff.\n");
-        prompt.append("- Do not mention that you are an AI.\n");
-        prompt.append("- Keep structure and language consistent with the existing draft.\n");
-        prompt.append("\nUpdated draft:");
-
-        return prompt.toString();
-    }
 
     /**
      * Async: generate a better title for a newly created topic via AI, update DB,

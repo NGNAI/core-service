@@ -50,7 +50,7 @@ public class DraftVersionEntity {
     @Column(name = "detailed_description", nullable = false, columnDefinition = "TEXT")
     String detailedDescription;
 
-    @Column(name = "change_request", columnDefinition = "TEXT")
+    @Column(name = "change_request", nullable = true, columnDefinition = "TEXT")
     String changeRequest;
 
     @Column(name = "generated_content", nullable = false, columnDefinition = "TEXT")
