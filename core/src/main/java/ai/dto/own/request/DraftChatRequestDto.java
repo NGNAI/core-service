@@ -20,5 +20,5 @@ public class DraftChatRequestDto {
     String message;
 
     @Schema(description = "The content of the draft on editor, which can be used for generating content based on the change request. It should be provided when the user wants to generate content based on the change request.")
-    String generatedContent;
+    String currentDraftContent;
 }

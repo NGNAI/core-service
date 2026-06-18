@@ -97,7 +97,7 @@ public class DraftService {
         int nextVersion = Objects.requireNonNullElse(currentVersion, 0) + 1;
 
         String generatedContent = normalizeRequired(
-                requestDto.getGeneratedContent(),
+                requestDto.getCurrentDraftContent(),
                 ApiResponseStatus.DRAFT_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY);
 
         DraftVersionEntity savedVersion = draftVersionRepository.save(
@@ -158,6 +158,7 @@ public class DraftService {
 
         DraftVersionEntity savedRollbackVersion = draftVersionRepository.save(rollbackVersion);
 
+        // Sau khi rollback, cập nhật metadata của draft về phiên bản mới nhất
         draft.setDetailedDescription(targetVersion.getDetailedDescription());
         draft.setLatestVersionNumber(nextVersion);
         draft.setLatestContentPreview(buildContentPreview(targetVersion.getGeneratedContent()));
@@ -227,6 +228,10 @@ public class DraftService {
                 .orElseThrow(() -> new AppException(ApiResponseStatus.DRAFT_VERSION_NOT_EXISTS));
     }
 
+    /**
+     * Đồng bộ metadata của draft với phiên bản mới nhất sau khi có sự thay đổi về phiên bản (xóa hoặc rollback)
+     * @param draft
+     */
     private void syncLatestVersionMetadata(DraftEntity draft) {
         draftVersionRepository.findFirstByDraft_IdOrderByVersionNumberDesc(draft.getId())
                 .ifPresentOrElse(
@@ -244,6 +249,15 @@ public class DraftService {
     }
 
 
+    /**
+     * Xây dựng DraftVersionEntity từ các thông tin đầu vào. Hàm này sẽ không set id vì id sẽ được tự động sinh bởi database khi lưu entity.
+     * @param draft
+     * @param versionNumber
+     * @param detailedDescription
+     * @param changeRequest
+     * @param generatedContent
+     * @return
+     */
     private DraftVersionEntity buildVersion(
             DraftEntity draft,
             int versionNumber,
