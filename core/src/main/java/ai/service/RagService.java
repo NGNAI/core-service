@@ -388,7 +388,7 @@ public class RagService {
                         DraftVersionResponseDto newVersion = draftService.saveVersion(
                                 draftResponse.getId(),
                                 DraftSaveVersionRequestDto.builder()
-                                        .generatedContent(draftContentStr)
+                                        .currentDraftContent(draftContentStr)
                                         .changeRequest(null)
                                         .build());
                         log.info("Draft {} updated to version {} via chat", draftResponse.getId(), newVersion.getVersionNumber());
@@ -490,7 +490,7 @@ public class RagService {
                         DraftVersionResponseDto newVersion = draftService.saveVersion(
                                 draftId,
                                 DraftSaveVersionRequestDto.builder()
-                                        .generatedContent(draftContentStr)
+                                        .currentDraftContent(draftContentStr)
                                         .changeRequest(requestDto.getMessage())
                                         .build());
                         log.info("Draft {} updated to version {} via chat", draftId, newVersion.getVersionNumber());

@@ -15,18 +15,9 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DraftSaveVersionRequestDto {
-    String type;
-    String title;
     String detailedDescription;
-    String presentationStyle;
-    String language;
-    String tone;
-    String targetAudience;
-    String outputLength;
-    String formatInstruction;
-    String additionalInstruction;
     String changeRequest;
 
     @NotBlank(message = InputValidateKey.DRAFT_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY)
-    String generatedContent;
+    String currentDraftContent;
 }
