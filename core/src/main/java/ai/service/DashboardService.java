@@ -11,6 +11,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import ai.dto.own.request.filter.AuditLogFilterDto;
+import ai.dto.own.request.filter.UserFilterDto;
 import ai.dto.own.response.AuditLogResponseDto;
 import ai.dto.own.response.dashboard.DashboardOverviewDto;
 import ai.dto.own.response.dashboard.DataIngestionStatisticsDto;
@@ -27,6 +28,7 @@ import ai.repository.NoteBookRepository;
 import ai.repository.OrganizationRepository;
 import ai.repository.TopicRepository;
 import ai.repository.UserRepository;
+import ai.service.OrganizationUserRoleService;
 import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +46,7 @@ public class DashboardService {
     UserRepository userRepository;
     OrganizationRepository organizationRepository;
     AuditLogService auditLogService;
+    OrganizationUserRoleService organizationUserRoleService;
 
     public DashboardOverviewDto getOverview() {
         return getOverview(null);
@@ -59,7 +62,8 @@ public class DashboardService {
             dto.setTotalTopics(topicRepository.countAllTopicsByOrgId(orgId));
             dto.setTotalNoteBooks(noteBookRepository.countAllNoteBooksByOrgId(orgId));
             dto.setTotalDataIngestions(dataIngestionRepository.countAllDataIngestionsByOrgId(orgId));
-            dto.setTotalUsers(userRepository.countAllUsersByOrgId(orgId));
+            // For user count, we'll use the organization user role service to get count by org
+            dto.setTotalUsers(organizationUserRoleService.getUsersByOrgId(orgId, new UserFilterDto()).getFirst());
             dto.setTotalOrganizations(organizationRepository.countAllOrganizations());
         } else {
             // Use global data
