@@ -17,7 +17,8 @@ public enum PermissionResource {
     DATASET_PERSONAL("DATASET_PERSONAL", "Bộ dữ liệu cá nhân"),
     DATASET_LOCAL("DATASET_LOCAL", "Bộ dữ liệu đơn vị"),
     DATASET_GLOBAL("DATASET_GLOBAL", "Bộ dữ liệu công cộng"),
-    DASHBOARD_GLOBAL("DASHBOARD_GLOBAL", "Bảng điều khiển toàn cầu");
+    DASHBOARD_GLOBAL("DASHBOARD_GLOBAL", "Bảng điều khiển toàn cầu"),
+    ACCESS_ADMIN("ACCESS_ADMIN", "Truy cập trang quản trị");
 
     String key;
     String name;
