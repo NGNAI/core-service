@@ -89,7 +89,7 @@ public class SystemEventSseService {
                     .data(data)
                     .timestamp(System.currentTimeMillis())
                     .build();
-            emitter.send(SseEmitter.event().name(type.name()).data(payload));
+            emitter.send(SseEmitter.event().id(String.valueOf(payload.getTimestamp())).name(type.name()).data(payload).comment(type.getDescription()));
         } catch (IOException exception) {
             removeEmitter(key, emitter);
             emitter.completeWithError(exception);
