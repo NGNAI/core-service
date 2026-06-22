@@ -47,6 +47,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -287,7 +288,7 @@ public class RagService {
                                 fullAnswer.append(node.get("token").asText());
                             }
                             if (node.has("sources")) {
-                                source.append(node.get("sources"));
+                                source.append(node.get("sources").asText());
                             }
                         }
                     } catch (JsonProcessingException e) {
@@ -359,7 +360,7 @@ public class RagService {
                                 }
 
                                 if (response.has("thoughts")) {
-                                    thoughts.append(response.get("thoughts"));
+                                    thoughts.append(response.get("thoughts").asText());
                                 }
                             }
                         }
@@ -373,12 +374,12 @@ public class RagService {
                     draftService.updateSessionId(draftResponse.getId(), sessionIdStr);
 
                     // Update assistant message with generated content
-                    String generatedContent = questionForUser.toString();
                     if(!status.isEmpty() && status.toString().equalsIgnoreCase("completed")) {
-                        generatedContent = "Đã hoàn thành";
+                        questionForUser.setLength(0);
+                        questionForUser.append("Đã hoàn thành");
                     }
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
-                            .content(generatedContent.toString())
+                            .content(questionForUser.toString())
                             .source(thoughts.toString())
                             .build());
 
@@ -394,6 +395,17 @@ public class RagService {
                         log.info("Draft {} updated to version {} via chat", draftResponse.getId(), newVersion.getVersionNumber());
                     }
                 })
+                .concatWith(
+                    Mono.fromCallable(() -> {
+                        assistantMessage.setContent(questionForUser.toString());
+                        assistantMessage.setSource(thoughts.toString());
+                        log.info("assistantMessage before sending: {}", assistantMessage);
+                        return String.format(
+                            "{\"updatedAssistantMessage\": %s}",
+                            new ObjectMapper().writeValueAsString(assistantMessage)
+                        );
+                    }).flatMapMany(Flux::just)
+                )
                 .doOnError(e -> {
                     log.error("Error during draft chat streaming", e);
                 })
@@ -475,12 +487,12 @@ public class RagService {
                 })
                 .doOnComplete(() -> {
                     // Update assistant message with generated content
-                    String assistantMessageContent = questionForUser.toString();
                     if(!status.isEmpty() && status.toString().equalsIgnoreCase("completed")) {
-                        assistantMessageContent = "Đã hoàn thành";
+                        questionForUser.setLength(0);
+                        questionForUser.append("Đã hoàn thành");
                     }
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
-                            .content(assistantMessageContent.toString())
+                            .content(questionForUser.toString())
                             .source(thoughts.toString())
                             .build());
 
@@ -496,6 +508,17 @@ public class RagService {
                         log.info("Draft {} updated to version {} via chat", draftId, newVersion.getVersionNumber());
                     }
                 })
+                .concatWith(
+                    Mono.fromCallable(() -> {
+                        assistantMessage.setContent(questionForUser.toString());
+                        assistantMessage.setSource(thoughts.toString());
+                        log.info("assistantMessage before sending: {}", assistantMessage);
+                        return String.format(
+                            "{\"updatedAssistantMessage\": %s}",
+                            new ObjectMapper().writeValueAsString(assistantMessage)
+                        );
+                    }).flatMapMany(Flux::just)
+                )
                 .doOnError(e -> log.error("Error during draft chat streaming", e))
                 .doFinally(signalType -> log.info("Draft chat streaming completed with signal: {}", signalType));
     }
