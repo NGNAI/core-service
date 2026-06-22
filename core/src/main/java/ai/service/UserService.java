@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -81,5 +82,12 @@ public class UserService {
 
     public UserEntity getRoot(){
         return userRepository.findByUserName("root").orElseThrow(() -> new AppException(ApiResponseStatus.ROOT_USER_NOT_EXIST));
+    }
+
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.USER, resourceIdExpression = "#arg0", description = "Reset password: {0}")
+    public UserResponseDto resetPassword(UUID userId, String newPassword){
+        UserEntity entity = getEntityById(userId);
+        entity.setPassword(passwordEncoder.encode(newPassword));
+        return userMapper.entityToResponseDto(userRepository.save(entity));
     }
 }

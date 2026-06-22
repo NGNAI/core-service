@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import ai.dto.own.request.UserCreateRequestDto;
+import ai.dto.own.request.UserPasswordResetRequestDto;
 import ai.dto.own.request.UserUpdateRequestDto;
 import ai.dto.own.request.filter.UserFilterDto;
 import ai.dto.own.response.UserResponseDto;
@@ -76,6 +77,17 @@ public class UserControllerAdmin {
                 ApiResponseModel.<UserResponseDto>builder()
                         .message("Update user successfully")
                         .data(userService.update(userId, requestDto))
+                        .build()
+        );
+    }
+
+    @PutMapping("/{userId}/reset-password")
+    @PreAuthorize("@perm.canAccess(null, 'USER', 'UPDATE', null)")
+    ResponseEntity<ApiResponseModel<UserResponseDto>> resetPassword(@PathVariable UUID userId, @Valid @RequestBody UserPasswordResetRequestDto requestDto){
+        return ResponseEntity.ok(
+                ApiResponseModel.<UserResponseDto>builder()
+                        .message("Reset password successfully")
+                        .data(userService.resetPassword(userId, requestDto.getPassword()))
                         .build()
         );
     }
