@@ -31,40 +31,40 @@ public class ApplicationInitConfig {
     ApplicationRunner applicationRunner(OrganizationService organizationService, UserService userService, RoleService roleService, OrganizationUserRoleService ourService){
         log.info("Init application...");
         return args -> {
-            if(organizationService.getRoot()==null){
-                OrganizationResponseDto org = organizationService.create(OrganizationCreateRequestDto.builder()
-                                .name("Root")
-                                .description("Root organization")
-                        .build());
+            // if(organizationService.getRoot()==null){
+            //     OrganizationResponseDto org = organizationService.create(OrganizationCreateRequestDto.builder()
+            //                     .name("Root")
+            //                     .description("Root organization")
+            //             .build());
 
-                log.info("Init root organization");
+            //     log.info("Init root organization");
 
-                UserResponseDto user = userService.create(UserCreateRequestDto.builder()
-                        .userName("root")
-                        .password("root")
-                        .firstName("Root")
-                        .email("root@tmp.com")
-                        .source("local")
-                        .build());
+            //     UserResponseDto user = userService.create(UserCreateRequestDto.builder()
+            //             .userName("root")
+            //             .password("root")
+            //             .firstName("Root")
+            //             .email("root@tmp.com")
+            //             .source("local")
+            //             .build());
 
-                log.info("Init root/root user");
+            //     log.info("Init root/root user");
 
-                RoleResponseDto role = roleService.create(RoleCreateRequestDto.builder()
-                        .name("ROOT")
-                        .description("Role for root")
-                        .defaultAssign(false)
-                        .build());
+            //     RoleResponseDto role = roleService.create(RoleCreateRequestDto.builder()
+            //             .name("ROOT")
+            //             .description("Role for root")
+            //             .defaultAssign(false)
+            //             .build());
 
-                log.info("Init root role");
+            //     log.info("Init root role");
 
-                ourService.assignUsers(org.getId(), OrganizationAssignUserRequestDto.builder()
-                                .userIds(Set.of(user.getId()))
-                                .roleId(role.getId())
-                        .build());
-                log.info("Assign root user to root organization with admin role");
+            //     ourService.assignUsers(org.getId(), OrganizationAssignUserRequestDto.builder()
+            //                     .userIds(Set.of(user.getId()))
+            //                     .roleId(role.getId())
+            //             .build());
+            //     log.info("Assign root user to root organization with admin role");
 
-                log.warn("Admin user has been created with default password: root, please change it!");
-            }
+            //     log.warn("Admin user has been created with default password: root, please change it!");
+            // }
         };
     }
 }

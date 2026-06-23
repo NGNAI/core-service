@@ -1,2 +1,0 @@
-INSERT INTO public."permission" (id,created_at,created_by,updated_at,updated_by,description,name,"action",code,resource,target_resource,scopes) VALUES
-	 ('10cd4240-5012-4961-b020-7e6c5d587938'::uuid,'2026-06-23 11:57:38.712','1e6633fb-2654-4bd5-aa7d-51bb86418987'::uuid,'2026-06-23 11:57:38.712','1e6633fb-2654-4bd5-aa7d-51bb86418987'::uuid,'Cho phép người dùng truy cập vào hệ thống quản trị','Truy cập trang quản trị','READ','ACCESS_ADMIN:READ','ACCESS_ADMIN',NULL,'{ALL}');
