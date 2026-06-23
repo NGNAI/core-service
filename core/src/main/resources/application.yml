@@ -28,6 +28,13 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        validator:
+          apply_to_ddl: true
+
+  migration:
+    enabled: false
+    locations: "classpath:db/migration"
+    baseline-on-migrate: true
 
   data:
     redis:
@@ -40,6 +47,8 @@ spring:
 
 logging:
   level:
+    org.flywaydb: DEBUG
+    org.springframework.boot.autoconfigure.flyway: DEBUG
     org.springframework.jdbc.core: "ERROR"
     org.springframework.web: "DEBUG"
     root: "INFO"
@@ -48,9 +57,9 @@ logging:
     name: "logs/application.log"
     path: "logs"
 
-sql:
-  init:
-    mode: "always"
+# sql:
+#   init:
+#     mode: "always"
 
 # Cấu hình cho JWT (JSON Web Token)
 jwt:
