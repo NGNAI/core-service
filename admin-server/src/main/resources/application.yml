@@ -1,0 +1,25 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: "NGN AI Admin Server"
+
+# Vô hiệu hóa security trên admin server để test
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics"
+  endpoint:
+    health:
+      show-details: "always"
+    info:
+      enabled: true
+
+logging:
+  level:
+    root: "INFO"
+    de.codecentric.boot.admin: "DEBUG"
+    org.springframework.boot.autoconfigure: "INFO"
+    org.springframework.security: "DEBUG"

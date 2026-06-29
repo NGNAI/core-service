@@ -32,6 +32,24 @@ public class SecurityConfig {
 
     @Bean
     @Order(1)
+    public SecurityFilterChain actuatorFilterChain(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity
+                .securityMatcher("/actuator/**")
+                .authorizeHttpRequests(request -> request
+                        // Cho phép truy cập public health/info để Spring Boot Admin Server có thể poll
+                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                        // Các endpoint còn lại (env, beans, threaddump, heapdump...) cần xác thực basic
+                        .anyRequest().authenticated()
+                )
+                .httpBasic(httpBasic -> {})
+                .cors(cors -> {})
+                .csrf(AbstractHttpConfigurer::disable);
+
+        return httpSecurity.build();
+    }
+
+    @Bean
+    @Order(2)
     public SecurityFilterChain authFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
                 .securityMatcher("/auth/**")
@@ -60,7 +78,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(2)
+    @Order(3)
     public SecurityFilterChain accessFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
                 .securityMatcher("/admin/**","/user/**","/category/**")
