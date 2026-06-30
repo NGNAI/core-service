@@ -1,0 +1,29 @@
+{
+  "name": "core-service-java-25",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/core-service",
+  "mounts": [
+    "source=maven-cache-core-service,target=/home/vscode/.m2,type=volume"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vscjava.vscode-maven",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "java.configuration.updateBuildConfiguration": "interactive",
+        "java.import.maven.enabled": true,
+        "maven.executable.path": "/usr/share/maven/bin/mvn",
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "postCreateCommand": "mvn -q -N -version && mvn -q -pl common,core -am dependency:go-offline",
+  "postStartCommand": "git config --global --add safe.directory /workspaces/core-service"
+}

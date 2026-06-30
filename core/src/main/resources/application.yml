@@ -45,6 +45,22 @@ spring:
       lettuce:
         shutdown-timeout: 100
 
+  # Spring Boot Admin Client: đăng ký ứng dụng với Spring Boot Admin Server để theo dõi qua UI
+  # boot:
+  #   admin:
+  #     client:
+  #       # URL của Spring Boot Admin Server (đổi theo địa chỉ server thật của bạn)
+  #       url: "http://localhost:8081"
+  #       enabled: true
+  #       auto-registration: true
+  #       auto-deregistration: true
+  #       register-once: true
+  #       instance:
+  #         name: "${spring.application.name}"
+  #         management-url: "http://localhost:8080/api/v1/actuator"
+  #         service-url: "http://localhost:8080/api/v1"
+  #         health-url: "http://localhost:8080/api/v1/actuator/health"
+
 logging:
   level:
     org.flywaydb: DEBUG
@@ -53,9 +69,42 @@ logging:
     org.springframework.web: "DEBUG"
     root: "INFO"
     com.baeldung: "TRACE"
+    de.codecentric.boot.admin.client: "DEBUG"
+    org.springframework.boot.actuate: "DEBUG"
   file:
     name: "logs/application.log"
     path: "logs"
+
+# Cấu hình Spring Boot Actuator & Spring Boot Admin Client
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics,env,beans,httptrace,threaddump,heapdump,loggers,prometheus,scheduledtasks,sessions"
+      base-path: "/actuator"
+  endpoint:
+    health:
+      show-details: "always"
+      show-components: "always"
+      probes:
+        enabled: true
+    info:
+      enabled: true
+    loggers:
+      enabled: true
+  metrics:
+    tags:
+      application: "${spring.application.name}"
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+    os:
+      enabled: true
 
 # sql:
 #   init:

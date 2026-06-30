@@ -29,7 +29,7 @@ import java.util.Set;
 public class ApplicationInitConfig {
     @Bean
     ApplicationRunner applicationRunner(OrganizationService organizationService, UserService userService, RoleService roleService, OrganizationUserRoleService ourService){
-        log.info("Init application...");
+        // log.info("Init application...");
         return args -> {
             // if(organizationService.getRoot()==null){
             //     OrganizationResponseDto org = organizationService.create(OrganizationCreateRequestDto.builder()
