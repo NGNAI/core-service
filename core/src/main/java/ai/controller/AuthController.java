@@ -1,5 +1,14 @@
 package ai.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.nimbusds.jose.JOSEException;
+
 import ai.dto.own.request.AuthRequestDto;
 import ai.dto.own.request.IntrospectRequestDto;
 import ai.dto.own.request.OrganizationSelectRequestDto;
@@ -8,25 +17,22 @@ import ai.dto.own.response.IntrospectResponseDto;
 import ai.dto.own.response.OrganizationSelectResponseDto;
 import ai.model.ApiResponseModel;
 import ai.service.AuthService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.nimbusds.jose.JOSEException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/auth")
 @RestController
+@Tag(name = "Authentication", description = "Authentication APIs for user login and token introspection")
 public class AuthController {
     AuthService authService;
 
+    @Operation(summary = "Introspect token", description = "Validate and introspect a JWT token")
     @PostMapping("/introspect")
     ResponseEntity<ApiResponseModel<IntrospectResponseDto>> introspect(@Valid @RequestBody IntrospectRequestDto introspectRequestDto) {
         return ResponseEntity.ok(
@@ -37,6 +43,7 @@ public class AuthController {
         );
     }
 
+    @Operation(summary = "Authenticate user", description = "Authenticate user and return JWT token")
     @PostMapping
     ResponseEntity<ApiResponseModel<AuthResponseDto>> auth(@Valid @RequestBody AuthRequestDto authRequestDto) throws JOSEException, JsonProcessingException {
         return ResponseEntity.ok(
@@ -47,6 +54,7 @@ public class AuthController {
         );
     }
 
+    @Operation(summary = "Select organization", description = "Select organization for the authenticated user")
     @PostMapping("/select-org")
     ResponseEntity<ApiResponseModel<OrganizationSelectResponseDto>> selectOrg(@Valid @RequestBody OrganizationSelectRequestDto selectRequestDto) throws JOSEException {
         return ResponseEntity.ok(

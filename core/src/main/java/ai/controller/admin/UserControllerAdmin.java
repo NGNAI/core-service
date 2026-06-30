@@ -23,6 +23,8 @@ import ai.dto.own.response.UserResponseDto;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -31,10 +33,12 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/admin/users")
+@Tag(name = "User Admin", description = "User admin APIs")
 @RestController
 public class UserControllerAdmin {
     UserService userService;
 
+    @Operation(summary = "Get user by ID", description = "Retrieve a user by its UUID")
     @GetMapping("/{userId}")
     @PreAuthorize("@perm.canAccess(null, 'USER', 'READ', null)")
     ResponseEntity<ApiResponseModel<UserResponseDto>> getById(@PathVariable UUID userId){
@@ -46,6 +50,7 @@ public class UserControllerAdmin {
         );
     }
 
+    @Operation(summary = "Get all users", description = "Retrieve a paginated list of users with optional filtering")
     @GetMapping
     @PreAuthorize("@perm.canAccess(null, 'USER', 'READ', null)")
     ResponseEntity<ApiResponseModel<List<UserResponseDto>>> getAll(@Valid @ModelAttribute UserFilterDto filterDto){
@@ -59,6 +64,7 @@ public class UserControllerAdmin {
         );
     }
 
+    @Operation(summary = "Create user", description = "Create a new user resource")
     @PostMapping
     @PreAuthorize("@perm.canAccess(null, 'USER', 'CREATE', null)")
     ResponseEntity<ApiResponseModel<UserResponseDto>> create(@Valid @RequestBody UserCreateRequestDto requestDto){
@@ -70,6 +76,7 @@ public class UserControllerAdmin {
         );
     }
 
+    @Operation(summary = "Update user", description = "Update an existing user by ID")
     @PutMapping("/{userId}")
     @PreAuthorize("@perm.canAccess(null, 'USER', 'UPDATE', null)")
     ResponseEntity<ApiResponseModel<UserResponseDto>> update(@PathVariable UUID userId,@Valid @RequestBody UserUpdateRequestDto requestDto){
@@ -81,6 +88,7 @@ public class UserControllerAdmin {
         );
     }
 
+    @Operation(summary = "Reset user password", description = "Reset a user's password by ID")
     @PutMapping("/{userId}/reset-password")
     @PreAuthorize("@perm.canAccess(null, 'USER', 'UPDATE', null)")
     ResponseEntity<ApiResponseModel<UserResponseDto>> resetPassword(@PathVariable UUID userId, @Valid @RequestBody UserPasswordResetRequestDto requestDto){
@@ -92,6 +100,7 @@ public class UserControllerAdmin {
         );
     }
 
+    @Operation(summary = "Delete user", description = "Delete a user by ID")
     @DeleteMapping("/{userId}")
     @PreAuthorize("@perm.canAccess(null, 'USER', 'DELETE', null)")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID userId){

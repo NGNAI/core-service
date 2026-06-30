@@ -43,6 +43,7 @@ import ai.service.TopicService;
 import ai.service.TopicSourceService;
 import ai.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +60,7 @@ public class TopicController {
     TopicSourceService topicSourceService;
     RagService ragService;
 
+    @Operation(summary = "Get topics by user", description = "Retrieve a paginated list of topics for the current user based on filter criteria")
     @GetMapping()
     ResponseEntity<ApiResponseModel<List<TopicResponseDto>>> getAllByUserId(@Valid @ModelAttribute TopicFilterDto filterDto){
         CustomPairModel<Long, List<TopicResponseDto>> result = topicService.getAll(filterDto);
@@ -71,6 +73,7 @@ public class TopicController {
         );
     }
 
+    @Operation(summary = "Create topic", description = "Create a new topic with the provided title and optional initial data")
     @PostMapping()
     ResponseEntity<ApiResponseModel<TopicResponseDto>> create(@Valid @RequestBody TopicCreateRequestDto requestDto){
         TopicResponseDto created = topicService.create(requestDto);
@@ -83,6 +86,7 @@ public class TopicController {
         );
     }
 
+    @Operation(summary = "Rename topic title", description = "Update the title of an existing topic")
     @PatchMapping("/{topicId}")
     ResponseEntity<ApiResponseModel<TopicResponseDto>> renameTitle(@PathVariable UUID topicId, @Valid @RequestBody TopicRenameTitleRequestDto requestDto){
         return ResponseEntity.ok(
@@ -93,6 +97,7 @@ public class TopicController {
         );
     }
 
+    @Operation(summary = "Delete topic", description = "Delete a topic by its ID")
     @DeleteMapping("/{topicId}")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID topicId){
         topicService.delete(topicId);
@@ -104,9 +109,10 @@ public class TopicController {
         );
     }
 
-    @Hidden
-    @GetMapping("/{topicId}/sources")
-    ResponseEntity<ApiResponseModel<List<TopicSourceResponseDto>>> getSources(@PathVariable UUID topicId,
+        @Hidden
+        @Operation(summary = "Get topic sources", description = "Retrieve a paginated list of sources attached to a topic")
+        @GetMapping("/{topicId}/sources")
+        ResponseEntity<ApiResponseModel<List<TopicSourceResponseDto>>> getSources(@PathVariable UUID topicId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pair<Long, List<TopicSourceResponseDto>> result = topicSourceService.getSources(topicId, page, size);
@@ -120,6 +126,7 @@ public class TopicController {
     }
 
     @Hidden
+    @Operation(summary = "Download topic source", description = "Download a source file attached to a topic")
     @GetMapping("/{topicId}/sources/{sourceId}/download")
     ResponseEntity<byte[]> downloadSource(@PathVariable UUID topicId, @PathVariable UUID sourceId) {
         TopicSourceDownloadData fileData = topicSourceService.downloadSource(topicId, sourceId);
@@ -136,9 +143,10 @@ public class TopicController {
                 .body(fileData.bytes());
     }
 
-    @Hidden
-    @GetMapping("/{topicId}/sources/{sourceId}/download-url")
-    ResponseEntity<ApiResponseModel<TopicSourcePresignedUrlResponseDto>> getDownloadUrl(
+        @Hidden
+        @Operation(summary = "Get source download URL", description = "Get a presigned URL to download a source file")
+        @GetMapping("/{topicId}/sources/{sourceId}/download-url")
+        ResponseEntity<ApiResponseModel<TopicSourcePresignedUrlResponseDto>> getDownloadUrl(
             @PathVariable UUID topicId,
             @PathVariable UUID sourceId,
             @RequestParam(required = false) Integer expiresInSeconds) {
@@ -151,9 +159,10 @@ public class TopicController {
         );
     }
 
-    @Hidden
-    @PostMapping(value = "/{topicId}/sources", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ResponseEntity<ApiResponseModel<List<TopicSourceResponseDto>>> addSources(@PathVariable UUID topicId,
+        @Hidden
+        @Operation(summary = "Add sources to topic", description = "Upload and attach source files to a topic")
+        @PostMapping(value = "/{topicId}/sources", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        ResponseEntity<ApiResponseModel<List<TopicSourceResponseDto>>> addSources(@PathVariable UUID topicId,
             @Valid @ModelAttribute TopicSourcesAddRequestDto requestDto) {
         return ResponseEntity.ok(
                 ApiResponseModel.<List<TopicSourceResponseDto>>builder()
@@ -164,6 +173,7 @@ public class TopicController {
     }
 
     @Hidden
+    @Operation(summary = "Remove source from topic", description = "Delete a source file from a topic")
     @DeleteMapping("/{topicId}/sources/{sourceId}")
     ResponseEntity<ApiResponseModel<Void>> removeSource(@PathVariable UUID topicId, @PathVariable UUID sourceId) {
         topicSourceService.removeSource(topicId, sourceId);
@@ -174,6 +184,7 @@ public class TopicController {
         );
     }
 
+    @Operation(summary = "Get messages by topic", description = "Retrieve messages for a topic with pagination and filtering")
     @GetMapping("/{topicId}/messages")
     ResponseEntity<ApiResponseModel<List<MessageResponseDto>>> getMessageByTopicId(@PathVariable UUID topicId,@Valid @ModelAttribute MessageFilterDto filterDto){
         CustomPairModel<Long, List<MessageResponseDto>> result = messageService.getAll(topicId, MessageParentType.TOPIC, filterDto);
@@ -186,8 +197,9 @@ public class TopicController {
         );
     }
 
-    @PostMapping(value = "/{topicId}/messages", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> postMessageByTopicIdFlux(
+        @Operation(summary = "Post message to topic", description = "Send a message to a topic, optionally with file attachments, and stream responses")
+        @PostMapping(value = "/{topicId}/messages", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+        public Flux<String> postMessageByTopicIdFlux(
             @PathVariable UUID topicId,
             @Valid @ModelAttribute TopicCreateConversationRequestDto requestDto) throws JsonProcessingException {
         // Nếu có file đính kèm thì upload file trước, sau đó mới gọi API chatTopic để đảm bảo khi gọi API chatTopic thì file đã được upload và vector đã sẵn sàng, tránh trường hợp gọi API chatTopic mà file chưa được upload xong hoặc vector chưa sẵn sàng dẫn đến lỗi
@@ -202,8 +214,9 @@ public class TopicController {
         return ragService.chatTopic(topicId, requestDto, uploadedSources);
     }
 
-    @PatchMapping("/{topicId}/messages/{messageId}/feedback")
-    ResponseEntity<ApiResponseModel<MessageResponseDto>> updateMessageFeedback(
+        @Operation(summary = "Update message feedback", description = "Provide feedback for a message in a topic")
+        @PatchMapping("/{topicId}/messages/{messageId}/feedback")
+        ResponseEntity<ApiResponseModel<MessageResponseDto>> updateMessageFeedback(
             @PathVariable UUID topicId,
             @PathVariable UUID messageId,
             @Valid @RequestBody MessageFeedbackRequestDto requestDto) {
@@ -217,6 +230,7 @@ public class TopicController {
                         .build());
     }
 
+    @Operation(summary = "Get message feedback history", description = "Retrieve feedback history for a message in a topic")
                     @GetMapping("/{topicId}/messages/{messageId}/feedback/history")
                     ResponseEntity<ApiResponseModel<List<MessageFeedbackHistoryResponseDto>>> getMessageFeedbackHistory(
                         @PathVariable UUID topicId,

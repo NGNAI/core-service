@@ -18,6 +18,8 @@ import ai.dto.own.response.OrganizationResponseDto;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.OrganizationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.AccessLevel;
@@ -27,13 +29,15 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/user/organizations")
+@Tag(name = "Organization", description = "Organization APIs")
 @RestController
 public class OrganizationController {
     OrganizationService organizationService;
 
-    @GetMapping("/{organizationId}")
-    @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'READ',null)")
-    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getById(@PathVariable UUID organizationId
+        @Operation(summary = "Get organization by ID", description = "Retrieve organization details by its UUID")
+        @GetMapping("/{organizationId}")
+        @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'READ',null)")
+        ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getById(@PathVariable UUID organizationId
             , @Valid @Min(value = 0, message = InputValidateKey.NESTED_CHILD_VALUE_INVALID) @RequestParam(required = false) Integer nestedChild){
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationResponseDto>builder()
@@ -43,6 +47,7 @@ public class OrganizationController {
         );
     }
     
+    @Operation(summary = "Get organizations by permission", description = "Retrieve list of organizations the current user has permission to access")
     @GetMapping("/on-permission")
     ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getByPermission(@Valid @ModelAttribute OrganizationFilterDto filterDto){
         CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getByPermission(filterDto);
@@ -55,6 +60,7 @@ public class OrganizationController {
         );
     }
 
+    @Operation(summary = "Get root organization", description = "Retrieve the root organization list")
     @GetMapping("/root")
     @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
     ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getRoot(@Valid @Min(value = 0, message = InputValidateKey.NESTED_CHILD_VALUE_INVALID) @RequestParam(required = false) Integer nestedChild){
@@ -66,6 +72,7 @@ public class OrganizationController {
         );
     }
 
+    @Operation(summary = "Get children organizations", description = "Retrieve child organizations of a given organization")
     @GetMapping("/{organizationId}/children")
     @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'READ',null)")
     ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getChild(@PathVariable UUID organizationId, @Valid @Min(value = 0, message = InputValidateKey.NESTED_CHILD_VALUE_INVALID) @RequestParam(required = false) Integer nestedChild,@Valid @ModelAttribute OrganizationFilterDto filterDto){

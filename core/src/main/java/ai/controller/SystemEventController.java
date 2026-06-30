@@ -28,6 +28,7 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/user/events")
+@Tag(name = "System Event", description = "System event APIs")
 @RestController
 public class SystemEventController {
     SystemEventSseService systemEventSseService;
