@@ -16,7 +16,7 @@ spring:
       max-request-size: "100MB"
 
   datasource:
-    url: "jdbc:postgresql://192.168.30.72:5432/core_service_11"
+    url: "jdbc:postgresql://192.168.30.72:5432/core_service"
     username: "postgres"
     password: "P@ssw0rd"
 
@@ -46,20 +46,20 @@ spring:
         shutdown-timeout: 100
 
   # Spring Boot Admin Client: đăng ký ứng dụng với Spring Boot Admin Server để theo dõi qua UI
-  boot:
-    admin:
-      client:
-        # URL của Spring Boot Admin Server (đổi theo địa chỉ server thật của bạn)
-        url: "http://localhost:8081"
-        enabled: true
-        auto-registration: true
-        auto-deregistration: true
-        register-once: true
-        instance:
-          name: "${spring.application.name}"
-          management-url: "http://localhost:8080/api/v1/actuator"
-          service-url: "http://localhost:8080/api/v1"
-          health-url: "http://localhost:8080/api/v1/actuator/health"
+  # boot:
+  #   admin:
+  #     client:
+  #       # URL của Spring Boot Admin Server (đổi theo địa chỉ server thật của bạn)
+  #       url: "http://localhost:8081"
+  #       enabled: true
+  #       auto-registration: true
+  #       auto-deregistration: true
+  #       register-once: true
+  #       instance:
+  #         name: "${spring.application.name}"
+  #         management-url: "http://localhost:8080/api/v1/actuator"
+  #         service-url: "http://localhost:8080/api/v1"
+  #         health-url: "http://localhost:8080/api/v1/actuator/health"
 
 logging:
   level:

@@ -19,7 +19,6 @@ import ai.dto.outer.rag.request.RagCompletionRequestDto;
 import ai.dto.outer.rag.request.RagDraftCreateRequestDto;
 import ai.dto.outer.rag.request.RagDraftReviseRequestDto;
 import ai.dto.own.request.DraftChatRequestDto;
-import ai.dto.own.request.DraftCreateRequestDto;
 import ai.dto.own.request.DraftSaveVersionRequestDto;
 import ai.dto.own.request.MessageCreateRequestDto;
 import ai.dto.own.request.MessageUpdateRequestDto;
@@ -185,6 +184,9 @@ public class RagService {
                     }
                 })
                 .doOnComplete(() -> {
+                    if(source.isEmpty()) {
+                        source.append("[]");
+                    }
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
                             .content(fullAnswer.toString())
                             .source(source.toString())
@@ -296,6 +298,9 @@ public class RagService {
                     }
                 })
                 .doOnComplete(() -> {
+                    if(source.isEmpty()) {
+                        source.append("[]");
+                    }
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
                             .content(fullAnswer.toString())
                             .source(source.toString())
@@ -377,6 +382,10 @@ public class RagService {
                     if(!status.isEmpty() && status.toString().equalsIgnoreCase("completed")) {
                         questionForUser.setLength(0);
                         questionForUser.append("Đã hoàn thành");
+                    }
+
+                    if(thoughts.isEmpty()) {
+                        thoughts.append("[]");
                     }
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
                             .content(questionForUser.toString())
@@ -491,6 +500,10 @@ public class RagService {
                         questionForUser.setLength(0);
                         questionForUser.append("Đã hoàn thành");
                     }
+
+                    if(thoughts.isEmpty()) {
+                        thoughts.append("[]");
+                    } 
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
                             .content(questionForUser.toString())
                             .source(thoughts.toString())
