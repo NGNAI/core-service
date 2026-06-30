@@ -22,6 +22,8 @@ import ai.dto.own.response.UserProfileResponseDto;
 import ai.model.ApiResponseModel;
 import ai.service.AuthService;
 import ai.service.UserProfileService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -30,11 +32,13 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/user/profile")
+@Tag(name = "User Profile", description = "User profile APIs")
 @RestController
 public class UserProfileController {
     UserProfileService userProfileService;
     AuthService authService;
 
+    @Operation(summary = "Get user profile", description = "Retrieve the current user's profile information")
     @GetMapping()
     ResponseEntity<ApiResponseModel<UserProfileResponseDto>> getProfile(){
         return ResponseEntity.ok(
@@ -45,6 +49,7 @@ public class UserProfileController {
         );
     }
 
+    @Operation(summary = "Update user profile", description = "Update the current user's profile with provided data")
     @PutMapping
     ResponseEntity<ApiResponseModel<UserProfileResponseDto>> update(@Valid @RequestBody UserProfileUpdateRequestDto requestDto){
         return ResponseEntity.ok(
@@ -55,6 +60,7 @@ public class UserProfileController {
         );
     }
 
+    @Operation(summary = "Change user password", description = "Change the password for the current user")
     @PatchMapping("/password")
     ResponseEntity<ApiResponseModel<Void>> changePassword(@Valid @RequestBody UserPasswordUpdateRequestDto requestDto){
         userProfileService.changePassword(requestDto);
@@ -65,6 +71,7 @@ public class UserProfileController {
         );
     }
 
+    @Operation(summary = "Change user organization", description = "Switch the current user's organization")
     @PostMapping("/change-org")
     ResponseEntity<ApiResponseModel<OrganizationSelectResponseDto>> changeOrg(@Valid @RequestBody OrganizationSelectRequestDto selectRequestDto) throws JOSEException {
         return ResponseEntity.ok(
@@ -75,6 +82,7 @@ public class UserProfileController {
         );
     }
 
+    @Operation(summary = "List user organizations", description = "Retrieve a list of organizations the user belongs to with roles")
     @GetMapping("/list-org")
     ResponseEntity<ApiResponseModel<List<OrganizationWithUserRoleDto>>> listOrg(){
         return ResponseEntity.ok(

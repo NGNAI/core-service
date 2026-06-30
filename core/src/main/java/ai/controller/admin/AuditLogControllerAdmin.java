@@ -31,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/admin/audit-logs")
+@Tag(name = "Audit Log Admin", description = "Audit log admin APIs")
 @RestController
 public class AuditLogControllerAdmin {
 

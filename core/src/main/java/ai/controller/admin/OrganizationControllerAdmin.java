@@ -24,6 +24,8 @@ import ai.dto.own.response.OrganizationResponseDto;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.OrganizationService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.AccessLevel;
@@ -33,13 +35,15 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/admin/organizations")
+@Tag(name = "Organization Admin", description = "Organization admin APIs")
 @RestController
 public class OrganizationControllerAdmin {
     OrganizationService organizationService;
 
-    @GetMapping("/{organizationId}")
-    @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'READ',null)")
-    ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getById(@PathVariable UUID organizationId
+        @Operation(summary = "Get organization by ID", description = "Retrieve an organization by its ID with optional nested child depth")
+        @GetMapping("/{organizationId}")
+        @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'READ',null)")
+        ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getById(@PathVariable UUID organizationId
             , @Valid @Min(value = 0, message = InputValidateKey.NESTED_CHILD_VALUE_INVALID) @RequestParam(required = false) Integer nestedChild){
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationResponseDto>builder()
@@ -49,6 +53,7 @@ public class OrganizationControllerAdmin {
         );
     }
 
+    @Operation(summary = "Get all organizations", description = "Retrieve a paginated list of organizations based on filter criteria")
     @GetMapping
     @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
     ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getAll(@Valid @ModelAttribute OrganizationFilterDto filterDto){
@@ -62,6 +67,7 @@ public class OrganizationControllerAdmin {
         );
     }
 
+    @Operation(summary = "Get organizations by permission", description = "Retrieve organizations that the current user has permission to view")
     @GetMapping("/on-permission")
     ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getByPermission(@Valid @ModelAttribute OrganizationFilterDto filterDto){
         CustomPairModel<Long, List<OrganizationResponseDto>> result = organizationService.getByPermission(filterDto);
@@ -74,6 +80,7 @@ public class OrganizationControllerAdmin {
         );
     }
 
+    @Operation(summary = "Get root organization", description = "Retrieve the root organization with optional nested child depth")
     @GetMapping("/root")
     @PreAuthorize("@perm.canAccess(null, 'ORG', 'READ',null)")
     ResponseEntity<ApiResponseModel<OrganizationResponseDto>> getRoot(@Valid @Min(value = 0, message = InputValidateKey.NESTED_CHILD_VALUE_INVALID) @RequestParam(required = false) Integer nestedChild){
@@ -85,6 +92,7 @@ public class OrganizationControllerAdmin {
         );
     }
 
+    @Operation(summary = "Get organization children", description = "Retrieve child organizations of a parent organization with pagination and filtering")
     @GetMapping("/{organizationId}/children")
     @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'READ',null)")
     ResponseEntity<ApiResponseModel<List<OrganizationResponseDto>>> getChild(@PathVariable UUID organizationId, @Valid @Min(value = 0, message = InputValidateKey.NESTED_CHILD_VALUE_INVALID) @RequestParam(required = false) Integer nestedChild,@Valid @ModelAttribute OrganizationFilterDto filterDto){
@@ -99,6 +107,7 @@ public class OrganizationControllerAdmin {
         );
     }
 
+    @Operation(summary = "Create organization", description = "Create a new organization under a specified parent organization")
     @PostMapping
     @PreAuthorize("@perm.canAccess(#requestDto.parentId, 'ORG', 'CREATE',null)")
     ResponseEntity<ApiResponseModel<OrganizationResponseDto>> create(@Valid @RequestBody OrganizationCreateRequestDto requestDto){
@@ -110,6 +119,7 @@ public class OrganizationControllerAdmin {
         );
     }
 
+    @Operation(summary = "Update organization", description = "Update an existing organization by ID")
     @PutMapping("/{organizationId}")
     @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'UPDATE',null)")
     ResponseEntity<ApiResponseModel<OrganizationResponseDto>> update(@PathVariable UUID organizationId,@Valid @RequestBody OrganizationUpdateRequestDto requestDto){
@@ -121,6 +131,7 @@ public class OrganizationControllerAdmin {
         );
     }
 
+    @Operation(summary = "Delete organization", description = "Delete an organization by its ID")
     @DeleteMapping("/{organizationId}")
     @PreAuthorize("@perm.canAccess(#organizationId, 'ORG', 'DELETE',null)")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID organizationId){

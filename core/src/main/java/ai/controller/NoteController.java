@@ -37,6 +37,7 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/user/notes")
+@Tag(name = "Note", description = "Note APIs")
 @RestController
 public class NoteController {
     NoteService noteService;

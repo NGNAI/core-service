@@ -63,6 +63,7 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/user/notebooks")
+@Tag(name = "Notebook", description = "Notebook APIs")
 @RestController
 public class NoteBookController {
     NoteBookService notebookService;

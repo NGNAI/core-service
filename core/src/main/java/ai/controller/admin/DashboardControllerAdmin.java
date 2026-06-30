@@ -31,10 +31,10 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Tag(name = "Dashboard", description = "Dashboard statistics APIs")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/admin/dashboard")
+@Tag(name = "Dashboard Admin", description = "Dashboard admin APIs")
 @RestController
 public class DashboardControllerAdmin {
 

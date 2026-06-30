@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import ai.dto.own.request.RoleCreateRequestDto;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import ai.dto.own.request.RolePermissionUpdateRequestDto;
 import ai.dto.own.request.RoleUpdateRequestDto;
 import ai.dto.own.request.filter.RoleFilterDto;
@@ -31,10 +33,12 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/admin/roles")
+@Tag(name = "Role Admin", description = "Role admin APIs")
 @RestController
 public class RoleController {
     RoleService roleService;
 
+    @Operation(summary = "Get all roles", description = "Retrieve a paginated list of roles based on filter criteria")
     @GetMapping
     @PreAuthorize("@perm.canAccess(null, 'ROLE', 'READ',null)")
     ResponseEntity<ApiResponseModel<List<RoleResponseDto>>> getAll(@Valid @ModelAttribute RoleFilterDto filterDto){
@@ -48,6 +52,7 @@ public class RoleController {
         );
     }
 
+    @Operation(summary = "Create role", description = "Create a new role with the provided details")
     @PostMapping
     @PreAuthorize("@perm.canAccess(null, 'ROLE', 'CREATE', null)")
     ResponseEntity<ApiResponseModel<RoleResponseDto>> create(@Valid @RequestBody RoleCreateRequestDto requestDto){
@@ -59,6 +64,7 @@ public class RoleController {
         );
     }
 
+    @Operation(summary = "Update role", description = "Update an existing role identified by roleId")
     @PutMapping("/{roleId}")
     @PreAuthorize("@perm.canAccess(null, 'ROLE', 'UPDATE', null)")
     ResponseEntity<ApiResponseModel<RoleResponseDto>> update(@PathVariable UUID roleId,@Valid  @RequestBody RoleUpdateRequestDto requestDto){
@@ -70,6 +76,7 @@ public class RoleController {
         );
     }
 
+    @Operation(summary = "Assign permissions to role", description = "Assign a set of permissions to the specified role")
     @PostMapping("/{roleId}/permissions")
     @PreAuthorize("@perm.canAccess(null, 'ROLE', 'ASSIGN', 'PERMISSION')")
     ResponseEntity<ApiResponseModel<RoleResponseDto>> assignPermission(@PathVariable UUID roleId,@Valid @RequestBody RolePermissionUpdateRequestDto requestDto){
@@ -81,6 +88,7 @@ public class RoleController {
         );
     }
 
+    @Operation(summary = "Delete role", description = "Delete a role by its UUID")
     @DeleteMapping("/{roleId}")
     @PreAuthorize("@perm.canAccess(null, 'ROLE', 'DELETE', null)")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID roleId){

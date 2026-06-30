@@ -51,6 +51,7 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/user/drafts")
+@Tag(name = "Draft", description = "Draft management APIs")
 @RestController
 public class DraftController {
         DraftService draftService;
