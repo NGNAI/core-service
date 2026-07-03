@@ -19,9 +19,9 @@ import ai.model.ApiResponseModel;
 import ai.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import jakarta.servlet.http.Cookie;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -54,7 +54,7 @@ public class AuthController {
         cookie.setHttpOnly(true); // QUAN TRỌNG: Ngăn JavaScript truy cập (Chống XSS)
         cookie.setSecure(false);   // CHÚ Ý: Bắt buộc chạy HTTPS (ở localhost có thể tạm để false)
         cookie.setPath("/");       // Cookie có hiệu lực cho toàn bộ domain
-        cookie.setMaxAge(60);   // Thời gian sống (ví dụ: 1 phút)
+        cookie.setMaxAge(2592000);   // Thời gian sống (ví dụ: 1 tháng)
 
         response.addCookie(cookie);
 
@@ -75,7 +75,7 @@ public class AuthController {
         cookie.setHttpOnly(true); // QUAN TRỌNG: Ngăn JavaScript truy cập (Chống XSS)
         cookie.setSecure(false);   // CHÚ Ý: Bắt buộc chạy HTTPS (ở localhost có thể tạm để false)
         cookie.setPath("/");       // Cookie có hiệu lực cho toàn bộ domain
-        cookie.setMaxAge(60);   // Thời gian sống (ví dụ: 1 phút)
+        cookie.setMaxAge(2592000);   // Thời gian sống (ví dụ: 1 tháng)
 
         response.addCookie(cookie);
 
