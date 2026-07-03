@@ -9,11 +9,16 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import jakarta.servlet.http.Cookie;
+import org.springframework.util.StringUtils;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 
 import ai.AppProperties;
 import ai.enums.TokenType;
@@ -63,14 +68,32 @@ public class SecurityConfig {
                         .requestMatchers("/auth/select-org").authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->
-                        oauth2.jwt(jwt ->
+                        oauth2
+                        .bearerTokenResolver(request -> {
+                                // 1. Ưu tiên 1: Thử lấy Bearer Token từ Header Authorization bằng cơ chế mặc định của Spring
+                                DefaultBearerTokenResolver defaultResolver = new DefaultBearerTokenResolver();
+                                String token = defaultResolver.resolve(request);
+                                
+                                // 2. Ưu tiên 2: Nếu Header không có, lùng sục trong HttpOnly Cookie
+                                if (!StringUtils.hasText(token) && request.getCookies() != null) {
+                                        for (Cookie cookie : request.getCookies()) {
+                                                if ("AUTH_TOKEN".equals(cookie.getName())) { // Tên cookie do bạn quy định lúc login
+                                                        token = cookie.getValue();
+                                                        break;
+                                                }
+                                        }
+                                }
+                                System.out.println("############################ Token: " + token);
+                                return token; // Trả về chuỗi JWT nhặt được cho Spring Security giải mã tiếp
+                        })
+                        .jwt(jwt ->
                                 jwt.decoder(customJWTDecoder)
                                         .jwtAuthenticationConverter(jwtAuthenticationConverter())
                         )
                                 .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
                                 .accessDeniedHandler(new JwtAccessDeniedHandler())
                 )
-                .addFilterAfter(new TokenTypeFilter(TokenType.TEMP), BearerTokenAuthenticationFilter.class)
+                //.addFilterAfter(new TokenTypeFilter(TokenType.TEMP), BearerTokenAuthenticationFilter.class)
                 .cors(cors -> {})
                 .csrf(AbstractHttpConfigurer::disable);
 
@@ -86,7 +109,25 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**", "/user/**", "/category/**").authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->
-                        oauth2.jwt(jwt ->
+                        oauth2
+                        .bearerTokenResolver(request -> {
+                                // 1. Ưu tiên 1: Thử lấy Bearer Token từ Header Authorization bằng cơ chế mặc định của Spring
+                                DefaultBearerTokenResolver defaultResolver = new DefaultBearerTokenResolver();
+                                String token = defaultResolver.resolve(request);
+                                
+                                // 2. Ưu tiên 2: Nếu Header không có, lùng sục trong HttpOnly Cookie
+                                if (!StringUtils.hasText(token) && request.getCookies() != null) {
+                                        for (Cookie cookie : request.getCookies()) {
+                                                if ("AUTH_TOKEN".equals(cookie.getName())) { // Tên cookie do bạn quy định lúc login
+                                                        token = cookie.getValue();
+                                                        break;
+                                                }
+                                        }
+                                }
+                                System.out.println("############################ Token: " + token);
+                                return token; // Trả về chuỗi JWT nhặt được cho Spring Security giải mã tiếp
+                        })
+                        .jwt(jwt ->
                                 jwt.decoder(customJWTDecoder)
                                         .jwtAuthenticationConverter(jwtAuthenticationConverter())
                         )
@@ -105,10 +146,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-
-        config.addAllowedOrigin("*");
-        config.addAllowedMethod("*");
-        config.addAllowedHeader("*");
+        config.addAllowedOrigin("*"); // Cho phép tất cả các nguồn gốc (origins) trong các yêu cầu CORS
+        config.addAllowedMethod("*"); // Cho phép tất cả các phương thức HTTP trong các yêu cầu CORS
+        config.addAllowedHeader("*"); // Cho phép tất cả các header trong các yêu cầu CORS
+        config.setAllowCredentials(true); // Cho phép gửi cookie và thông tin xác thực trong các yêu cầu CORS
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
