@@ -10,7 +10,16 @@ core/
 ├── service/        (Business logic)
 ├── repository/     (Data access layer)
 ├── entity/         (JPA entities)
+│   ├── postgres/   (Standard JPA entities)
+│   └── embeddable/ (JPA @Embeddable classes)
 ├── dto/            (Data transfer objects)
+│   ├── own/        (Internal DTOs)
+│   │   ├── request/   (Incoming request payloads)
+│   │   └── response/  (Outgoing response payloads)
+│   └── outer/      (External integration DTOs)
+│       ├── ingestion/
+│       ├── otp/
+│       └── rag/
 ├── mapper/         (Object mapping with MapStruct)
 ├── aspect/         (Cross-cutting concerns)
 ├── security/       (Security components)
