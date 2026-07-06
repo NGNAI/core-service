@@ -62,4 +62,12 @@ public interface DataIngestionRepository extends JpaRepository<DataIngestionEnti
     
     @Query("SELECT d.accessLevel, COUNT(d) FROM DataIngestionEntity d WHERE d.organization.id = :orgId GROUP BY d.accessLevel")
     java.util.List<java.lang.Object[]> countByAccessLevelByOrgId(UUID orgId);
+
+    // Count data ingestions by updated date (day precision)
+    @Query(value = "SELECT COUNT(d) FROM data_ingestion d WHERE DATE(d.audit.updated_at) = :date", nativeQuery = true)
+    long countDataIngestionsByDate(java.time.LocalDate date);
+
+    // Count data ingestions by updated date and organization
+    @Query(value = "SELECT COUNT(d) FROM data_ingestion d WHERE DATE(d.audit.updated_at) = :date AND d.organization_id = :orgId", nativeQuery = true)
+    long countDataIngestionsByDateAndOrgId(java.time.LocalDate date, UUID orgId);
 }

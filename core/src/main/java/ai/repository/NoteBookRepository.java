@@ -24,4 +24,12 @@ public interface NoteBookRepository extends JpaRepository<NoteBookEntity, UUID>,
     
     @Query("SELECT COUNT(n) FROM NoteBookEntity n WHERE n.organization.id = :orgId")
     long countAllNoteBooksByOrgId(UUID orgId);
+
+    // Count notebooks by updated date (day precision)
+    @Query(value = "SELECT COUNT(n) FROM notebook n WHERE DATE(n.audit.updated_at) = :date", nativeQuery = true)
+    long countNoteBooksByDate(java.time.LocalDate date);
+
+    // Count notebooks by updated date and organization
+    @Query(value = "SELECT COUNT(n) FROM notebook n WHERE DATE(n.audit.updated_at) = :date AND n.organization_id = :orgId", nativeQuery = true)
+    long countNoteBooksByDateAndOrgId(java.time.LocalDate date, UUID orgId);
 }

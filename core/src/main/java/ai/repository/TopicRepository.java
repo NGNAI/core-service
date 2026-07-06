@@ -24,4 +24,12 @@ public interface TopicRepository extends JpaRepository<TopicEntity, UUID>, JpaSp
     
     @Query("SELECT COUNT(t) FROM TopicEntity t WHERE t.organization.id = :orgId")
     long countAllTopicsByOrgId(UUID orgId);
+
+    // Count topics by updated date (day precision)
+    @Query(value = "SELECT COUNT(t) FROM topic t WHERE DATE(t.audit.updated_at) = :date", nativeQuery = true)
+    long countTopicsByDate(java.time.LocalDate date);
+
+    // Count topics by updated date and organization
+    @Query(value = "SELECT COUNT(t) FROM topic t WHERE DATE(t.audit.updated_at) = :date AND t.organization_id = :orgId", nativeQuery = true)
+    long countTopicsByDateAndOrgId(java.time.LocalDate date, UUID orgId);
 }
