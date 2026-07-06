@@ -19,7 +19,6 @@ import ai.model.ApiResponseModel;
 import ai.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -50,13 +49,13 @@ public class AuthController {
     ResponseEntity<ApiResponseModel<AuthResponseDto>> auth(@Valid @RequestBody AuthRequestDto authRequestDto, HttpServletResponse response) throws JOSEException, JsonProcessingException {
         AuthResponseDto authResponse = authService.auth(authRequestDto);
 
-        Cookie cookie = new Cookie("AUTH_TOKEN", authResponse.getToken());
-        cookie.setHttpOnly(true); // QUAN TRỌNG: Ngăn JavaScript truy cập (Chống XSS)
-        cookie.setSecure(false);   // CHÚ Ý: Bắt buộc chạy HTTPS (ở localhost có thể tạm để false)
-        cookie.setPath("/");       // Cookie có hiệu lực cho toàn bộ domain
-        cookie.setMaxAge(2592000);   // Thời gian sống (ví dụ: 1 tháng)
+        // Cookie cookie = new Cookie("AUTH_TOKEN", authResponse.getToken());
+        // cookie.setHttpOnly(true); // QUAN TRỌNG: Ngăn JavaScript truy cập (Chống XSS)
+        // cookie.setSecure(false);   // CHÚ Ý: Bắt buộc chạy HTTPS (ở localhost có thể tạm để false)
+        // cookie.setPath("/");       // Cookie có hiệu lực cho toàn bộ domain
+        // cookie.setMaxAge(2592000);   // Thời gian sống (ví dụ: 1 tháng)
 
-        response.addCookie(cookie);
+        // response.addCookie(cookie);
 
         return ResponseEntity.ok(
                 ApiResponseModel.<AuthResponseDto>builder()
@@ -71,13 +70,13 @@ public class AuthController {
     ResponseEntity<ApiResponseModel<OrganizationSelectResponseDto>> selectOrg(@Valid @RequestBody OrganizationSelectRequestDto selectRequestDto, HttpServletResponse response) throws JOSEException {
         OrganizationSelectResponseDto orgResponse = authService.selectOrg(selectRequestDto);
 
-        Cookie cookie = new Cookie("AUTH_TOKEN", orgResponse.getToken());
-        cookie.setHttpOnly(true); // QUAN TRỌNG: Ngăn JavaScript truy cập (Chống XSS)
-        cookie.setSecure(false);   // CHÚ Ý: Bắt buộc chạy HTTPS (ở localhost có thể tạm để false)
-        cookie.setPath("/");       // Cookie có hiệu lực cho toàn bộ domain
-        cookie.setMaxAge(2592000);   // Thời gian sống (ví dụ: 1 tháng)
+        // Cookie cookie = new Cookie("AUTH_TOKEN", orgResponse.getToken());
+        // cookie.setHttpOnly(true); // QUAN TRỌNG: Ngăn JavaScript truy cập (Chống XSS)
+        // cookie.setSecure(false);   // CHÚ Ý: Bắt buộc chạy HTTPS (ở localhost có thể tạm để false)
+        // cookie.setPath("/");       // Cookie có hiệu lực cho toàn bộ domain
+        // cookie.setMaxAge(2592000);   // Thời gian sống (ví dụ: 1 tháng)
 
-        response.addCookie(cookie);
+        // response.addCookie(cookie);
 
         return ResponseEntity.ok(
                 ApiResponseModel.<OrganizationSelectResponseDto>builder()
