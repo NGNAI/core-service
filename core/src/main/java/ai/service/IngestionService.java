@@ -13,11 +13,14 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.multipart.MultipartFile;
 
+import ai.annotation.Audited;
 import ai.dto.outer.ingestion.response.IngestionDeleteResponseDto;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.outer.ingestion.response.IngestionSummaryResponseDto;
 import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
 import ai.enums.ApiResponseStatus;
+import ai.enums.AuditAction;
+import ai.enums.AuditResource;
 import ai.enums.DataScope;
 import ai.exeption.AppException;
 import lombok.AccessLevel;
@@ -51,10 +54,12 @@ public class IngestionService {
      * @param visibility
      * @return
      */
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload RAG file: {0}")
     public IngestionUploadResponseDto uploadRag(MultipartFile file, String fileId, String userId, String username, String uniId, String unitName, DataScope visibility) {
         return uploadRag(file, fileId, userId, username, uniId, unitName, visibility, null);
     }
 
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload RAG file: {0}")
     public IngestionUploadResponseDto uploadRag(MultipartFile file, String fileId, String userId, String username, String uniId, String unitName, DataScope visibility, String callbackUrl) {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", file.getResource());
@@ -93,10 +98,12 @@ public class IngestionService {
      * @param visibility
      * @return
      */
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload RAG file: {0}")
     public IngestionUploadResponseDto uploadRag(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility) {
         return uploadRag(fileBytes, fileName, fileId, userId, username, unitId, unitName, visibility, null);
     }
 
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload RAG file: {0}")
     public IngestionUploadResponseDto uploadRag(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String callbackUrl) {
         ByteArrayResource fileResource = new ByteArrayResource(fileBytes) {
             @Override
@@ -131,10 +138,12 @@ public class IngestionService {
     }
 
 
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload chat file: {0}")
     public IngestionUploadResponseDto uploadChat(MultipartFile file, String fileId, String userId, String username, String uniId, String unitName, DataScope visibility, String topicId) {
         return uploadChat(file, fileId, userId, username, uniId, unitName, visibility, topicId, null);
     }
 
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload chat file: {0}")
     public IngestionUploadResponseDto uploadChat(MultipartFile file, String fileId, String userId, String username, String uniId, String unitName, DataScope visibility, String topicId, String callbackUrl) {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", file.getResource());
@@ -162,10 +171,12 @@ public class IngestionService {
         }
     }
 
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload chat file: {0}")
     public IngestionUploadResponseDto uploadChat(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String topicId) {
         return uploadChat(fileBytes, fileName, fileId, userId, username, unitId, unitName, visibility, topicId, null);
     }
 
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload chat file: {0}")
     public IngestionUploadResponseDto uploadChat(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String topicId, String callbackUrl) {
         ByteArrayResource fileResource = new ByteArrayResource(fileBytes) {
             @Override
@@ -200,10 +211,12 @@ public class IngestionService {
         }
     }  
 
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload notebook file: {0}")
     public IngestionUploadResponseDto uploadNoteBook(MultipartFile file, String fileId, String userId, String username, String uniId, String unitName, DataScope visibility, String notebookId) {
         return uploadNoteBook(file, fileId, userId, username, uniId, unitName, visibility, notebookId, null);
     }
 
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload notebook file: {0}")
     public IngestionUploadResponseDto uploadNoteBook(MultipartFile file, String fileId, String userId, String username, String uniId, String unitName, DataScope visibility, String notebookId, String callbackUrl) {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", file.getResource());
@@ -231,10 +244,12 @@ public class IngestionService {
         }
     }
 
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload notebook file: {0}")
     public IngestionUploadResponseDto uploadNoteBook(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String notebookId) {
         return uploadNoteBook(fileBytes, fileName, fileId, userId, username, unitId, unitName, visibility, notebookId, null);
     }
 
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload notebook file: {0}")
     public IngestionUploadResponseDto uploadNoteBook(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String notebookId, String callbackUrl) {
         ByteArrayResource fileResource = new ByteArrayResource(fileBytes) {
             @Override
@@ -279,6 +294,7 @@ public class IngestionService {
      * @param jobId
      * @return
      */
+    @Audited(action = AuditAction.READ, resource = AuditResource.DATA_INGESTION, description = "Get ingestion job status: {0}")
     public IngestionStatusResponseDto getJobStatus(UUID jobId) {
         try {
             return ingestionRestClient.get()
@@ -296,6 +312,7 @@ public class IngestionService {
      * @param fileId
      * @return
      */
+    @Audited(action = AuditAction.DELETE, resource = AuditResource.DATA_INGESTION, description = "Delete RAG file: {0}")
     public IngestionDeleteResponseDto deleteFileRag(String fileId) {
         try {
             return ingestionRestClient.delete()
@@ -312,6 +329,7 @@ public class IngestionService {
      * @param fileId
      * @return
      */
+    @Audited(action = AuditAction.DELETE, resource = AuditResource.DATA_INGESTION, description = "Delete chat file: {0}")
     public IngestionDeleteResponseDto deleteFileChat(String fileId) {
         try {
             return ingestionRestClient.delete()
@@ -328,6 +346,7 @@ public class IngestionService {
      * @param fileId
      * @return
      */
+    @Audited(action = AuditAction.DELETE, resource = AuditResource.DATA_INGESTION, description = "Delete notebook file: {0}")
     public IngestionDeleteResponseDto deleteFileNotebook(String fileId) {
         try {
             return ingestionRestClient.delete()
@@ -344,6 +363,7 @@ public class IngestionService {
      * @param fileId
      * @return
      */
+    @Audited(action = AuditAction.READ, resource = AuditResource.DATA_INGESTION, description = "Get ingestion summary: {0}")
     public IngestionSummaryResponseDto getIngestionSummary(String fileId) {
         try {
             Map<String, Object> body = Map.of(

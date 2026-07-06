@@ -28,7 +28,6 @@ import ai.repository.NoteBookRepository;
 import ai.repository.OrganizationRepository;
 import ai.repository.TopicRepository;
 import ai.repository.UserRepository;
-import ai.service.OrganizationUserRoleService;
 import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -207,7 +206,34 @@ public class DashboardService {
             LocalDate date = from.plusDays(i);
             TimelineStatisticsDto.DailyStatisticsDto dailyStat = new TimelineStatisticsDto.DailyStatisticsDto();
             dailyStat.setDate(date.toString());
-            // Các giá trị thống kê cho ngày này sẽ được tính sau
+            
+            // Nếu useGlobal là true hoặc null, lấy dữ liệu toàn hệ thống
+            if (useGlobal == null || useGlobal) {
+                // Lấy số lượng bản nháp theo ngày
+                dailyStat.setDraftCount(draftRepository.countDraftsByDate(date));
+                
+                // Lấy số lượng chủ đề theo ngày
+                dailyStat.setTopicCount(topicRepository.countTopicsByDate(date));
+                
+                // Lấy số lượng notebook theo ngày
+                dailyStat.setNoteBookCount(noteBookRepository.countNoteBooksByDate(date));
+                
+                // Lấy số lượng dữ liệu nhập theo ngày
+                dailyStat.setDataIngestionCount(dataIngestionRepository.countDataIngestionsByDate(date));
+            } else {
+                // Lấy dữ liệu theo tổ chức
+                dailyStat.setDraftCount(draftRepository.countDraftsByDateAndOrgId(date, orgId));
+                
+                // Lấy số lượng chủ đề theo ngày
+                dailyStat.setTopicCount(topicRepository.countTopicsByDateAndOrgId(date, orgId));
+                
+                // Lấy số lượng notebook theo ngày
+                dailyStat.setNoteBookCount(noteBookRepository.countNoteBooksByDateAndOrgId(date, orgId));
+                
+                // Lấy số lượng dữ liệu nhập theo ngày
+                dailyStat.setDataIngestionCount(dataIngestionRepository.countDataIngestionsByDateAndOrgId(date, orgId));
+            }
+            
             dailyStats.add(dailyStat);
         }
         
