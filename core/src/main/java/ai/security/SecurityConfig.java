@@ -147,7 +147,7 @@ public class SecurityConfig {
         config.addAllowedOrigin("*"); // Cho phép tất cả các nguồn gốc (origins) trong các yêu cầu CORS
         config.addAllowedMethod("*"); // Cho phép tất cả các phương thức HTTP trong các yêu cầu CORS
         config.addAllowedHeader("*"); // Cho phép tất cả các header trong các yêu cầu CORS
-        config.setAllowCredentials(true); // Cho phép gửi cookie và thông tin xác thực trong các yêu cầu CORS
+        // config.setAllowCredentials(true); // Cho phép gửi cookie và thông tin xác thực trong các yêu cầu CORS
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
