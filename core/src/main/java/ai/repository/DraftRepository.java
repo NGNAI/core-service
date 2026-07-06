@@ -37,13 +37,14 @@ public interface DraftRepository extends JpaRepository<DraftEntity, UUID> {
     @Query("SELECT d.type, COUNT(d) FROM DraftEntity d WHERE d.organization.id = :orgId GROUP BY d.type")
     java.util.List<java.lang.Object[]> countByTypeByOrgId(UUID orgId);
 
-        // Count drafts by updated date (day precision)
-        @Query(value = "SELECT COUNT(d) FROM draft d WHERE DATE(d.audit.updated_at) = :date", nativeQuery = true)
-        long countDraftsByDate(java.time.LocalDate date);
+    // Count drafts by updated date (day precision)
+    // Use native query because JPQL DATE() does not support Instant type
+    @Query(value = "SELECT COUNT(d) FROM draft d WHERE DATE(d.updated_at) = :date", nativeQuery = true)
+    long countDraftsByDate(java.time.LocalDate date);
 
-        // Count drafts by updated date and organization
-        @Query(value = "SELECT COUNT(d) FROM draft d WHERE DATE(d.audit.updated_at) = :date AND d.organization_id = :orgId", nativeQuery = true)
-        long countDraftsByDateAndOrgId(java.time.LocalDate date, UUID orgId);
+    // Count drafts by updated date and organization
+    @Query(value = "SELECT COUNT(d) FROM draft d WHERE DATE(d.updated_at) = :date AND d.organization_id = :orgId", nativeQuery = true)
+    long countDraftsByDateAndOrgId(java.time.LocalDate date, UUID orgId);
     
     // @Query("SELECT d.presentationStyle, COUNT(d) FROM DraftEntity d GROUP BY d.presentationStyle")
     // java.util.List<java.lang.Object[]> countByPresentationStyle();
