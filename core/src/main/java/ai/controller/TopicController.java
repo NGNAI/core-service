@@ -44,6 +44,7 @@ import ai.service.TopicSourceService;
 import ai.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +55,7 @@ import reactor.core.publisher.Flux;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/user/topics")
 @RestController
+@Tag(name = "Topic", description = "APIs for managing topics, including creation, retrieval, updating, deletion, and message handling")
 public class TopicController {
     TopicService topicService;
     MessageService messageService;

@@ -25,7 +25,8 @@ public enum AuditResource {
     MESSAGE("MESSAGE", "Tin nhắn"),
     CATEGORY("CATEGORY", "Danh mục"),
     ATTACHMENT("ATTACHMENT", "Tệp đính kèm"),
-    AUTH("AUTH", "Xác thực");
+    AUTH("AUTH", "Xác thực"),
+    SYSTEM_SETTING("SYSTEM_SETTING", "Cấu hình hệ thống");
 
     String key;
     String name;

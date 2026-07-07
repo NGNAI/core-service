@@ -95,6 +95,11 @@ public class TopicService {
         topicRepository.deleteById(id);
     }
 
+    /**
+     * Update the title of a topic with the given ID.
+     * @param topicId
+     * @param title
+     */
     public void updateTitleInternal(UUID topicId, String title) {
         topicRepository.findById(topicId).ifPresent(entity -> {
             entity.setTitle(title);
@@ -102,6 +107,12 @@ public class TopicService {
         });
     }
 
+    /**
+     * Update the conversation summary and the last message ID for a given topic.
+     * @param topicId
+     * @param summary
+     * @param lastMessageId
+     */
     public void updateConversationSummaryInternal(UUID topicId, String summary, UUID lastMessageId) {
         topicRepository.findById(topicId).ifPresent(entity -> {
             entity.setConversationSummary(summary);
