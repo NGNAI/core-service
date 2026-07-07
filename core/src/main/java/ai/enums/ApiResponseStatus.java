@@ -180,7 +180,13 @@ public enum ApiResponseStatus {
     
     NOTE_SOURCE_BY_NOT_ALLOW_UPDATE(1125, "Note source by not allow update", HttpStatus.BAD_REQUEST), 
     
-    CHANGE_REQUEST_MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1143, "Change request message cannot be null or empty", HttpStatus.BAD_REQUEST);
+    CHANGE_REQUEST_MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1143, "Change request message cannot be null or empty", HttpStatus.BAD_REQUEST),
+
+    SETTING_KEY_NOT_EXISTS(1160, "Setting key does not exist", HttpStatus.NOT_FOUND),
+    SETTING_KEY_EXISTED(1161, "Setting key already exists", HttpStatus.CONFLICT),
+    SETTING_KEY_CAN_NOT_BE_NULL_OR_EMPTY(1162, "Setting key cannot be null or empty", HttpStatus.BAD_REQUEST),
+    SETTING_TYPE_CAN_NOT_BE_NULL_OR_EMPTY(1163, "Setting type cannot be null or empty", HttpStatus.BAD_REQUEST),
+    SETTING_GROUP_CAN_NOT_BE_NULL_OR_EMPTY(1164, "Setting group cannot be null or empty", HttpStatus.BAD_REQUEST);
 
     int code;
     String message;

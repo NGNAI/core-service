@@ -1,13 +1,9 @@
 package ai.configuration;
 
-import ai.dto.own.request.OrganizationAssignUserRequestDto;
-import ai.dto.own.request.OrganizationCreateRequestDto;
-import ai.dto.own.request.RoleCreateRequestDto;
-import ai.dto.own.request.UserCreateRequestDto;
-import ai.dto.own.request.filter.OrganizationFilterDto;
-import ai.dto.own.response.OrganizationResponseDto;
-import ai.dto.own.response.RoleResponseDto;
-import ai.dto.own.response.UserResponseDto;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
 import ai.service.OrganizationService;
 import ai.service.OrganizationUserRoleService;
 import ai.service.RoleService;
@@ -16,11 +12,6 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-import java.util.Set;
 
 @RequiredArgsConstructor
 @Slf4j
