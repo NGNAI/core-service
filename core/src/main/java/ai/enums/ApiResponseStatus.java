@@ -186,7 +186,9 @@ public enum ApiResponseStatus {
     SETTING_KEY_EXISTED(1161, "Setting key already exists", HttpStatus.CONFLICT),
     SETTING_KEY_CAN_NOT_BE_NULL_OR_EMPTY(1162, "Setting key cannot be null or empty", HttpStatus.BAD_REQUEST),
     SETTING_TYPE_CAN_NOT_BE_NULL_OR_EMPTY(1163, "Setting type cannot be null or empty", HttpStatus.BAD_REQUEST),
-    SETTING_GROUP_CAN_NOT_BE_NULL_OR_EMPTY(1164, "Setting group cannot be null or empty", HttpStatus.BAD_REQUEST);
+    SETTING_GROUP_CAN_NOT_BE_NULL_OR_EMPTY(1164, "Setting group cannot be null or empty", HttpStatus.BAD_REQUEST),
+
+    ORG_ID_REQUIRED(1165, "Organization ID is required", HttpStatus.BAD_REQUEST);
 
     int code;
     String message;

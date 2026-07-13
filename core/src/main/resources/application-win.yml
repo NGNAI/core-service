@@ -1,0 +1,182 @@
+server:
+  servlet:
+    context-path: "/api/v1"
+  port: 8081
+
+spring:
+  application:
+    name: "NGN AI core"
+
+  main:
+    allow-circular-references: true
+
+  servlet:
+    multipart:
+      max-file-size: "100MB"
+      max-request-size: "100MB"
+
+  datasource:
+    url: "jdbc:postgresql://192.168.30.72:5432/core_service_4"
+    username: "postgres"
+    password: "P@ssw0rd"
+
+  jpa:
+    database-platform: "org.hibernate.dialect.PostgreSQLDialect"
+    hibernate:
+      ddl-auto: "update"
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        validator:
+          apply_to_ddl: true
+
+  migration:
+    enabled: true
+    locations: "classpath:db/migration"
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      password: "P@ssw0rd"
+      host: 192.168.30.74
+      port: 6379
+      timeout: 60000
+      lettuce:
+        shutdown-timeout: 100
+
+  # Spring Boot Admin Client: đăng ký ứng dụng với Spring Boot Admin Server để theo dõi qua UI
+  # boot:
+  #   admin:
+  #     client:
+  #       # URL của Spring Boot Admin Server (đổi theo địa chỉ server thật của bạn)
+  #       url: "http://localhost:8081"
+  #       enabled: true
+  #       auto-registration: true
+  #       auto-deregistration: true
+  #       register-once: true
+  #       instance:
+  #         name: "${spring.application.name}"
+  #         management-url: "http://localhost:8080/api/v1/actuator"
+  #         service-url: "http://localhost:8080/api/v1"
+  #         health-url: "http://localhost:8080/api/v1/actuator/health"
+
+logging:
+  level:
+    org.flywaydb: DEBUG
+    org.springframework.boot.autoconfigure.flyway: DEBUG
+    org.springframework.jdbc.core: "ERROR"
+    org.springframework.web: "DEBUG"
+    root: "INFO"
+    com.baeldung: "TRACE"
+    de.codecentric.boot.admin.client: "DEBUG"
+    org.springframework.boot.actuate: "DEBUG"
+  file:
+    name: "logs/application.log"
+    path: "logs"
+
+# Cấu hình Spring Boot Actuator & Spring Boot Admin Client
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics,env,beans,httptrace,threaddump,heapdump,loggers,prometheus,scheduledtasks,sessions"
+      base-path: "/actuator"
+  endpoint:
+    health:
+      show-details: "always"
+      show-components: "always"
+      probes:
+        enabled: true
+    info:
+      enabled: true
+    loggers:
+      enabled: true
+  metrics:
+    tags:
+      application: "${spring.application.name}"
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+    os:
+      enabled: true
+
+# sql:
+#   init:
+#     mode: "always"
+
+# Cấu hình cho JWT (JSON Web Token)
+jwt:
+  secret-key: "2daEri6ObwgO7dlnqH8SlcgtKWQ1njWdkg7hFv+gjTlfxxaeqBdg7XimfhBEIJEn"
+  expiry-duration: 216000
+
+# Cấu hình cho OTP service (One-Time Password)
+otp:
+  url: "http://192.168.200.42:16500"
+  x-api-key: "kgw5KynWd9MAGht7waCZsFI0eTumLPxLVUEnRVtEXjypXNkpQ3vHEtPvWK5llC4MDf4bvl0BsbedKaGFsnOPJOd8kpaTcW7R04FDsZZMOAwlyKwguh0LVEsi3qQnDJM3BkVeBjH4F2WYga6D3TGqKljEJSl7QyluPpq0+Rp0S+HYx07sp4Wjynvaxb4oRB14"
+
+# Cấu hình cho RAG (Retrieval-Augmented Generation)
+rag:
+  url: "http://192.168.30.75:8002"
+  memory:
+    # Số lượng message gần nhất trong topic được đưa vào context
+    topic-recent-message-window: 10
+    # Số lượng message gần nhất trong notebook được đưa vào context
+    note-book-recent-message-window: 14
+    # Số lượng message tối thiểu để thực hiện nén hội thoại (conversation compression)
+    min-messages-to-compress: 4
+
+# Cấu hình cho data ingestion service
+ingestion:
+  url: "http://192.168.30.73:8000"
+  read-timeout-ms: 180000
+
+# Cấu hình cho MinIO (dùng để lưu trữ file đính kèm, notebook source, v.v.)
+minio:
+  endpoint: "http://192.168.30.71:9000"
+  access-key: "admin"
+  secret-key: "password"
+
+# Cấu hình cho các API cho việc tích hợp với các service khác (attachment service, ingestion service, v.v.)
+integration:
+  attachment-api:
+    header-name: "X-API-KEY"
+    key: "ATTACHMENT_API_KEY_1234567890"
+  data-ingestion-api:
+    header-name: "X-API-KEY"
+    key: "DATA_INGESTION_API_KEY_1234567890"
+  data-ingestion-callback:
+    # URL để ingestion service callback trạng thái về core service
+    url: "http://192.168.30.71:8080/api/v1/user/data-ingestion/ingestion/webhook/status"
+    # Shared secret dùng để xác thực webhook callback (máy chủ gọi về phải gửi đúng giá trị này)
+    signature: "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+    # Có thể gửi signature qua query param, ví dụ: ?signature=YOUR_WEBHOOK_SHARED_SECRET
+    signature-param-name: "signature"
+    # Hoặc gửi qua header, ví dụ: X-Webhook-Signature: YOUR_WEBHOOK_SHARED_SECRET
+    signature-header-name: "X-Webhook-Signature"
+  notebook-source-callback:
+    # URL để ingestion service callback trạng thái notebook source về core service
+    url: "http://192.168.30.71:8080/api/v1/user/notebooks/sources/ingestion/webhook/status"
+    # Shared secret dùng để xác thực webhook callback notebook source
+    signature: "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+    # Có thể gửi signature qua query param, ví dụ: ?signature=YOUR_WEBHOOK_SHARED_SECRET
+    signature-param-name: "signature"
+    # Hoặc gửi qua header, ví dụ: X-Webhook-Signature: YOUR_WEBHOOK_SHARED_SECRET
+    signature-header-name: "X-Webhook-Signature"
+
+# Cấu hình cho tính năng tự động ingest dữ liệu từ file (auto-ingestion)
+auto-ingestion:
+  enabled: true
+  input-dir: "C:\\Users\\khuetech\\Documents\\Input"
+  processing-dir: "C:\\Users\\khuetech\\Documents\\Input\\.processing"
+  failed-dir: "C:\\Users\\khuetech\\Documents\\Input\\.failed"
+  poller-delay-ms: 5000
+  file-stable-seconds: 20
+  access-level: "GLOBAL"
+  from-source: "SYSTEM"
+  delete-local-after-success: true
