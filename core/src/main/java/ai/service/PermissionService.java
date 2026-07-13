@@ -19,7 +19,7 @@ import ai.entity.postgres.RolePermissionEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
 import ai.enums.AuditResource;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.mapper.PermissionMapper;
 import ai.model.CustomPairModel;
 import ai.repository.PermissionRepository;

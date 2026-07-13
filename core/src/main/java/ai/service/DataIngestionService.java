@@ -39,7 +39,7 @@ import ai.enums.DataSource;
 import ai.enums.IngestionStatus;
 import ai.enums.SystemEventSource;
 import ai.enums.SystemEventType;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.mapper.DataIngestionMapper;
 import ai.repository.DataIngestionRepository;
 import ai.util.JwtUtil;

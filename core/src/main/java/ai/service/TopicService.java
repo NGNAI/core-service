@@ -16,7 +16,7 @@ import ai.entity.postgres.TopicEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
 import ai.enums.AuditResource;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.mapper.TopicMapper;
 import ai.model.CustomPairModel;
 import ai.repository.TopicRepository;

@@ -15,7 +15,7 @@ import ai.entity.postgres.DataIngestionEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.DataScope;
 import ai.enums.DataSource;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.specification.DataIngestionEntitySpecification;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;

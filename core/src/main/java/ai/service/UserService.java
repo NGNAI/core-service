@@ -9,7 +9,7 @@ import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
 import ai.enums.AuditResource;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.mapper.UserMapper;
 import ai.model.CustomPairModel;
 import ai.repository.UserRepository;

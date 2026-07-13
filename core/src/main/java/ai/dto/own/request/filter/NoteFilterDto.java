@@ -6,7 +6,7 @@ import ai.entity.postgres.NoteEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.NoteSourceBy;
 import ai.enums.NoteSourceType;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.util.StringUtil;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.criteria.Predicate;

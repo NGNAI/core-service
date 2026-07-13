@@ -23,7 +23,7 @@ import ai.enums.AuditAction;
 import ai.enums.AuditResource;
 import ai.enums.NoteSourceBy;
 import ai.enums.NoteSourceType;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.mapper.NoteMapper;
 import ai.model.CustomPairModel;
 import ai.repository.NoteRepository;
