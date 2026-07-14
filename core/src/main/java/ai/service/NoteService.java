@@ -8,6 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import ai.annotation.Audited;
 import ai.dto.own.request.NoteCreateByNoteBookRequestDto;
 import ai.dto.own.request.NoteCreateByTopicRequestDto;
@@ -32,7 +34,9 @@ import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
@@ -43,6 +47,7 @@ public class NoteService {
     OrganizationService organizationService;
     TopicService topicService;
     NoteBookService noteBookService;
+    RagService ragService;
 
     public void validateNoteOfUser(UUID noteId, UUID userId) {
         if (!noteRepository.existsByIdAndOwnerId(noteId, userId)) {
@@ -82,9 +87,12 @@ public class NoteService {
         UUID userId = JwtUtil.getUserId();
         UUID orgId = JwtUtil.getOrgId();
 
+        String content = normalizeRequired(requestDto.getContent());
+        String title = resolveTitle(normalizeNullable(requestDto.getTitle()), content);
+
         NoteEntity note = new NoteEntity();
-        note.setTitle(normalizeNullable(requestDto.getTitle()));
-        note.setContent(normalizeRequired(requestDto.getContent()));
+        note.setTitle(title);
+        note.setContent(content);
         note.setSourceType(parseSourceType(NoteSourceType.USER.name()));
         note.setSourceBy(parseSourceBy(NoteSourceBy.HUMAN.name()));
         note.setOwner(userService.getEntityById(userId));
@@ -99,9 +107,12 @@ public class NoteService {
 
         TopicEntity topic = topicService.getEntityById(UUID.fromString(requestDto.getTopicId()));
 
+        String content = normalizeRequired(requestDto.getContent());
+        String title = resolveTitle(normalizeNullable(requestDto.getTitle()), content);
+
         NoteEntity note = new NoteEntity();
-        note.setTitle(normalizeNullable(requestDto.getTitle()));
-        note.setContent(normalizeRequired(requestDto.getContent()));
+        note.setTitle(title);
+        note.setContent(content);
         note.setSourceType(parseSourceType(NoteSourceType.TOPIC.name()));
         note.setTopicId(topic.getId());
         note.setSourceBy(parseSourceBy(NoteSourceBy.AGENT.name()));
@@ -117,9 +128,12 @@ public class NoteService {
 
         NoteBookEntity noteBook = noteBookService.getEntityById(UUID.fromString(requestDto.getNoteBookId()));
 
+        String content = normalizeRequired(requestDto.getContent());
+        String title = resolveTitle(normalizeNullable(requestDto.getTitle()), content);
+
         NoteEntity note = new NoteEntity();
-        note.setTitle(normalizeNullable(requestDto.getTitle()));
-        note.setContent(normalizeRequired(requestDto.getContent()));
+        note.setTitle(title);
+        note.setContent(content);
         note.setSourceType(parseSourceType(NoteSourceType.NOTEBOOK.name()));
         note.setSourceBy(parseSourceBy(requestDto.getSourceBy()));
         note.setNoteBookId(noteBook.getId());
@@ -150,8 +164,10 @@ public class NoteService {
             note.setSourceBy(NoteSourceBy.HUMAN);
         }
 
-        note.setTitle(normalizeNullable(requestDto.getTitle()));
-        note.setContent(normalizeRequired(requestDto.getContent()));
+        String content = normalizeRequired(requestDto.getContent());
+        String title = resolveTitle(normalizeNullable(requestDto.getTitle()), content);
+        note.setTitle(title);
+        note.setContent(content);
 
         return noteMapper.entityToResponseDto(noteRepository.save(note));
     }
@@ -161,6 +177,25 @@ public class NoteService {
         UUID userId = JwtUtil.getUserId();
         validateNoteOfUser(noteId, userId);
         noteRepository.deleteById(noteId);
+    }
+
+    /**
+     * Nếu title null hoặc empty, dùng LLM để sinh title từ content.
+     * Nếu LLM fail, log error và trả về null (graceful degradation).
+     */
+    private String resolveTitle(String title, String content) {
+        if (title != null) {
+            return title;
+        }
+        try {
+            String generated = ragService.generalTitleOfNote(content);
+            if (generated != null && !generated.isBlank()) {
+                return generated.trim();
+            }
+        } catch (JsonProcessingException e) {
+            log.error("Failed to generate title from LLM for note content: {}", content, e);
+        }
+        return null;
     }
 
     private NoteSourceType parseSourceType(String sourceType) {

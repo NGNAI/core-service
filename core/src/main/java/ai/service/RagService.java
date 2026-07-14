@@ -625,6 +625,32 @@ public class RagService {
     }
 
     /**
+     * Generate title for note based on content
+     * 
+     * @param input
+     * @return
+     * @throws JsonProcessingException
+     */
+    public String generalTitleOfNote(String input) throws JsonProcessingException {
+        String prompt = "Act as a professional content editor. Your task is to generate a concise and descriptive title for a note based on the content provided below. "
+                + "The title should accurately reflect the main topic or theme of the note while adhering to the following constraints:"
+                + "### Constraints:"
+                + "- Language: The title MUST be in the same language as the content."
+                + "- Length: Maximum 6-10 words."
+                + "- Format: Return ONLY the raw title text. Do not include quotes, punctuation at the end, or prefixes like \"Title:\"."
+                + "- Tone: Professional and neutral."
+                + "### Note Content: " + input + ""
+                + "### Generated Title: ";
+
+        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
+            .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
+            .stream(false)
+            .build();
+
+        return ragApiService.general(ragCompletionRequestDto);
+    }
+
+    /**
      * Generate title for topic based on user's input
      * 
      * @param input
