@@ -71,9 +71,6 @@ logging:
     com.baeldung: "TRACE"
     de.codecentric.boot.admin.client: "DEBUG"
     org.springframework.boot.actuate: "DEBUG"
-  file:
-    name: "logs/application.log"
-    path: "logs"
 
 # Cấu hình Spring Boot Actuator & Spring Boot Admin Client
 management:
