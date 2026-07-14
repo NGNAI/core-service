@@ -24,13 +24,12 @@ public class PermissionCheckerService {
 
     public boolean canAccess(UUID targetOrg, String resource, String action, String targetResource){
         List<PermissionGrantModel> permissions = ourService.getPermissionGrant(JwtUtil.getUserId(), JwtUtil.getOrgId());
-        System.out.println("Check permissions: " + permissions.size());
-        
+        //System.out.println("Check permissions: " + permissions.size());
         if(permissions==null || permissions.isEmpty())
             return false;
 
         for(PermissionGrantModel permission : permissions) {
-            System.out.println("Checking permission: " + permission.toString());
+            //System.out.println("Checking permission: " + permission.toString());
             if(!matchResourceAction(permission,PermissionResource.valueOf(resource),PermissionAction.valueOf(action),targetResource!=null ? PermissionResource.valueOf(targetResource) : null))
                 continue;
 
