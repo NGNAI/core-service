@@ -47,7 +47,7 @@ public class ComprehensiveReportControllerAdmin {
         content = @Content(mediaType = "application/json",
             schema = @Schema(implementation = ComprehensiveReportResponseDto.class)))
     @GetMapping
-    @PreAuthorize("@perm.canAccessReport(#filter.orgId)")
+    @PreAuthorize("@perm.canAccess(#filter.orgId, 'REPORT', 'READ', null)")
     public ResponseEntity<ApiResponseModel<ComprehensiveReportResponseDto>> getComprehensiveReport(
             @Valid @ModelAttribute ComprehensiveReportFilterDto filter) {
         ComprehensiveReportResponseDto report = comprehensiveReportService.getComprehensiveReport(filter);
@@ -65,7 +65,7 @@ public class ComprehensiveReportControllerAdmin {
     @ApiResponse(responseCode = "200", description = "CSV file downloaded successfully",
         content = @Content(mediaType = "text/csv"))
     @GetMapping("/export")
-    @PreAuthorize("@perm.canAccessReport(#filter.orgId)")
+    @PreAuthorize("@perm.canAccess(#filter.orgId, 'REPORT', 'READ', null)")
     public ResponseEntity<InputStreamResource> exportComprehensiveReport(
             @Valid @ModelAttribute ComprehensiveReportFilterDto filter) {
         ComprehensiveReportResponseDto report = comprehensiveReportService.getComprehensiveReport(filter);

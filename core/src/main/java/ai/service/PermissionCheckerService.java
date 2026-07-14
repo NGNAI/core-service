@@ -65,13 +65,4 @@ public class PermissionCheckerService {
         return resourceMatch && actionMatch && targetResourceMatch;
     }
 
-    /**
-     * Kiểm tra quyền xem báo cáo. Nếu targetOrg là null, dùng org từ JWT.
-     * Phương thức này cho phép user có OWN/DESCENDANT scope gọi API mà không cần truyền orgId.
-     */
-    public boolean canAccessReport(UUID targetOrg) {
-        UUID effectiveOrg = targetOrg != null ? targetOrg : JwtUtil.getOrgId();
-        return canAccess(effectiveOrg, "REPORT", "READ", null);
-    }
-
 }

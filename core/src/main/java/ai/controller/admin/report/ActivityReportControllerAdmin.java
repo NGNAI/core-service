@@ -49,7 +49,7 @@ public class ActivityReportControllerAdmin {
         content = @Content(mediaType = "application/json",
             schema = @Schema(implementation = ActivityReportResponseDto.class)))
     @GetMapping("/summary")
-    @PreAuthorize("@perm.canAccessReport(#filter.orgId)")
+    @PreAuthorize("@perm.canAccess(#filter.orgId, 'REPORT', 'READ', null)")
     public ResponseEntity<ApiResponseModel<ActivityReportResponseDto>> getActivitySummary(
             @Valid @ModelAttribute ActivityReportFilterDto filter) {
         ActivityReportResponseDto report = activityReportService.getActivityReport(filter);
@@ -68,7 +68,7 @@ public class ActivityReportControllerAdmin {
         content = @Content(mediaType = "application/json",
             schema = @Schema(implementation = UserActivitySummary.class)))
     @GetMapping("/top-users")
-    @PreAuthorize("@perm.canAccessReport(#filter.orgId)")
+    @PreAuthorize("@perm.canAccess(#filter.orgId, 'REPORT', 'READ', null)")
     public ResponseEntity<ApiResponseModel<List<UserActivitySummary>>> getTopActiveUsers(
             @Valid @ModelAttribute ActivityReportFilterDto filter) {
         List<UserActivitySummary> topUsers = activityReportService.getTopActiveUsers(filter);
@@ -87,7 +87,7 @@ public class ActivityReportControllerAdmin {
         content = @Content(mediaType = "application/json",
             schema = @Schema(implementation = LoginFrequencySummary.class)))
     @GetMapping("/login-frequency")
-    @PreAuthorize("@perm.canAccessReport(#filter.orgId)")
+    @PreAuthorize("@perm.canAccess(#filter.orgId, 'REPORT', 'READ', null)")
     public ResponseEntity<ApiResponseModel<List<LoginFrequencySummary>>> getLoginFrequency(
             @Valid @ModelAttribute ActivityReportFilterDto filter) {
         List<LoginFrequencySummary> loginFreq = activityReportService.getLoginFrequency(filter);
@@ -105,7 +105,7 @@ public class ActivityReportControllerAdmin {
     @ApiResponse(responseCode = "200", description = "CSV file downloaded successfully",
         content = @Content(mediaType = "text/csv"))
     @GetMapping("/export")
-    @PreAuthorize("@perm.canAccessReport(#filter.orgId)")
+    @PreAuthorize("@perm.canAccess(#filter.orgId, 'REPORT', 'READ', null)")
     public ResponseEntity<InputStreamResource> exportActivityReport(
             @Valid @ModelAttribute ActivityReportFilterDto filter) {
         ActivityReportResponseDto report = activityReportService.getActivityReport(filter);

@@ -48,7 +48,7 @@ public class UserReportControllerAdmin {
         content = @Content(mediaType = "application/json",
             schema = @Schema(implementation = UserReportResponseDto.class)))
     @GetMapping("/summary")
-    @PreAuthorize("@perm.canAccessReport(#filter.orgId)")
+    @PreAuthorize("@perm.canAccess(#filter.orgId, 'REPORT', 'READ', null)")
     public ResponseEntity<ApiResponseModel<UserReportResponseDto>> getUserSummary(
             @Valid @ModelAttribute UserReportFilterDto filter) {
         UserReportResponseDto report = userReportService.getUserReport(filter);
@@ -66,7 +66,7 @@ public class UserReportControllerAdmin {
     @ApiResponse(responseCode = "200", description = "CSV file downloaded successfully",
         content = @Content(mediaType = "text/csv"))
     @GetMapping("/export")
-    @PreAuthorize("@perm.canAccessReport(#filter.orgId)")
+    @PreAuthorize("@perm.canAccess(#filter.orgId, 'REPORT', 'READ', null)")
     public ResponseEntity<InputStreamResource> exportUserReport(
             @Valid @ModelAttribute UserReportFilterDto filter) {
         UserReportResponseDto report = userReportService.getUserReport(filter);
