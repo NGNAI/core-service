@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property name="LOGS" value="./logs" />
+
+    <!-- ── Console Appender (with MDC + color) ─────────────────────────── -->
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>%green(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %cyan([%X{request_id:-no-req}]) %yellow(%C{1}): %msg%n%throwable</Pattern>
+        </layout>
+    </appender>
+
+    <!-- ── Rolling File Appender (with MDC) ────────────────────────────── -->
+    <appender name="RollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS}/spring-boot-logger.log</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>%d{ISO8601} %-5level [%t] [%X{request_id:-no-req}] %C{1}: %msg%n</Pattern>
+        </encoder>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS}/archived/app-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- ── Audit File Appender (riêng cho audit trail) ─────────────────── -->
+    <appender name="AuditFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS}/audit.log</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>%d{ISO8601} %-5level [%t] [%X{request_id:-no-req}] %msg%n</Pattern>
+        </encoder>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS}/archived/audit-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>300MB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- ── Audit Logger ────────────────────────────────────────────────── -->
+    <logger name="AUDIT_TRAIL" level="INFO" additivity="false">
+        <appender-ref ref="AuditFile" />
+        <appender-ref ref="Console" />
+    </logger>
+
+    <!-- ── Root ────────────────────────────────────────────────────────── -->
+    <root level="INFO">
+        <appender-ref ref="RollingFile" />
+        <appender-ref ref="Console" />
+    </root>
+</configuration>

@@ -2,7 +2,7 @@ package ai.service;
 
 import ai.AppProperties;
 import ai.enums.ApiResponseStatus;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;

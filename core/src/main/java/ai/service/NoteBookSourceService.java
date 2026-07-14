@@ -39,7 +39,7 @@ import ai.enums.DataIngestionDeleteStatus;
 import ai.enums.DataScope;
 import ai.enums.SystemEventSource;
 import ai.enums.SystemEventType;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.mapper.NoteBookSourceMapper;
 import ai.model.CustomPairModel;
 import ai.repository.NoteBookSourceRepository;

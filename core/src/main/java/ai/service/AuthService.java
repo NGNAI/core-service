@@ -18,7 +18,7 @@ import ai.enums.AuditAction;
 import ai.enums.AuditResource;
 import ai.enums.AuditStatus;
 import ai.enums.TokenType;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.mapper.OrganizationMapper;
 import ai.mapper.RoleMapper;
 import ai.mapper.UserMapper;

@@ -1,12 +1,16 @@
 package ai.repository;
 
+import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import ai.entity.postgres.DataIngestionEntity;
@@ -70,4 +74,41 @@ public interface DataIngestionRepository extends JpaRepository<DataIngestionEnti
     // Count data ingestions by updated date and organization
     @Query(value = "SELECT COUNT(d) FROM data_ingestion d WHERE DATE(d.updated_at) = :date AND d.org_id = :orgId", nativeQuery = true)
     long countDataIngestionsByDateAndOrgId(java.time.LocalDate date, UUID orgId);
+
+    // Count data ingestions by owner (top N)
+    @Query("""
+        SELECT d.owner.id as userId, d.owner.userName as userName, COUNT(d) as cnt, COALESCE(SUM(d.fileSize), 0) as totalSize
+        FROM DataIngestionEntity d
+        WHERE d.organization.id IN :orgIds
+        AND d.folder = false
+        GROUP BY d.owner.id, d.owner.userName
+        ORDER BY cnt DESC
+        """)
+    List<Object[]> countByOwnerGroupByOwner(@Param("orgIds") Collection<UUID> orgIds, Pageable pageable);
+
+    // Sum file size by org
+    @Query("SELECT COALESCE(SUM(d.fileSize), 0) FROM DataIngestionEntity d WHERE d.organization.id IN :orgIds AND d.folder = false")
+    long sumFileSizeByOrgIds(@Param("orgIds") Collection<UUID> orgIds);
+
+    // Count by content type
+    @Query("""
+        SELECT d.contentType, COUNT(d)
+        FROM DataIngestionEntity d
+        WHERE d.organization.id IN :orgIds
+        AND d.contentType IS NOT NULL
+        AND d.folder = false
+        GROUP BY d.contentType
+        ORDER BY COUNT(d) DESC
+        """)
+    List<Object[]> countByContentType(@Param("orgIds") Collection<UUID> orgIds);
+
+    // Count by date range
+    @Query("""
+        SELECT COUNT(d)
+        FROM DataIngestionEntity d
+        WHERE d.organization.id IN :orgIds
+        AND d.audit.createdAt >= COALESCE(:from, d.audit.createdAt)
+        AND d.audit.createdAt <= COALESCE(:to, d.audit.createdAt)
+        """)
+    long countByDateRange(@Param("orgIds") Collection<UUID> orgIds, @Param("from") Instant from, @Param("to") Instant to);
 }

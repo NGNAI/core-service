@@ -1,17 +1,22 @@
-package ai.exeption;
+package ai.exception;
 
-import ai.enums.ApiResponseStatus;
-import ai.model.ApiResponseModel;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Objects;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import java.util.Objects;
+import ai.dto.own.response.ForbiddenResponseDto;
+import ai.dto.own.response.UnauthorizedResponseDto;
+import ai.enums.ApiResponseStatus;
+import ai.model.ApiResponseModel;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ControllerAdvice
@@ -57,6 +62,35 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ApiResponseModel<Void>> handlingAuthorizationDeniedException(AuthorizationDeniedException exception){
         log.error("Permission denied!",exception);
         return buildResponse(ApiResponseStatus.PERMISSION_DENIED);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    private ResponseEntity<ApiResponseModel<ForbiddenResponseDto>> handlingAccessDeniedException(AccessDeniedException exception){
+        log.error("Access denied!",exception);
+        ForbiddenResponseDto error = ForbiddenResponseDto.builder()
+                .message("Insufficient permissions")
+                .build();
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponseModel.<ForbiddenResponseDto>builder()
+                        .status(403)
+                        .message("Forbidden")
+                        .data(error)
+                        .build());
+    }
+
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    private ResponseEntity<ApiResponseModel<UnauthorizedResponseDto>> handlingAuthenticationException(
+            org.springframework.security.core.AuthenticationException exception){
+        log.error("Authentication failed!",exception);
+        UnauthorizedResponseDto error = UnauthorizedResponseDto.builder()
+                .message("Authentication required")
+                .build();
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponseModel.<UnauthorizedResponseDto>builder()
+                        .status(401)
+                        .message("Unauthorized")
+                        .data(error)
+                        .build());
     }
 
     private <T> ResponseEntity<ApiResponseModel<T>> buildResponse(ApiResponseStatus apiResponseEnum){

@@ -28,7 +28,7 @@ import ai.entity.postgres.TopicSourceEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.DataScope;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.mapper.TopicSourceMapper;
 import ai.repository.TopicSourceRepository;
 import ai.util.JwtUtil;

@@ -31,7 +31,7 @@ import ai.enums.AuditResource;
 import ai.enums.PermissionAction;
 import ai.enums.PermissionResource;
 import ai.enums.PermissionScope;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.mapper.RoleMapper;
 import ai.mapper.UserMapper;
 import ai.model.CustomPairModel;

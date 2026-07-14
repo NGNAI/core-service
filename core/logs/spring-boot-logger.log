@@ -1,0 +1,879 @@
+2026-07-14 10:10:37,936 INFO  [restartedMain] [no-req] o.s.b.StartupInfoLogger: Starting Application using Java 25.0.2 with PID 18760 (C:\Users\khuetech\Documents\dev\core-service\core-service\core\target\classes started by khuetech in C:\Users\khuetech\Documents\dev\core-service\core-service\core)
+2026-07-14 10:10:37,938 INFO  [restartedMain] [no-req] o.s.b.SpringApplication: The following 1 profile is active: "win"
+2026-07-14 10:10:39,730 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-14 10:10:39,731 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-07-14 10:10:39,868 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Finished Spring Data repository scanning in 134 ms. Found 20 JPA repository interfaces.
+2026-07-14 10:10:39,889 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-14 10:10:39,890 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-07-14 10:10:39,916 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.AuditLogRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,917 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.DataIngestionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,918 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.DraftMessagesRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,918 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.DraftRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,920 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.DraftVersionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,920 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.MessageFeedbackHistoryRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,921 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.MessageRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,921 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.NotebookMessagesRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,922 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.NoteBookRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,922 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.NoteBookSourceRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,923 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.NoteRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,923 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.OrganizationRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,924 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.OrganizationUserRoleRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,925 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.PermissionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,925 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.RoleRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,925 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.SystemSettingRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,927 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.TopicMessagesRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,927 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.TopicRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,930 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.TopicSourceRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,930 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.UserRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:39,930 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Finished Spring Data repository scanning in 37 ms. Found 0 Redis repository interfaces.
+2026-07-14 10:10:40,072 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: No bean named 'errorChannel' has been explicitly defined. Therefore, a default PublishSubscribeChannel will be created.
+2026-07-14 10:10:40,073 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: No bean named 'integrationHeaderChannelRegistry' has been explicitly defined. Therefore, a default DefaultHeaderChannelRegistry will be created.
+2026-07-14 10:10:40,334 INFO  [restartedMain] [no-req] o.s.b.t.TomcatWebServer: Tomcat initialized with port 8081 (http)
+2026-07-14 10:10:40,336 INFO  [restartedMain] [no-req] o.a.j.l.DirectJDKLog: Starting service [Tomcat]
+2026-07-14 10:10:40,336 INFO  [restartedMain] [no-req] o.a.j.l.DirectJDKLog: Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-07-14 10:10:40,461 INFO  [restartedMain] [no-req] o.s.b.w.c.s.WebApplicationContextInitializer: Root WebApplicationContext: initialization completed in 2519 ms
+2026-07-14 10:10:40,760 DEBUG [restartedMain] [no-req] o.s.w.f.GenericFilterBean: Filter 'webMvcObservationFilter' configured for use
+2026-07-14 10:10:40,844 INFO  [restartedMain] [no-req] o.h.j.i.u.LogHelper: HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-07-14 10:10:40,887 INFO  [restartedMain] [no-req] o.s.o.j.p.SpringPersistenceUnitInfo: No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-07-14 10:10:40,891 INFO  [restartedMain] [no-req] c.z.h.HikariDataSource: HikariPool-2 - Starting...
+2026-07-14 10:10:40,916 INFO  [restartedMain] [no-req] c.z.h.p.HikariPool: HikariPool-2 - Added connection org.postgresql.jdbc.PgConnection@3734e7d5
+2026-07-14 10:10:40,916 INFO  [restartedMain] [no-req] c.z.h.HikariDataSource: HikariPool-2 - Start completed.
+2026-07-14 10:10:40,920 WARN  [restartedMain] [no-req] o.h.e.j.d.i.DialectFactoryImpl: HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-07-14 10:10:40,925 INFO  [restartedMain] [no-req] o.h.e.j.e.i.JdbcEnvironmentInitiator: HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://192.168.30.72:5432/core_service_4]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 18.2
+	Default catalog/schema: core_service_4/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-07-14 10:10:41,305 WARN  [restartedMain] [no-req] o.h.m.RootClass: HHH000038: Composite id class does not override equals(): ai.entity.postgres.embeddable.RolePermissionIdEmbed
+2026-07-14 10:10:41,328 WARN  [restartedMain] [no-req] o.h.m.RootClass: HHH000038: Composite id class does not override equals(): ai.entity.postgres.embeddable.DraftMessageIdEmbed
+2026-07-14 10:10:41,329 WARN  [restartedMain] [no-req] o.h.m.RootClass: HHH000038: Composite id class does not override equals(): ai.entity.postgres.embeddable.NoteBookMessageIdEmbed
+2026-07-14 10:10:41,330 WARN  [restartedMain] [no-req] o.h.m.RootClass: HHH000038: Composite id class does not override equals(): ai.entity.postgres.embeddable.TopicMessageIdEmbed
+2026-07-14 10:10:42,112 INFO  [restartedMain] [no-req] o.h.e.t.j.p.i.JtaPlatformInitiator: HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-07-14 10:10:42,196 INFO  [restartedMain] [no-req] o.s.o.j.AbstractEntityManagerFactoryBean: Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-07-14 10:10:42,751 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/callback' ...
+2026-07-14 10:10:42,764 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/callback using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@5576c994 ...
+2026-07-14 10:10:42,765 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Unable to resolve location classpath:db/callback.
+2026-07-14 10:10:42,889 INFO  [restartedMain] [no-req] a.c.FlywayConfig: -> Flyway configuration initialized:
+2026-07-14 10:10:43,011 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/migration' ...
+2026-07-14 10:10:43,023 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/migration using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@5576c994 ...
+2026-07-14 10:10:43,038 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning URL: file:/C:/Users/khuetech/Documents/dev/core-service/core-service/core/target/classes/db/migration
+2026-07-14 10:10:43,044 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning starting at classpath root in filesystem: C:\Users\khuetech\Documents\dev\core-service\core-service\core\target\classes\
+2026-07-14 10:10:43,054 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for resources in path: C:\Users\khuetech\Documents\dev\core-service\core-service\core\target\classes\db\migration (db/migration)
+2026-07-14 10:10:43,142 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V10__init_system_setting_role_permission.sql
+2026-07-14 10:10:43,189 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V11__init_report_permission.sql
+2026-07-14 10:10:43,191 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V1__init_schema.sql
+2026-07-14 10:10:43,193 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V2__init_permission.sql
+2026-07-14 10:10:43,201 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V3__init_role.sql
+2026-07-14 10:10:43,203 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V4__init_role_permission.sql
+2026-07-14 10:10:43,204 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V5__init_user.sql
+2026-07-14 10:10:43,205 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V6__init_organization.sql
+2026-07-14 10:10:43,206 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V7__init_organization_user_role.sql
+2026-07-14 10:10:43,206 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V8__init_system_settings.sql
+2026-07-14 10:10:43,220 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V9__init_system_setting_permission.sql
+2026-07-14 10:10:43,236 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/migration' ...
+2026-07-14 10:10:43,255 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/migration using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@5576c994 ...
+2026-07-14 10:10:43,257 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning URL: file:/C:/Users/khuetech/Documents/dev/core-service/core-service/core/target/classes/db/migration
+2026-07-14 10:10:43,262 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V10__init_system_setting_role_permission.sql
+2026-07-14 10:10:43,266 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V11__init_report_permission.sql
+2026-07-14 10:10:43,280 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V1__init_schema.sql
+2026-07-14 10:10:43,281 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V2__init_permission.sql
+2026-07-14 10:10:43,281 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V3__init_role.sql
+2026-07-14 10:10:43,283 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V4__init_role_permission.sql
+2026-07-14 10:10:43,283 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V5__init_user.sql
+2026-07-14 10:10:43,300 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V6__init_organization.sql
+2026-07-14 10:10:43,323 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V7__init_organization_user_role.sql
+2026-07-14 10:10:43,327 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V8__init_system_settings.sql
+2026-07-14 10:10:43,329 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V9__init_system_setting_permission.sql
+2026-07-14 10:10:43,331 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classes at classpath:db/migration
+2026-07-14 10:10:43,412 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V2__init_permission.sql
+2026-07-14 10:10:43,449 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V10__init_system_setting_role_permission.sql
+2026-07-14 10:10:43,450 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V4__init_role_permission.sql
+2026-07-14 10:10:43,520 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V3__init_role.sql
+2026-07-14 10:10:43,571 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V6__init_organization.sql
+2026-07-14 10:10:43,636 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V9__init_system_setting_permission.sql
+2026-07-14 10:10:43,730 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V5__init_user.sql
+2026-07-14 10:10:43,759 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V11__init_report_permission.sql
+2026-07-14 10:10:43,792 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V1__init_schema.sql
+2026-07-14 10:10:43,799 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V7__init_organization_user_role.sql
+2026-07-14 10:10:43,800 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V8__init_system_settings.sql
+2026-07-14 10:10:43,802 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Multiple databases found that handle url 'jdbc:postgresql://192.168.30.72:5432/core_service_4': CockroachDB,PostgreSQL
+2026-07-14 10:10:43,803 INFO  [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Database: jdbc:postgresql://192.168.30.72:5432/core_service_4 (PostgreSQL 18.2)
+2026-07-14 10:10:43,813 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Database Type: PostgreSQL
+2026-07-14 10:10:43,816 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Driver: PostgreSQL JDBC Driver 42.7.10
+2026-07-14 10:10:43,818 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: DDL Transactions Supported: true
+2026-07-14 10:10:43,829 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Schemas: 
+2026-07-14 10:10:43,829 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Default schema: null
+2026-07-14 10:10:43,845 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for script callbacks ...
+2026-07-14 10:10:43,881 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for SQL callbacks ...
+2026-07-14 10:10:43,927 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: CherryPickConfigurationExtension not found
+2026-07-14 10:10:44,047 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:44,049 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:44,050 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:44,054 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:44,069 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:44,078 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:44,121 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:44,213 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:44,324 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:44,368 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:44,410 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:44,416 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:44,518 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:44,643 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:44,676 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:44,684 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:44,701 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:44,707 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:44,724 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:44,727 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:44,736 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:44,737 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:44,760 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:44,771 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:44,825 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:44,851 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:44,878 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:44,897 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:45,168 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:45,321 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:45,483 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:45,523 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:45,530 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:45,532 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:45,538 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:45,539 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:45,539 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:45,540 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:45,541 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:45,545 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:45,545 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:45,546 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:45,575 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:45,597 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:45,617 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Memory usage: 216 of 348M
+2026-07-14 10:10:45,624 INFO  [restartedMain] [no-req] a.c.FlywayConfig: - Found Flyway migrations: 12
+2026-07-14 10:10:45,625 INFO  [restartedMain] [no-req] a.c.FlywayConfig: - Flyway enabled: true
+2026-07-14 10:10:45,625 INFO  [restartedMain] [no-req] a.c.FlywayConfig: - Flyway locations: classpath:db/migration
+2026-07-14 10:10:45,627 INFO  [restartedMain] [no-req] a.c.FlywayConfig: - Flyway baseline on migrate: true
+2026-07-14 10:10:45,628 INFO  [restartedMain] [no-req] a.c.FlywayConfig: -> Starting Flyway migration...
+2026-07-14 10:10:45,631 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/migration' ...
+2026-07-14 10:10:45,660 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/migration using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@5576c994 ...
+2026-07-14 10:10:45,671 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning URL: file:/C:/Users/khuetech/Documents/dev/core-service/core-service/core/target/classes/db/migration
+2026-07-14 10:10:45,676 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V10__init_system_setting_role_permission.sql
+2026-07-14 10:10:45,680 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V11__init_report_permission.sql
+2026-07-14 10:10:45,680 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V1__init_schema.sql
+2026-07-14 10:10:45,680 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V2__init_permission.sql
+2026-07-14 10:10:45,789 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V3__init_role.sql
+2026-07-14 10:10:45,863 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V4__init_role_permission.sql
+2026-07-14 10:10:45,916 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V5__init_user.sql
+2026-07-14 10:10:45,929 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V6__init_organization.sql
+2026-07-14 10:10:45,969 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V7__init_organization_user_role.sql
+2026-07-14 10:10:45,992 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V8__init_system_settings.sql
+2026-07-14 10:10:46,005 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V9__init_system_setting_permission.sql
+2026-07-14 10:10:46,016 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/migration' ...
+2026-07-14 10:10:46,033 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/migration using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@5576c994 ...
+2026-07-14 10:10:46,035 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning URL: file:/C:/Users/khuetech/Documents/dev/core-service/core-service/core/target/classes/db/migration
+2026-07-14 10:10:46,093 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V10__init_system_setting_role_permission.sql
+2026-07-14 10:10:46,107 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V11__init_report_permission.sql
+2026-07-14 10:10:46,165 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V1__init_schema.sql
+2026-07-14 10:10:46,177 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V2__init_permission.sql
+2026-07-14 10:10:46,192 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V3__init_role.sql
+2026-07-14 10:10:46,232 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V4__init_role_permission.sql
+2026-07-14 10:10:46,236 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V5__init_user.sql
+2026-07-14 10:10:46,253 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V6__init_organization.sql
+2026-07-14 10:10:46,254 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V7__init_organization_user_role.sql
+2026-07-14 10:10:46,254 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V8__init_system_settings.sql
+2026-07-14 10:10:46,274 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V9__init_system_setting_permission.sql
+2026-07-14 10:10:46,281 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classes at classpath:db/migration
+2026-07-14 10:10:46,286 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V2__init_permission.sql
+2026-07-14 10:10:46,295 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V10__init_system_setting_role_permission.sql
+2026-07-14 10:10:46,303 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V4__init_role_permission.sql
+2026-07-14 10:10:46,303 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V3__init_role.sql
+2026-07-14 10:10:46,305 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V6__init_organization.sql
+2026-07-14 10:10:46,324 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V9__init_system_setting_permission.sql
+2026-07-14 10:10:46,325 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V5__init_user.sql
+2026-07-14 10:10:46,326 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V11__init_report_permission.sql
+2026-07-14 10:10:46,351 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V1__init_schema.sql
+2026-07-14 10:10:46,363 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V7__init_organization_user_role.sql
+2026-07-14 10:10:46,364 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V8__init_system_settings.sql
+2026-07-14 10:10:46,365 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: DDL Transactions Supported: true
+2026-07-14 10:10:46,365 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Schemas: 
+2026-07-14 10:10:46,386 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Default schema: null
+2026-07-14 10:10:46,396 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for script callbacks ...
+2026-07-14 10:10:46,424 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for SQL callbacks ...
+2026-07-14 10:10:46,443 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating migrations ...
+2026-07-14 10:10:46,449 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: CherryPickConfigurationExtension not found
+2026-07-14 10:10:46,471 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:46,486 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:46,511 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:46,514 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:46,515 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:46,521 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:46,545 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:46,552 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:46,564 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:46,566 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:46,569 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:46,570 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:46,574 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:46,574 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:46,579 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:46,582 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:46,586 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:46,587 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:46,603 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:46,634 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:46,635 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:46,635 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:46,636 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:46,637 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:46,645 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:46,646 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:46,646 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:46,669 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:46,671 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:46,673 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:46,674 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:46,676 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:46,771 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:46,800 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:46,805 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:46,834 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:46,855 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:46,857 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:46,860 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:46,863 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:46,867 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:46,883 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:46,942 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:46,954 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:46,977 INFO  [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Successfully validated 12 migrations (execution time 00:00.528s)
+2026-07-14 10:10:46,979 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Skipping creation of existing schema: "public"
+2026-07-14 10:10:47,004 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: CherryPickConfigurationExtension not found
+2026-07-14 10:10:47,013 INFO  [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Current version of schema "public": 11
+2026-07-14 10:10:47,014 INFO  [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Schema "public" is up to date. No migration necessary.
+2026-07-14 10:10:47,022 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Memory usage: 219 of 348M
+2026-07-14 10:10:49,817 INFO  [restartedMain] [no-req] a.s.DataIngestionAutoImportScheduler: Initializing auto-ingestion file source...
+2026-07-14 10:10:49,824 INFO  [restartedMain] [no-req] a.s.DataIngestionAutoImportScheduler: Building file filter for auto-ingestion...
+2026-07-14 10:10:50,376 WARN  [restartedMain] [no-req] o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration: spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-07-14 10:10:51,464 DEBUG [restartedMain] [no-req] o.s.w.s.h.AbstractHandlerMethodMapping: 174 mappings in 'requestMappingHandlerMapping'
+2026-07-14 10:10:51,505 DEBUG [restartedMain] [no-req] o.s.w.s.h.SimpleUrlHandlerMapping: Patterns [/webjars/**, /**, /swagger-ui*/*swagger-initializer.js, /swagger-ui*/**] in 'resourceHandlerMapping'
+2026-07-14 10:10:51,540 DEBUG [restartedMain] [no-req] o.s.w.s.m.m.a.RequestMappingHandlerAdapter: ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 2 RequestBodyAdvice, 1 ResponseBodyAdvice
+2026-07-14 10:10:51,570 DEBUG [restartedMain] [no-req] o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver: ControllerAdvice beans: 2 @ExceptionHandler, 1 ResponseBodyAdvice
+2026-07-14 10:10:52,568 INFO  [restartedMain] [no-req] o.s.b.a.e.w.EndpointLinksResolver: Exposing 8 endpoints beneath base path '/actuator'
+2026-07-14 10:10:52,729 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: Adding {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2026-07-14 10:10:52,731 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: Channel 'NGN AI core.errorChannel' has 1 subscriber(s).
+2026-07-14 10:10:52,731 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: started bean '_org.springframework.integration.errorLogger'
+2026-07-14 10:10:52,732 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: Adding {service-activator} as a subscriber to the 'autoIngestionFlow.channel#0' channel
+2026-07-14 10:10:52,732 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: Channel 'NGN AI core.autoIngestionFlow.channel#0' has 1 subscriber(s).
+2026-07-14 10:10:52,733 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: started bean 'autoIngestionFlow.org.springframework.integration.config.ConsumerEndpointFactoryBean#0'; from source: 'org.springframework.integration.dsl.IntegrationFlow ai.scheduler.DataIngestionAutoImportScheduler.autoIngestionFlow()'
+2026-07-14 10:10:52,733 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: started bean 'autoIngestionFlow.org.springframework.integration.config.SourcePollingChannelAdapterFactoryBean#0'; from source: 'org.springframework.integration.dsl.IntegrationFlow ai.scheduler.DataIngestionAutoImportScheduler.autoIngestionFlow()'
+2026-07-14 10:10:52,737 INFO  [restartedMain] [no-req] o.s.b.t.TomcatWebServer: Tomcat started on port 8081 (http) with context path '/api/v1'
+2026-07-14 10:10:52,754 INFO  [restartedMain] [no-req] o.s.b.StartupInfoLogger: Started Application in 15.076 seconds (process running for 323.052)
+2026-07-14 10:10:52,756 INFO  [restartedMain] [no-req] o.s.b.b.a.JobLauncherApplicationRunner: Running default command line with: []
+2026-07-14 10:10:52,758 INFO  [restartedMain] [no-req] o.s.b.d.a.ConditionEvaluationDeltaLoggingListener: Condition evaluation unchanged
+2026-07-14 10:10:54,033 INFO  [File Watcher] [no-req] o.s.b.d.a.LocalDevToolsAutoConfiguration$RestartingClassPathChangeChangedEventListener: Restarting due to 1 class path change (0 additions, 0 deletions, 1 modification)
+2026-07-14 10:10:54,059 INFO  [Thread-6] [no-req] o.s.b.t.GracefulShutdown: Commencing graceful shutdown. Waiting for active requests to complete
+2026-07-14 10:10:54,070 INFO  [tomcat-shutdown] [no-req] o.s.b.t.GracefulShutdown: Graceful shutdown complete
+2026-07-14 10:10:54,072 INFO  [Thread-6] [no-req] o.s.c.l.LogAccessor: stopped bean 'autoIngestionFlow.org.springframework.integration.config.SourcePollingChannelAdapterFactoryBean#0'; from source: 'org.springframework.integration.dsl.IntegrationFlow ai.scheduler.DataIngestionAutoImportScheduler.autoIngestionFlow()'
+2026-07-14 10:10:54,079 INFO  [Thread-6] [no-req] o.s.c.l.LogAccessor: Removing {service-activator} as a subscriber to the 'autoIngestionFlow.channel#0' channel
+2026-07-14 10:10:54,080 INFO  [Thread-6] [no-req] o.s.c.l.LogAccessor: Channel 'NGN AI core.autoIngestionFlow.channel#0' has 0 subscriber(s).
+2026-07-14 10:10:54,082 INFO  [Thread-6] [no-req] o.s.c.l.LogAccessor: stopped bean 'autoIngestionFlow.org.springframework.integration.config.ConsumerEndpointFactoryBean#0'; from source: 'org.springframework.integration.dsl.IntegrationFlow ai.scheduler.DataIngestionAutoImportScheduler.autoIngestionFlow()'
+2026-07-14 10:10:54,141 INFO  [Thread-6] [no-req] o.s.c.l.LogAccessor: Removing {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2026-07-14 10:10:54,143 INFO  [Thread-6] [no-req] o.s.c.l.LogAccessor: Channel 'NGN AI core.errorChannel' has 0 subscriber(s).
+2026-07-14 10:10:54,144 INFO  [Thread-6] [no-req] o.s.c.l.LogAccessor: stopped bean '_org.springframework.integration.errorLogger'
+2026-07-14 10:10:54,152 DEBUG [Thread-6] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Beans' from the JMX domain
+2026-07-14 10:10:54,158 DEBUG [Thread-6] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Conditions' from the JMX domain
+2026-07-14 10:10:54,158 DEBUG [Thread-6] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Configprops' from the JMX domain
+2026-07-14 10:10:54,159 DEBUG [Thread-6] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Env' from the JMX domain
+2026-07-14 10:10:54,159 DEBUG [Thread-6] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Info' from the JMX domain
+2026-07-14 10:10:54,160 DEBUG [Thread-6] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Loggers' from the JMX domain
+2026-07-14 10:10:54,160 DEBUG [Thread-6] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Threaddump' from the JMX domain
+2026-07-14 10:10:54,160 DEBUG [Thread-6] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Sbom' from the JMX domain
+2026-07-14 10:10:54,161 DEBUG [Thread-6] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Scheduledtasks' from the JMX domain
+2026-07-14 10:10:54,161 DEBUG [Thread-6] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Mappings' from the JMX domain
+2026-07-14 10:10:54,162 DEBUG [Thread-6] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Health' from the JMX domain
+2026-07-14 10:10:54,163 DEBUG [Thread-6] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Integrationgraph' from the JMX domain
+2026-07-14 10:10:54,163 DEBUG [Thread-6] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Metrics' from the JMX domain
+2026-07-14 10:10:54,171 INFO  [Thread-6] [no-req] o.s.o.j.AbstractEntityManagerFactoryBean: Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-07-14 10:10:54,173 INFO  [Thread-6] [no-req] c.z.h.HikariDataSource: HikariPool-2 - Shutdown initiated...
+2026-07-14 10:10:54,176 INFO  [Thread-6] [no-req] c.z.h.HikariDataSource: HikariPool-2 - Shutdown completed.
+2026-07-14 10:10:54,437 INFO  [restartedMain] [no-req] o.s.b.StartupInfoLogger: Starting Application using Java 25.0.2 with PID 18760 (C:\Users\khuetech\Documents\dev\core-service\core-service\core\target\classes started by khuetech in C:\Users\khuetech\Documents\dev\core-service\core-service\core)
+2026-07-14 10:10:54,440 INFO  [restartedMain] [no-req] o.s.b.SpringApplication: The following 1 profile is active: "win"
+2026-07-14 10:10:55,397 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-14 10:10:55,398 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-07-14 10:10:55,565 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Finished Spring Data repository scanning in 159 ms. Found 20 JPA repository interfaces.
+2026-07-14 10:10:55,573 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-14 10:10:55,573 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-07-14 10:10:55,595 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.AuditLogRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,596 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.DataIngestionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,597 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.DraftMessagesRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,597 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.DraftRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,598 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.DraftVersionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,598 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.MessageFeedbackHistoryRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,599 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.MessageRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,599 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.NotebookMessagesRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,600 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.NoteBookRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,600 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.NoteBookSourceRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,600 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.NoteRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,602 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.OrganizationRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,602 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.OrganizationUserRoleRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,602 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.PermissionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,602 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.RoleRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,603 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.SystemSettingRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,603 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.TopicMessagesRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,604 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.TopicRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,604 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.TopicSourceRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,605 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.UserRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:10:55,605 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Finished Spring Data repository scanning in 30 ms. Found 0 Redis repository interfaces.
+2026-07-14 10:10:55,734 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: No bean named 'errorChannel' has been explicitly defined. Therefore, a default PublishSubscribeChannel will be created.
+2026-07-14 10:10:55,734 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: No bean named 'integrationHeaderChannelRegistry' has been explicitly defined. Therefore, a default DefaultHeaderChannelRegistry will be created.
+2026-07-14 10:10:56,018 INFO  [restartedMain] [no-req] o.s.b.t.TomcatWebServer: Tomcat initialized with port 8081 (http)
+2026-07-14 10:10:56,024 INFO  [restartedMain] [no-req] o.a.j.l.DirectJDKLog: Starting service [Tomcat]
+2026-07-14 10:10:56,033 INFO  [restartedMain] [no-req] o.a.j.l.DirectJDKLog: Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-07-14 10:10:56,117 INFO  [restartedMain] [no-req] o.s.b.w.c.s.WebApplicationContextInitializer: Root WebApplicationContext: initialization completed in 1662 ms
+2026-07-14 10:10:56,300 DEBUG [restartedMain] [no-req] o.s.w.f.GenericFilterBean: Filter 'webMvcObservationFilter' configured for use
+2026-07-14 10:10:56,434 INFO  [restartedMain] [no-req] o.h.j.i.u.LogHelper: HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-07-14 10:10:56,524 INFO  [restartedMain] [no-req] o.s.o.j.p.SpringPersistenceUnitInfo: No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-07-14 10:10:56,527 INFO  [restartedMain] [no-req] c.z.h.HikariDataSource: HikariPool-3 - Starting...
+2026-07-14 10:10:56,542 INFO  [restartedMain] [no-req] c.z.h.p.HikariPool: HikariPool-3 - Added connection org.postgresql.jdbc.PgConnection@4854e742
+2026-07-14 10:10:56,548 INFO  [restartedMain] [no-req] c.z.h.HikariDataSource: HikariPool-3 - Start completed.
+2026-07-14 10:10:56,559 WARN  [restartedMain] [no-req] o.h.e.j.d.i.DialectFactoryImpl: HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-07-14 10:10:56,566 INFO  [restartedMain] [no-req] o.h.e.j.e.i.JdbcEnvironmentInitiator: HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://192.168.30.72:5432/core_service_4]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 18.2
+	Default catalog/schema: core_service_4/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-07-14 10:10:56,851 WARN  [restartedMain] [no-req] o.h.m.RootClass: HHH000038: Composite id class does not override equals(): ai.entity.postgres.embeddable.RolePermissionIdEmbed
+2026-07-14 10:10:56,860 WARN  [restartedMain] [no-req] o.h.m.RootClass: HHH000038: Composite id class does not override equals(): ai.entity.postgres.embeddable.DraftMessageIdEmbed
+2026-07-14 10:10:56,863 WARN  [restartedMain] [no-req] o.h.m.RootClass: HHH000038: Composite id class does not override equals(): ai.entity.postgres.embeddable.NoteBookMessageIdEmbed
+2026-07-14 10:10:56,864 WARN  [restartedMain] [no-req] o.h.m.RootClass: HHH000038: Composite id class does not override equals(): ai.entity.postgres.embeddable.TopicMessageIdEmbed
+2026-07-14 10:10:57,257 INFO  [restartedMain] [no-req] o.h.e.t.j.p.i.JtaPlatformInitiator: HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-07-14 10:10:57,322 INFO  [restartedMain] [no-req] o.s.o.j.AbstractEntityManagerFactoryBean: Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-07-14 10:10:57,608 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/callback' ...
+2026-07-14 10:10:57,608 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/callback using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@6297eb9d ...
+2026-07-14 10:10:57,609 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Unable to resolve location classpath:db/callback.
+2026-07-14 10:10:57,610 INFO  [restartedMain] [no-req] a.c.FlywayConfig: -> Flyway configuration initialized:
+2026-07-14 10:10:57,612 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/migration' ...
+2026-07-14 10:10:57,613 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/migration using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@6297eb9d ...
+2026-07-14 10:10:57,614 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning URL: file:/C:/Users/khuetech/Documents/dev/core-service/core-service/core/target/classes/db/migration
+2026-07-14 10:10:57,614 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning starting at classpath root in filesystem: C:\Users\khuetech\Documents\dev\core-service\core-service\core\target\classes\
+2026-07-14 10:10:57,615 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for resources in path: C:\Users\khuetech\Documents\dev\core-service\core-service\core\target\classes\db\migration (db/migration)
+2026-07-14 10:10:57,616 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V10__init_system_setting_role_permission.sql
+2026-07-14 10:10:57,617 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V11__init_report_permission.sql
+2026-07-14 10:10:57,617 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V1__init_schema.sql
+2026-07-14 10:10:57,617 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V2__init_permission.sql
+2026-07-14 10:10:57,617 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V3__init_role.sql
+2026-07-14 10:10:57,617 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V4__init_role_permission.sql
+2026-07-14 10:10:57,617 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V5__init_user.sql
+2026-07-14 10:10:57,617 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V6__init_organization.sql
+2026-07-14 10:10:57,617 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V7__init_organization_user_role.sql
+2026-07-14 10:10:57,619 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V8__init_system_settings.sql
+2026-07-14 10:10:57,619 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V9__init_system_setting_permission.sql
+2026-07-14 10:10:57,620 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/migration' ...
+2026-07-14 10:10:57,620 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/migration using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@6297eb9d ...
+2026-07-14 10:10:57,621 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning URL: file:/C:/Users/khuetech/Documents/dev/core-service/core-service/core/target/classes/db/migration
+2026-07-14 10:10:57,621 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V10__init_system_setting_role_permission.sql
+2026-07-14 10:10:57,622 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V11__init_report_permission.sql
+2026-07-14 10:10:57,622 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V1__init_schema.sql
+2026-07-14 10:10:57,622 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V2__init_permission.sql
+2026-07-14 10:10:57,623 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V3__init_role.sql
+2026-07-14 10:10:57,623 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V4__init_role_permission.sql
+2026-07-14 10:10:57,624 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V5__init_user.sql
+2026-07-14 10:10:57,625 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V6__init_organization.sql
+2026-07-14 10:10:57,625 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V7__init_organization_user_role.sql
+2026-07-14 10:10:57,625 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V8__init_system_settings.sql
+2026-07-14 10:10:57,626 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V9__init_system_setting_permission.sql
+2026-07-14 10:10:57,626 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classes at classpath:db/migration
+2026-07-14 10:10:57,629 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V2__init_permission.sql
+2026-07-14 10:10:57,629 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V10__init_system_setting_role_permission.sql
+2026-07-14 10:10:57,629 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V4__init_role_permission.sql
+2026-07-14 10:10:57,630 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V3__init_role.sql
+2026-07-14 10:10:57,630 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V6__init_organization.sql
+2026-07-14 10:10:57,630 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V9__init_system_setting_permission.sql
+2026-07-14 10:10:57,630 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V5__init_user.sql
+2026-07-14 10:10:57,630 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V11__init_report_permission.sql
+2026-07-14 10:10:57,630 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V1__init_schema.sql
+2026-07-14 10:10:57,631 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V7__init_organization_user_role.sql
+2026-07-14 10:10:57,631 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V8__init_system_settings.sql
+2026-07-14 10:10:57,631 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Multiple databases found that handle url 'jdbc:postgresql://192.168.30.72:5432/core_service_4': CockroachDB,PostgreSQL
+2026-07-14 10:10:57,632 INFO  [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Database: jdbc:postgresql://192.168.30.72:5432/core_service_4 (PostgreSQL 18.2)
+2026-07-14 10:10:57,632 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Database Type: PostgreSQL
+2026-07-14 10:10:57,632 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Driver: PostgreSQL JDBC Driver 42.7.10
+2026-07-14 10:10:57,633 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: DDL Transactions Supported: true
+2026-07-14 10:10:57,633 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Schemas: 
+2026-07-14 10:10:57,633 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Default schema: null
+2026-07-14 10:10:57,640 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for script callbacks ...
+2026-07-14 10:10:57,641 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for SQL callbacks ...
+2026-07-14 10:10:57,641 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: CherryPickConfigurationExtension not found
+2026-07-14 10:10:57,662 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:57,664 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:57,665 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:57,666 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:57,666 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:57,666 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:57,666 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:57,666 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:57,666 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:57,668 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:57,668 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:57,668 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:57,671 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:57,671 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:57,672 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:57,672 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:57,672 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:57,672 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:57,673 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:57,673 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:57,673 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:57,674 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:57,675 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:57,675 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:57,675 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:57,675 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:57,675 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:57,675 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:57,677 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:57,677 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:57,677 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:57,678 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:57,678 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:57,679 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:57,679 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:57,679 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:57,679 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:57,679 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:57,680 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:57,680 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:57,680 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:57,681 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:57,682 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:57,682 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:57,699 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Memory usage: 197 of 336M
+2026-07-14 10:10:57,700 INFO  [restartedMain] [no-req] a.c.FlywayConfig: - Found Flyway migrations: 12
+2026-07-14 10:10:57,702 INFO  [restartedMain] [no-req] a.c.FlywayConfig: - Flyway enabled: true
+2026-07-14 10:10:57,703 INFO  [restartedMain] [no-req] a.c.FlywayConfig: - Flyway locations: classpath:db/migration
+2026-07-14 10:10:57,703 INFO  [restartedMain] [no-req] a.c.FlywayConfig: - Flyway baseline on migrate: true
+2026-07-14 10:10:57,703 INFO  [restartedMain] [no-req] a.c.FlywayConfig: -> Starting Flyway migration...
+2026-07-14 10:10:57,705 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/migration' ...
+2026-07-14 10:10:57,706 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/migration using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@6297eb9d ...
+2026-07-14 10:10:57,707 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning URL: file:/C:/Users/khuetech/Documents/dev/core-service/core-service/core/target/classes/db/migration
+2026-07-14 10:10:57,707 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V10__init_system_setting_role_permission.sql
+2026-07-14 10:10:57,708 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V11__init_report_permission.sql
+2026-07-14 10:10:57,708 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V1__init_schema.sql
+2026-07-14 10:10:57,709 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V2__init_permission.sql
+2026-07-14 10:10:57,709 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V3__init_role.sql
+2026-07-14 10:10:57,710 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V4__init_role_permission.sql
+2026-07-14 10:10:57,710 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V5__init_user.sql
+2026-07-14 10:10:57,711 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V6__init_organization.sql
+2026-07-14 10:10:57,715 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V7__init_organization_user_role.sql
+2026-07-14 10:10:57,720 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V8__init_system_settings.sql
+2026-07-14 10:10:57,721 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V9__init_system_setting_permission.sql
+2026-07-14 10:10:57,722 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/migration' ...
+2026-07-14 10:10:57,722 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/migration using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@6297eb9d ...
+2026-07-14 10:10:57,723 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning URL: file:/C:/Users/khuetech/Documents/dev/core-service/core-service/core/target/classes/db/migration
+2026-07-14 10:10:57,724 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V10__init_system_setting_role_permission.sql
+2026-07-14 10:10:57,724 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V11__init_report_permission.sql
+2026-07-14 10:10:57,724 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V1__init_schema.sql
+2026-07-14 10:10:57,724 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V2__init_permission.sql
+2026-07-14 10:10:57,724 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V3__init_role.sql
+2026-07-14 10:10:57,724 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V4__init_role_permission.sql
+2026-07-14 10:10:57,725 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V5__init_user.sql
+2026-07-14 10:10:57,725 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V6__init_organization.sql
+2026-07-14 10:10:57,727 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V7__init_organization_user_role.sql
+2026-07-14 10:10:57,728 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V8__init_system_settings.sql
+2026-07-14 10:10:57,729 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V9__init_system_setting_permission.sql
+2026-07-14 10:10:57,730 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classes at classpath:db/migration
+2026-07-14 10:10:57,731 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V2__init_permission.sql
+2026-07-14 10:10:57,732 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V10__init_system_setting_role_permission.sql
+2026-07-14 10:10:57,733 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V4__init_role_permission.sql
+2026-07-14 10:10:57,733 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V3__init_role.sql
+2026-07-14 10:10:57,733 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V6__init_organization.sql
+2026-07-14 10:10:57,734 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V9__init_system_setting_permission.sql
+2026-07-14 10:10:57,734 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V5__init_user.sql
+2026-07-14 10:10:57,734 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V11__init_report_permission.sql
+2026-07-14 10:10:57,734 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V1__init_schema.sql
+2026-07-14 10:10:57,734 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V7__init_organization_user_role.sql
+2026-07-14 10:10:57,735 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V8__init_system_settings.sql
+2026-07-14 10:10:57,735 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: DDL Transactions Supported: true
+2026-07-14 10:10:57,735 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Schemas: 
+2026-07-14 10:10:57,735 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Default schema: null
+2026-07-14 10:10:57,741 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for script callbacks ...
+2026-07-14 10:10:57,741 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for SQL callbacks ...
+2026-07-14 10:10:57,743 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating migrations ...
+2026-07-14 10:10:57,744 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: CherryPickConfigurationExtension not found
+2026-07-14 10:10:57,763 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:57,764 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:57,764 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:57,765 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:57,765 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:57,765 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:57,766 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:57,766 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:57,766 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:57,766 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:57,767 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:57,768 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:57,768 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:57,768 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:57,769 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:57,769 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:57,769 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:57,770 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:57,770 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:57,770 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:57,770 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:57,771 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:57,771 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:57,771 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:57,772 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:57,772 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:57,772 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:57,773 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:57,774 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:57,774 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:57,775 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:57,776 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:57,776 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:57,779 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:10:57,780 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:10:57,781 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:10:57,781 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:10:57,781 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:10:57,783 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:10:57,783 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:10:57,784 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:10:57,784 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:10:57,785 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:10:57,789 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:10:57,796 INFO  [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Successfully validated 12 migrations (execution time 00:00.051s)
+2026-07-14 10:10:57,798 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Skipping creation of existing schema: "public"
+2026-07-14 10:10:57,804 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: CherryPickConfigurationExtension not found
+2026-07-14 10:10:57,805 INFO  [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Current version of schema "public": 11
+2026-07-14 10:10:57,807 INFO  [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Schema "public" is up to date. No migration necessary.
+2026-07-14 10:10:57,815 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Memory usage: 199 of 336M
+2026-07-14 10:10:58,728 INFO  [restartedMain] [no-req] a.s.DataIngestionAutoImportScheduler: Initializing auto-ingestion file source...
+2026-07-14 10:10:58,730 INFO  [restartedMain] [no-req] a.s.DataIngestionAutoImportScheduler: Building file filter for auto-ingestion...
+2026-07-14 10:10:58,959 WARN  [restartedMain] [no-req] o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration: spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-07-14 10:10:59,326 DEBUG [restartedMain] [no-req] o.s.w.s.h.AbstractHandlerMethodMapping: 174 mappings in 'requestMappingHandlerMapping'
+2026-07-14 10:10:59,347 DEBUG [restartedMain] [no-req] o.s.w.s.h.SimpleUrlHandlerMapping: Patterns [/webjars/**, /**, /swagger-ui*/*swagger-initializer.js, /swagger-ui*/**] in 'resourceHandlerMapping'
+2026-07-14 10:10:59,360 DEBUG [restartedMain] [no-req] o.s.w.s.m.m.a.RequestMappingHandlerAdapter: ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 2 RequestBodyAdvice, 1 ResponseBodyAdvice
+2026-07-14 10:10:59,381 DEBUG [restartedMain] [no-req] o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver: ControllerAdvice beans: 2 @ExceptionHandler, 1 ResponseBodyAdvice
+2026-07-14 10:10:59,711 INFO  [restartedMain] [no-req] o.s.b.a.e.w.EndpointLinksResolver: Exposing 8 endpoints beneath base path '/actuator'
+2026-07-14 10:10:59,783 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: Adding {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2026-07-14 10:10:59,784 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: Channel 'NGN AI core.errorChannel' has 1 subscriber(s).
+2026-07-14 10:10:59,784 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: started bean '_org.springframework.integration.errorLogger'
+2026-07-14 10:10:59,784 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: Adding {service-activator} as a subscriber to the 'autoIngestionFlow.channel#0' channel
+2026-07-14 10:10:59,785 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: Channel 'NGN AI core.autoIngestionFlow.channel#0' has 1 subscriber(s).
+2026-07-14 10:10:59,785 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: started bean 'autoIngestionFlow.org.springframework.integration.config.ConsumerEndpointFactoryBean#0'; from source: 'org.springframework.integration.dsl.IntegrationFlow ai.scheduler.DataIngestionAutoImportScheduler.autoIngestionFlow()'
+2026-07-14 10:10:59,785 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: started bean 'autoIngestionFlow.org.springframework.integration.config.SourcePollingChannelAdapterFactoryBean#0'; from source: 'org.springframework.integration.dsl.IntegrationFlow ai.scheduler.DataIngestionAutoImportScheduler.autoIngestionFlow()'
+2026-07-14 10:10:59,788 INFO  [restartedMain] [no-req] o.s.b.t.TomcatWebServer: Tomcat started on port 8081 (http) with context path '/api/v1'
+2026-07-14 10:10:59,800 INFO  [restartedMain] [no-req] o.s.b.StartupInfoLogger: Started Application in 5.456 seconds (process running for 330.098)
+2026-07-14 10:10:59,802 INFO  [restartedMain] [no-req] o.s.b.b.a.JobLauncherApplicationRunner: Running default command line with: []
+2026-07-14 10:10:59,803 INFO  [restartedMain] [no-req] o.s.b.d.a.ConditionEvaluationDeltaLoggingListener: Condition evaluation unchanged
+2026-07-14 10:11:58,510 INFO  [File Watcher] [no-req] o.s.b.d.a.LocalDevToolsAutoConfiguration$RestartingClassPathChangeChangedEventListener: Restarting due to 1 class path change (0 additions, 0 deletions, 1 modification)
+2026-07-14 10:11:58,513 INFO  [Thread-10] [no-req] o.s.b.t.GracefulShutdown: Commencing graceful shutdown. Waiting for active requests to complete
+2026-07-14 10:11:58,522 INFO  [tomcat-shutdown] [no-req] o.s.b.t.GracefulShutdown: Graceful shutdown complete
+2026-07-14 10:11:58,524 INFO  [Thread-10] [no-req] o.s.c.l.LogAccessor: stopped bean 'autoIngestionFlow.org.springframework.integration.config.SourcePollingChannelAdapterFactoryBean#0'; from source: 'org.springframework.integration.dsl.IntegrationFlow ai.scheduler.DataIngestionAutoImportScheduler.autoIngestionFlow()'
+2026-07-14 10:11:58,527 INFO  [Thread-10] [no-req] o.s.c.l.LogAccessor: Removing {service-activator} as a subscriber to the 'autoIngestionFlow.channel#0' channel
+2026-07-14 10:11:58,527 INFO  [Thread-10] [no-req] o.s.c.l.LogAccessor: Channel 'NGN AI core.autoIngestionFlow.channel#0' has 0 subscriber(s).
+2026-07-14 10:11:58,528 INFO  [Thread-10] [no-req] o.s.c.l.LogAccessor: stopped bean 'autoIngestionFlow.org.springframework.integration.config.ConsumerEndpointFactoryBean#0'; from source: 'org.springframework.integration.dsl.IntegrationFlow ai.scheduler.DataIngestionAutoImportScheduler.autoIngestionFlow()'
+2026-07-14 10:11:58,539 INFO  [Thread-10] [no-req] o.s.c.l.LogAccessor: Removing {logging-channel-adapter:_org.springframework.integration.errorLogger} as a subscriber to the 'errorChannel' channel
+2026-07-14 10:11:58,540 INFO  [Thread-10] [no-req] o.s.c.l.LogAccessor: Channel 'NGN AI core.errorChannel' has 0 subscriber(s).
+2026-07-14 10:11:58,540 INFO  [Thread-10] [no-req] o.s.c.l.LogAccessor: stopped bean '_org.springframework.integration.errorLogger'
+2026-07-14 10:11:58,542 DEBUG [Thread-10] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Beans' from the JMX domain
+2026-07-14 10:11:58,542 DEBUG [Thread-10] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Conditions' from the JMX domain
+2026-07-14 10:11:58,542 DEBUG [Thread-10] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Configprops' from the JMX domain
+2026-07-14 10:11:58,543 DEBUG [Thread-10] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Env' from the JMX domain
+2026-07-14 10:11:58,543 DEBUG [Thread-10] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Info' from the JMX domain
+2026-07-14 10:11:58,543 DEBUG [Thread-10] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Loggers' from the JMX domain
+2026-07-14 10:11:58,543 DEBUG [Thread-10] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Threaddump' from the JMX domain
+2026-07-14 10:11:58,544 DEBUG [Thread-10] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Sbom' from the JMX domain
+2026-07-14 10:11:58,544 DEBUG [Thread-10] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Scheduledtasks' from the JMX domain
+2026-07-14 10:11:58,544 DEBUG [Thread-10] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Mappings' from the JMX domain
+2026-07-14 10:11:58,544 DEBUG [Thread-10] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Health' from the JMX domain
+2026-07-14 10:11:58,545 DEBUG [Thread-10] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Integrationgraph' from the JMX domain
+2026-07-14 10:11:58,545 DEBUG [Thread-10] [no-req] o.s.b.a.e.j.JmxEndpointExporter: Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Metrics' from the JMX domain
+2026-07-14 10:11:58,550 INFO  [Thread-10] [no-req] o.s.o.j.AbstractEntityManagerFactoryBean: Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-07-14 10:11:58,554 INFO  [Thread-10] [no-req] c.z.h.HikariDataSource: HikariPool-3 - Shutdown initiated...
+2026-07-14 10:11:58,567 INFO  [Thread-10] [no-req] c.z.h.HikariDataSource: HikariPool-3 - Shutdown completed.
+2026-07-14 10:11:58,854 INFO  [restartedMain] [no-req] o.s.b.StartupInfoLogger: Starting Application using Java 25.0.2 with PID 18760 (C:\Users\khuetech\Documents\dev\core-service\core-service\core\target\classes started by khuetech in C:\Users\khuetech\Documents\dev\core-service\core-service\core)
+2026-07-14 10:11:58,855 INFO  [restartedMain] [no-req] o.s.b.SpringApplication: The following 1 profile is active: "win"
+2026-07-14 10:11:59,787 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-14 10:11:59,787 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-07-14 10:11:59,945 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Finished Spring Data repository scanning in 155 ms. Found 20 JPA repository interfaces.
+2026-07-14 10:11:59,955 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-14 10:11:59,955 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-07-14 10:11:59,980 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.AuditLogRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,982 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.DataIngestionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,983 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.DraftMessagesRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,984 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.DraftRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,984 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.DraftVersionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,985 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.MessageFeedbackHistoryRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,986 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.MessageRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,986 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.NotebookMessagesRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,986 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.NoteBookRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,987 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.NoteBookSourceRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,988 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.NoteRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,989 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.OrganizationRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,989 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.OrganizationUserRoleRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,990 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.PermissionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,991 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.RoleRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,991 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.SystemSettingRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,992 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.TopicMessagesRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:11:59,993 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.TopicRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:12:00,011 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.TopicSourceRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:12:00,016 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationExtensionSupport: Spring Data Redis - Could not safely identify store assignment for repository candidate interface ai.repository.UserRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-14 10:12:00,020 INFO  [restartedMain] [no-req] o.s.d.r.c.RepositoryConfigurationDelegate: Finished Spring Data repository scanning in 61 ms. Found 0 Redis repository interfaces.
+2026-07-14 10:12:00,167 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: No bean named 'errorChannel' has been explicitly defined. Therefore, a default PublishSubscribeChannel will be created.
+2026-07-14 10:12:00,169 INFO  [restartedMain] [no-req] o.s.c.l.LogAccessor: No bean named 'integrationHeaderChannelRegistry' has been explicitly defined. Therefore, a default DefaultHeaderChannelRegistry will be created.
+2026-07-14 10:12:00,379 INFO  [restartedMain] [no-req] o.s.b.t.TomcatWebServer: Tomcat initialized with port 8081 (http)
+2026-07-14 10:12:00,383 INFO  [restartedMain] [no-req] o.a.j.l.DirectJDKLog: Starting service [Tomcat]
+2026-07-14 10:12:00,387 INFO  [restartedMain] [no-req] o.a.j.l.DirectJDKLog: Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-07-14 10:12:00,451 INFO  [restartedMain] [no-req] o.s.b.w.c.s.WebApplicationContextInitializer: Root WebApplicationContext: initialization completed in 1593 ms
+2026-07-14 10:12:00,755 DEBUG [restartedMain] [no-req] o.s.w.f.GenericFilterBean: Filter 'webMvcObservationFilter' configured for use
+2026-07-14 10:12:00,912 INFO  [restartedMain] [no-req] o.h.j.i.u.LogHelper: HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-07-14 10:12:01,028 INFO  [restartedMain] [no-req] o.s.o.j.p.SpringPersistenceUnitInfo: No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-07-14 10:12:01,038 INFO  [restartedMain] [no-req] c.z.h.HikariDataSource: HikariPool-4 - Starting...
+2026-07-14 10:12:01,097 INFO  [restartedMain] [no-req] c.z.h.p.HikariPool: HikariPool-4 - Added connection org.postgresql.jdbc.PgConnection@411648c5
+2026-07-14 10:12:01,105 INFO  [restartedMain] [no-req] c.z.h.HikariDataSource: HikariPool-4 - Start completed.
+2026-07-14 10:12:01,110 WARN  [restartedMain] [no-req] o.h.e.j.d.i.DialectFactoryImpl: HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-07-14 10:12:01,120 INFO  [restartedMain] [no-req] o.h.e.j.e.i.JdbcEnvironmentInitiator: HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://192.168.30.72:5432/core_service_4]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 18.2
+	Default catalog/schema: core_service_4/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-07-14 10:12:01,357 WARN  [restartedMain] [no-req] o.h.m.RootClass: HHH000038: Composite id class does not override equals(): ai.entity.postgres.embeddable.RolePermissionIdEmbed
+2026-07-14 10:12:01,362 WARN  [restartedMain] [no-req] o.h.m.RootClass: HHH000038: Composite id class does not override equals(): ai.entity.postgres.embeddable.DraftMessageIdEmbed
+2026-07-14 10:12:01,363 WARN  [restartedMain] [no-req] o.h.m.RootClass: HHH000038: Composite id class does not override equals(): ai.entity.postgres.embeddable.NoteBookMessageIdEmbed
+2026-07-14 10:12:01,363 WARN  [restartedMain] [no-req] o.h.m.RootClass: HHH000038: Composite id class does not override equals(): ai.entity.postgres.embeddable.TopicMessageIdEmbed
+2026-07-14 10:12:01,588 INFO  [restartedMain] [no-req] o.h.e.t.j.p.i.JtaPlatformInitiator: HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-07-14 10:12:01,648 INFO  [restartedMain] [no-req] o.s.o.j.AbstractEntityManagerFactoryBean: Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-07-14 10:12:01,976 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/callback' ...
+2026-07-14 10:12:01,977 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/callback using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@18bae444 ...
+2026-07-14 10:12:01,978 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Unable to resolve location classpath:db/callback.
+2026-07-14 10:12:01,978 INFO  [restartedMain] [no-req] a.c.FlywayConfig: -> Flyway configuration initialized:
+2026-07-14 10:12:01,981 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/migration' ...
+2026-07-14 10:12:01,981 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/migration using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@18bae444 ...
+2026-07-14 10:12:01,981 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning URL: file:/C:/Users/khuetech/Documents/dev/core-service/core-service/core/target/classes/db/migration
+2026-07-14 10:12:01,982 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning starting at classpath root in filesystem: C:\Users\khuetech\Documents\dev\core-service\core-service\core\target\classes\
+2026-07-14 10:12:01,982 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for resources in path: C:\Users\khuetech\Documents\dev\core-service\core-service\core\target\classes\db\migration (db/migration)
+2026-07-14 10:12:01,984 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V10__init_system_setting_role_permission.sql
+2026-07-14 10:12:01,984 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V11__init_report_permission.sql
+2026-07-14 10:12:01,984 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V1__init_schema.sql
+2026-07-14 10:12:01,985 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V2__init_permission.sql
+2026-07-14 10:12:01,985 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V3__init_role.sql
+2026-07-14 10:12:01,986 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V4__init_role_permission.sql
+2026-07-14 10:12:01,986 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V5__init_user.sql
+2026-07-14 10:12:01,986 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V6__init_organization.sql
+2026-07-14 10:12:01,987 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V7__init_organization_user_role.sql
+2026-07-14 10:12:01,988 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V8__init_system_settings.sql
+2026-07-14 10:12:01,988 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V9__init_system_setting_permission.sql
+2026-07-14 10:12:01,990 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/migration' ...
+2026-07-14 10:12:01,991 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/migration using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@18bae444 ...
+2026-07-14 10:12:01,991 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning URL: file:/C:/Users/khuetech/Documents/dev/core-service/core-service/core/target/classes/db/migration
+2026-07-14 10:12:01,993 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V10__init_system_setting_role_permission.sql
+2026-07-14 10:12:01,994 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V11__init_report_permission.sql
+2026-07-14 10:12:01,994 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V1__init_schema.sql
+2026-07-14 10:12:01,994 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V2__init_permission.sql
+2026-07-14 10:12:01,994 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V3__init_role.sql
+2026-07-14 10:12:01,995 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V4__init_role_permission.sql
+2026-07-14 10:12:01,995 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V5__init_user.sql
+2026-07-14 10:12:01,995 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V6__init_organization.sql
+2026-07-14 10:12:01,996 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V7__init_organization_user_role.sql
+2026-07-14 10:12:01,996 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V8__init_system_settings.sql
+2026-07-14 10:12:01,997 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V9__init_system_setting_permission.sql
+2026-07-14 10:12:01,997 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classes at classpath:db/migration
+2026-07-14 10:12:02,001 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V2__init_permission.sql
+2026-07-14 10:12:02,001 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V10__init_system_setting_role_permission.sql
+2026-07-14 10:12:02,002 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V4__init_role_permission.sql
+2026-07-14 10:12:02,002 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V3__init_role.sql
+2026-07-14 10:12:02,002 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V6__init_organization.sql
+2026-07-14 10:12:02,005 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V9__init_system_setting_permission.sql
+2026-07-14 10:12:02,006 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V5__init_user.sql
+2026-07-14 10:12:02,006 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V11__init_report_permission.sql
+2026-07-14 10:12:02,006 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V1__init_schema.sql
+2026-07-14 10:12:02,007 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V7__init_organization_user_role.sql
+2026-07-14 10:12:02,008 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V8__init_system_settings.sql
+2026-07-14 10:12:02,009 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Multiple databases found that handle url 'jdbc:postgresql://192.168.30.72:5432/core_service_4': CockroachDB,PostgreSQL
+2026-07-14 10:12:02,009 INFO  [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Database: jdbc:postgresql://192.168.30.72:5432/core_service_4 (PostgreSQL 18.2)
+2026-07-14 10:12:02,010 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Database Type: PostgreSQL
+2026-07-14 10:12:02,010 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Driver: PostgreSQL JDBC Driver 42.7.10
+2026-07-14 10:12:02,010 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: DDL Transactions Supported: true
+2026-07-14 10:12:02,010 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Schemas: 
+2026-07-14 10:12:02,011 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Default schema: null
+2026-07-14 10:12:02,018 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for script callbacks ...
+2026-07-14 10:12:02,018 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for SQL callbacks ...
+2026-07-14 10:12:02,019 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: CherryPickConfigurationExtension not found
+2026-07-14 10:12:02,031 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:12:02,034 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:12:02,035 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:12:02,037 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:12:02,037 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:12:02,038 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:12:02,038 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:12:02,038 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:12:02,038 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:12:02,039 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:12:02,039 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:12:02,039 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:12:02,039 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:12:02,040 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:12:02,041 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:12:02,041 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:12:02,041 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:12:02,042 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:12:02,042 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:12:02,042 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:12:02,042 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:12:02,042 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:12:02,043 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:12:02,044 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:12:02,044 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:12:02,044 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:12:02,044 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:12:02,044 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:12:02,044 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:12:02,045 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:12:02,045 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:12:02,045 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:12:02,045 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:12:02,046 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:12:02,046 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:12:02,046 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:12:02,047 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:12:02,047 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:12:02,047 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:12:02,047 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:12:02,047 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:12:02,047 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:12:02,048 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:12:02,048 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:12:02,070 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Memory usage: 230 of 336M
+2026-07-14 10:12:02,070 INFO  [restartedMain] [no-req] a.c.FlywayConfig: - Found Flyway migrations: 12
+2026-07-14 10:12:02,070 INFO  [restartedMain] [no-req] a.c.FlywayConfig: - Flyway enabled: true
+2026-07-14 10:12:02,070 INFO  [restartedMain] [no-req] a.c.FlywayConfig: - Flyway locations: classpath:db/migration
+2026-07-14 10:12:02,070 INFO  [restartedMain] [no-req] a.c.FlywayConfig: - Flyway baseline on migrate: true
+2026-07-14 10:12:02,071 INFO  [restartedMain] [no-req] a.c.FlywayConfig: -> Starting Flyway migration...
+2026-07-14 10:12:02,073 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/migration' ...
+2026-07-14 10:12:02,073 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/migration using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@18bae444 ...
+2026-07-14 10:12:02,074 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning URL: file:/C:/Users/khuetech/Documents/dev/core-service/core-service/core/target/classes/db/migration
+2026-07-14 10:12:02,074 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V10__init_system_setting_role_permission.sql
+2026-07-14 10:12:02,074 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V11__init_report_permission.sql
+2026-07-14 10:12:02,074 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V1__init_schema.sql
+2026-07-14 10:12:02,075 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V2__init_permission.sql
+2026-07-14 10:12:02,075 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V3__init_role.sql
+2026-07-14 10:12:02,075 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V4__init_role_permission.sql
+2026-07-14 10:12:02,076 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V5__init_user.sql
+2026-07-14 10:12:02,076 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V6__init_organization.sql
+2026-07-14 10:12:02,076 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V7__init_organization_user_role.sql
+2026-07-14 10:12:02,077 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V8__init_system_settings.sql
+2026-07-14 10:12:02,077 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V9__init_system_setting_permission.sql
+2026-07-14 10:12:02,077 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classpath resources at 'classpath:db/migration' ...
+2026-07-14 10:12:02,077 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Determining location urls for classpath:db/migration using ClassLoader org.springframework.boot.devtools.restart.classloader.RestartClassLoader@18bae444 ...
+2026-07-14 10:12:02,078 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning URL: file:/C:/Users/khuetech/Documents/dev/core-service/core-service/core/target/classes/db/migration
+2026-07-14 10:12:02,078 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V10__init_system_setting_role_permission.sql
+2026-07-14 10:12:02,078 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V11__init_report_permission.sql
+2026-07-14 10:12:02,078 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V1__init_schema.sql
+2026-07-14 10:12:02,078 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V2__init_permission.sql
+2026-07-14 10:12:02,078 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V3__init_role.sql
+2026-07-14 10:12:02,079 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V4__init_role_permission.sql
+2026-07-14 10:12:02,079 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V5__init_user.sql
+2026-07-14 10:12:02,080 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V6__init_organization.sql
+2026-07-14 10:12:02,080 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V7__init_organization_user_role.sql
+2026-07-14 10:12:02,080 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V8__init_system_settings.sql
+2026-07-14 10:12:02,080 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Found resource: db/migration/V9__init_system_setting_permission.sql
+2026-07-14 10:12:02,080 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for classes at classpath:db/migration
+2026-07-14 10:12:02,082 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V2__init_permission.sql
+2026-07-14 10:12:02,083 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V10__init_system_setting_role_permission.sql
+2026-07-14 10:12:02,083 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V4__init_role_permission.sql
+2026-07-14 10:12:02,083 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V3__init_role.sql
+2026-07-14 10:12:02,083 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V6__init_organization.sql
+2026-07-14 10:12:02,084 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V9__init_system_setting_permission.sql
+2026-07-14 10:12:02,084 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V5__init_user.sql
+2026-07-14 10:12:02,084 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V11__init_report_permission.sql
+2026-07-14 10:12:02,085 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V1__init_schema.sql
+2026-07-14 10:12:02,085 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V7__init_organization_user_role.sql
+2026-07-14 10:12:02,085 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating V8__init_system_settings.sql
+2026-07-14 10:12:02,085 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: DDL Transactions Supported: true
+2026-07-14 10:12:02,085 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Schemas: 
+2026-07-14 10:12:02,086 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Default schema: null
+2026-07-14 10:12:02,094 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for script callbacks ...
+2026-07-14 10:12:02,097 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Scanning for SQL callbacks ...
+2026-07-14 10:12:02,101 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Validating migrations ...
+2026-07-14 10:12:02,101 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: CherryPickConfigurationExtension not found
+2026-07-14 10:12:02,111 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:12:02,111 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:12:02,112 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:12:02,112 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:12:02,113 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:12:02,113 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:12:02,113 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:12:02,114 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:12:02,114 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:12:02,114 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:12:02,114 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:12:02,115 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:12:02,115 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:12:02,116 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:12:02,116 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:12:02,116 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:12:02,116 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:12:02,116 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:12:02,116 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:12:02,117 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:12:02,118 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:12:02,118 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:12:02,118 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:12:02,120 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:12:02,120 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:12:02,121 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:12:02,121 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:12:02,122 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:12:02,122 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:12:02,123 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:12:02,123 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:12:02,123 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:12:02,123 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:12:02,124 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V2__init_permission.sql (filename: V2__init_permission.sql)
+2026-07-14 10:12:02,124 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V10__init_system_setting_role_permission.sql (filename: V10__init_system_setting_role_permission.sql)
+2026-07-14 10:12:02,124 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V4__init_role_permission.sql (filename: V4__init_role_permission.sql)
+2026-07-14 10:12:02,125 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V3__init_role.sql (filename: V3__init_role.sql)
+2026-07-14 10:12:02,128 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V6__init_organization.sql (filename: V6__init_organization.sql)
+2026-07-14 10:12:02,128 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V9__init_system_setting_permission.sql (filename: V9__init_system_setting_permission.sql)
+2026-07-14 10:12:02,129 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V5__init_user.sql (filename: V5__init_user.sql)
+2026-07-14 10:12:02,129 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V11__init_report_permission.sql (filename: V11__init_report_permission.sql)
+2026-07-14 10:12:02,129 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V1__init_schema.sql (filename: V1__init_schema.sql)
+2026-07-14 10:12:02,130 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V7__init_organization_user_role.sql (filename: V7__init_organization_user_role.sql)
+2026-07-14 10:12:02,130 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Filtering out resource: db/migration/V8__init_system_settings.sql (filename: V8__init_system_settings.sql)
+2026-07-14 10:12:02,135 INFO  [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Successfully validated 12 migrations (execution time 00:00.033s)
+2026-07-14 10:12:02,137 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Skipping creation of existing schema: "public"
+2026-07-14 10:12:02,142 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: CherryPickConfigurationExtension not found
+2026-07-14 10:12:02,146 INFO  [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Current version of schema "public": 11
+2026-07-14 10:12:02,147 INFO  [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Schema "public" is up to date. No migration necessary.
+2026-07-14 10:12:02,152 DEBUG [restartedMain] [no-req] o.f.c.i.l.s.Slf4jLog: Memory usage: 231 of 336M
+2026-07-14 10:12:02,937 INFO  [restartedMain] [no-req] a.s.DataIngestionAutoImportScheduler: Initializing auto-ingestion file source...
+2026-07-14 10:12:02,939 INFO  [restartedMain] [no-req] a.s.DataIngestionAutoImportScheduler: Building file filter for auto-ingestion...
+2026-07-14 10:12:03,089 WARN  [restartedMain] [no-req] o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration: spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning

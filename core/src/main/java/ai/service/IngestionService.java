@@ -22,7 +22,7 @@ import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
 import ai.enums.AuditResource;
 import ai.enums.DataScope;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 

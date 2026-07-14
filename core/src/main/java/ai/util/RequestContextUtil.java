@@ -1,7 +1,7 @@
 package ai.util;
 
 import ai.entity.postgres.UserEntity;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;

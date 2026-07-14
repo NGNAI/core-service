@@ -19,7 +19,7 @@ import ai.entity.postgres.RoleEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.UserSource;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.mapper.OrganizationMapper;
 import ai.mapper.RoleMapper;
 import ai.mapper.UserMapper;

@@ -1,11 +1,15 @@
 package ai.repository;
 
+import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import ai.entity.postgres.DraftEntity;
@@ -48,4 +52,14 @@ public interface DraftRepository extends JpaRepository<DraftEntity, UUID> {
     
     // @Query("SELECT d.presentationStyle, COUNT(d) FROM DraftEntity d GROUP BY d.presentationStyle")
     // java.util.List<java.lang.Object[]> countByPresentationStyle();
+
+    // Count drafts by date range
+    @Query("""
+        SELECT COUNT(d)
+        FROM DraftEntity d
+        WHERE d.organization.id IN :orgIds
+        AND d.audit.createdAt >= COALESCE(:from, d.audit.createdAt)
+        AND d.audit.createdAt <= COALESCE(:to, d.audit.createdAt)
+        """)
+    long countByDateRange(@Param("orgIds") Collection<UUID> orgIds, @Param("from") Instant from, @Param("to") Instant to);
 }

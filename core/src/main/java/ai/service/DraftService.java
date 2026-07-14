@@ -21,7 +21,7 @@ import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
 import ai.enums.AuditResource;
 import ai.enums.DraftType;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.mapper.DraftMapper;
 import ai.model.CustomPairModel;
 import ai.repository.DraftRepository;

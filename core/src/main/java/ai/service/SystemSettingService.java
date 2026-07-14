@@ -18,7 +18,7 @@ import ai.entity.postgres.SystemSettingEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
 import ai.enums.AuditResource;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.mapper.SystemSettingMapper;
 import ai.repository.SystemSettingRepository;
 import lombok.AccessLevel;

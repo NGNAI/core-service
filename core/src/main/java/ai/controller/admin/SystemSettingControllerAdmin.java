@@ -21,6 +21,9 @@ import ai.dto.own.response.SystemSettingResponseDto;
 import ai.model.ApiResponseModel;
 import ai.service.SystemSettingService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -51,6 +54,8 @@ public class SystemSettingControllerAdmin {
 
     @Operation(summary = "Get setting by key", description = "Retrieve a single system setting by its key")
     @GetMapping("/{key}")
+    @ApiResponse(responseCode = "200", description = "Get setting successfully",
+                 content = @Content(schema = @Schema(implementation = SystemSettingResponseDto.class)))
     @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'READ',null)")
     ResponseEntity<ApiResponseModel<SystemSettingResponseDto>> getByKey(@PathVariable String key) {
         return ResponseEntity.ok(
@@ -63,6 +68,8 @@ public class SystemSettingControllerAdmin {
 
     @Operation(summary = "Get settings by group", description = "Retrieve all settings in a specific group")
     @GetMapping("/groups/{groupName}")
+    @ApiResponse(responseCode = "200", description = "Get settings by group successfully",
+                 content = @Content(schema = @Schema(implementation = SystemSettingResponseDto.class)))
     @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'READ',null)")
     ResponseEntity<ApiResponseModel<List<SystemSettingResponseDto>>> getByGroup(@PathVariable String groupName) {
         return ResponseEntity.ok(
@@ -75,6 +82,8 @@ public class SystemSettingControllerAdmin {
 
     @Operation(summary = "Create setting", description = "Create a new system setting")
     @PostMapping
+    @ApiResponse(responseCode = "200", description = "Create setting successfully",
+                 content = @Content(schema = @Schema(implementation = SystemSettingResponseDto.class)))
     @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'CREATE',null)")
     ResponseEntity<ApiResponseModel<SystemSettingResponseDto>> create(
             @Valid @RequestBody SystemSettingCreateRequestDto requestDto) {
@@ -88,6 +97,8 @@ public class SystemSettingControllerAdmin {
 
     @Operation(summary = "Update setting", description = "Update an existing system setting by its key")
     @PutMapping("/{key}")
+    @ApiResponse(responseCode = "200", description = "Update setting successfully",
+                 content = @Content(schema = @Schema(implementation = SystemSettingResponseDto.class)))
     @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'UPDATE',null)")
     ResponseEntity<ApiResponseModel<SystemSettingResponseDto>> update(
             @PathVariable String key,
@@ -102,6 +113,8 @@ public class SystemSettingControllerAdmin {
 
     @Operation(summary = "Bulk update settings", description = "Update multiple system settings at once")
     @PutMapping("/bulk")
+    @ApiResponse(responseCode = "200", description = "Bulk update settings successfully",
+                 content = @Content(schema = @Schema(implementation = SystemSettingResponseDto.class)))
     @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'UPDATE',null)")
     ResponseEntity<ApiResponseModel<List<SystemSettingResponseDto>>> bulkUpdate(
             @Valid @RequestBody List<SystemSettingUpdateRequestDto> requestDtos) {
@@ -115,6 +128,8 @@ public class SystemSettingControllerAdmin {
 
     @Operation(summary = "Delete setting by key", description = "Delete a system setting by its key")
     @DeleteMapping("/{key}")
+    @ApiResponse(responseCode = "200", description = "Delete setting successfully",
+                 content = @Content(schema = @Schema(implementation = Void.class)))
     @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'DELETE',null)")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable String key) {
         systemSettingService.delete(key);
@@ -127,6 +142,8 @@ public class SystemSettingControllerAdmin {
 
     @Operation(summary = "Delete setting by ID", description = "Delete a system setting by its UUID")
     @DeleteMapping("/id/{id}")
+    @ApiResponse(responseCode = "200", description = "Delete setting successfully",
+                 content = @Content(schema = @Schema(implementation = Void.class)))
     @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'DELETE',null)")
     ResponseEntity<ApiResponseModel<Void>> deleteById(@PathVariable UUID id) {
         systemSettingService.deleteById(id);

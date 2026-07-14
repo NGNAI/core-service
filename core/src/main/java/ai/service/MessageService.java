@@ -30,7 +30,7 @@ import ai.enums.ApiResponseStatus;
 import ai.enums.MessageFeedbackType;
 import ai.enums.MessageParentType;
 import ai.enums.MessageType;
-import ai.exeption.AppException;
+import ai.exception.AppException;
 import ai.interfaces.MessageRelationEntity;
 import ai.mapper.MessageMapper;
 import ai.model.CustomPairModel;

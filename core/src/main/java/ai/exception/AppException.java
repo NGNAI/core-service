@@ -1,4 +1,4 @@
-package ai.exeption;
+package ai.exception;
 
 import ai.enums.ApiResponseStatus;
 import lombok.AccessLevel;

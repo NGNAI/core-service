@@ -1,15 +1,23 @@
 package ai.configuration;
 
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
-import io.swagger.v3.oas.models.security.SecurityScheme;
-
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.prepost.PreAuthorize;
+
+import ai.dto.own.response.BadRequestResponseDto;
+import ai.dto.own.response.ForbiddenResponseDto;
+import ai.dto.own.response.UnauthorizedResponseDto;
+import io.swagger.v3.core.converter.ModelConverters;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.responses.ApiResponses;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 
 @Configuration
 public class SwaggerConfig {
@@ -26,9 +34,58 @@ public class SwaggerConfig {
                                         .scheme("bearer")
                                         .name("bearerAuth")
                         )
+                        .addSchemas("BadRequestResponseDto", ModelConverters.getInstance().read(BadRequestResponseDto.class).get("BadRequestResponseDto"))
+                        .addSchemas("UnauthorizedResponseDto", ModelConverters.getInstance().read(UnauthorizedResponseDto.class).get("UnauthorizedResponseDto"))
+                        .addSchemas("ForbiddenResponseDto", ModelConverters.getInstance().read(ForbiddenResponseDto.class).get("ForbiddenResponseDto"))
                 )
                 .addSecurityItem(new SecurityRequirement().addList("Bearer token"))
                 .info(new Info().title("Backend core API").version("1.0"));
+    }
+
+    @Bean
+    public OperationCustomizer globalResponsesCustomizer() {
+        return (operation, handlerMethod) -> {
+            ApiResponses responses = operation.getResponses();
+            if (responses == null) {
+                responses = new ApiResponses();
+                operation.setResponses(responses);
+            }
+
+            // Thêm response 400 nếu chưa có
+            if (!responses.containsKey("400")) {
+                responses.addApiResponse("400", new io.swagger.v3.oas.models.responses.ApiResponse()
+                        .description("Bad Request")
+                        .content(new Content()
+                                .addMediaType("application/json",
+                                        new MediaType()
+                                                .schema(new Schema<>()
+                                                        .$ref("#/components/schemas/BadRequestResponseDto")))));
+            }
+
+            // Thêm response 401 nếu chưa có
+            if (!responses.containsKey("401")) {
+                responses.addApiResponse("401", new io.swagger.v3.oas.models.responses.ApiResponse()
+                        .description("Unauthorized")
+                        .content(new Content()
+                                .addMediaType("application/json",
+                                        new MediaType()
+                                                .schema(new Schema<>()
+                                                        .$ref("#/components/schemas/UnauthorizedResponseDto")))));
+            }
+
+            // Thêm response 403 nếu chưa có
+            if (!responses.containsKey("403")) {
+                responses.addApiResponse("403", new io.swagger.v3.oas.models.responses.ApiResponse()
+                        .description("Forbidden")
+                        .content(new Content()
+                                .addMediaType("application/json",
+                                        new MediaType()
+                                                .schema(new Schema<>()
+                                                        .$ref("#/components/schemas/ForbiddenResponseDto")))));
+            }
+
+            return operation;
+        };
     }
 
     @Bean
