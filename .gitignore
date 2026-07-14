@@ -40,3 +40,6 @@ build/
 application.log
 application.log.*.gz
 /.idea/
+
+
+/logs/*

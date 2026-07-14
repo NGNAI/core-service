@@ -81,7 +81,7 @@ public class SecurityConfig {
                                                 }
                                         }
                                 }
-                                System.out.println("############################ Token: " + token);
+                                // System.out.println("############################ Token: " + token);
                                 return token; // Trả về chuỗi JWT nhặt được cho Spring Security giải mã tiếp
                         })
                         .jwt(jwt ->
@@ -122,7 +122,7 @@ public class SecurityConfig {
                                                 }
                                         }
                                 }
-                                System.out.println("############################ Token: " + token);
+                                // System.out.println("############################ Token: " + token);
                                 return token; // Trả về chuỗi JWT nhặt được cho Spring Security giải mã tiếp
                         })
                         .jwt(jwt ->

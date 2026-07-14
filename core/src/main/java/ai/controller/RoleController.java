@@ -52,6 +52,18 @@ public class RoleController {
         );
     }
 
+    @Operation(summary = "Get role by ID", description = "Retrieve details of a specific role by its UUID")
+    @GetMapping("/{roleId}")
+    @PreAuthorize("@perm.canAccess(null, 'ROLE', 'READ',null)")
+    ResponseEntity<ApiResponseModel<RoleResponseDto>> getById(@PathVariable UUID roleId){
+        return ResponseEntity.ok(
+                ApiResponseModel.<RoleResponseDto>builder()
+                        .message("Get role successfully")
+                        .data(roleService.getById(roleId))
+                        .build()
+        );
+    }
+
     @Operation(summary = "Create role", description = "Create a new role with the provided details")
     @PostMapping
     @PreAuthorize("@perm.canAccess(null, 'ROLE', 'CREATE', null)")
