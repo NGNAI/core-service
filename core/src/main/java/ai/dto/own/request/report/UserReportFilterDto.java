@@ -3,6 +3,7 @@ package ai.dto.own.request.report;
 import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -12,7 +13,8 @@ import lombok.experimental.FieldDefaults;
 @Schema(description = "Filter for user report")
 public class UserReportFilterDto {
 
-    @Schema(description = "Organization ID to filter by. If null, uses the current user's organization from JWT", example = "00000000-0000-0000-0000-000000000000")
+    @NotNull
+    @Schema(description = "Organization ID", example = "00000000-0000-0000-0000-000000000000")
     UUID orgId;
 
     @Schema(description = "Whether to include descendant organizations in the report", example = "false", defaultValue = "false")

@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -14,7 +15,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 @Schema(description = "Filter for data report")
 public class DataReportFilterDto {
 
-    @Schema(description = "Organization ID to filter by. If null, uses the current user's organization from JWT")
+    @NotNull
+    @Schema(description = "Organization ID", example = "00000000-0000-0000-0000-000000000000")
     UUID orgId;
 
     @Schema(description = "Whether to include descendant organizations", example = "false", defaultValue = "false")
