@@ -42,4 +42,4 @@ application.log.*.gz
 /.idea/
 
 
-/logs/*
+/logs/

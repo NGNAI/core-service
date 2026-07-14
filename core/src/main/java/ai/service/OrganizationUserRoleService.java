@@ -40,7 +40,6 @@ import ai.repository.OrganizationRepository;
 import ai.repository.OrganizationUserRoleRepository;
 import ai.repository.RoleRepository;
 import ai.repository.UserRepository;
-import jakarta.persistence.criteria.Fetch;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -159,8 +158,8 @@ public class OrganizationUserRoleService {
         Map<UUID, UserWithRoleInOrgResponseDto> mapResult = new HashMap<>();
 
         Specification<OrganizationUserRoleEntity> spec = (root, query, criteriaBuilder) -> {
-            Fetch<OrganizationUserRoleEntity, UserEntity> userFetch = root.fetch("user", JoinType.INNER);
-            Join<OrganizationUserRoleEntity, UserEntity> userJoin = (Join<OrganizationUserRoleEntity, UserEntity>) userFetch;
+            Join<OrganizationUserRoleEntity, UserEntity> userJoin = root.join("user", JoinType.INNER);
+            query.distinct(true);
 
             Predicate userSearch = userFilterDto.createSpec(userJoin, criteriaBuilder);
             Predicate orgIdSearch = criteriaBuilder.equal(root.get("organization").get("id"), orgId);
