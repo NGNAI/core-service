@@ -65,14 +65,14 @@ public class  PermissionService {
         permissionRepository.deleteById(id);
     }
 
-    public Set<PermissionWithRoleScopeResponseDto> rolePermissionsToPermissionDto(Set<RolePermissionEntity> rpEntities) {
+    public List<PermissionWithRoleScopeResponseDto> rolePermissionsToPermissionDto(Set<RolePermissionEntity> rpEntities) {
         if(rpEntities==null || rpEntities.isEmpty())
-            return Set.of();
+            return List.of();
         return rpEntities.stream().map(rpEntity->{
             PermissionWithRoleScopeResponseDto responseWithScope = permissionMapper.entityToScopeResponseDto(rpEntity.getPermission());
             responseWithScope.setScope(rpEntity.getScope());
 
             return responseWithScope;
-        }).collect(Collectors.toSet());
+        }).collect(Collectors.toList());
     }
 }

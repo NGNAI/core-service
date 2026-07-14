@@ -4,8 +4,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 
 @JsonPropertyOrder({
@@ -24,5 +23,5 @@ public class RoleResponseDto extends AuditResponseDto {
     String description;
     boolean defaultAssign;
 
-    Set<PermissionWithRoleScopeResponseDto> permissions;
+    List<PermissionWithRoleScopeResponseDto> permissions;
 }

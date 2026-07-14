@@ -1,12 +1,11 @@
 package ai.dto.own.response;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
-
-import java.util.UUID;
 
 @JsonPropertyOrder({
         "id",
