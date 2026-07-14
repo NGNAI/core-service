@@ -113,7 +113,7 @@ public class RoleService {
     public Map<UUID, Map<String, Map<String, Map<String, String>>>> getPermissionListOfRole() {
         //System.out.println("getting permission of role");
         RoleFilterDto roleFilter = new RoleFilterDto();
-        roleFilter.setPageSize(50);
+        roleFilter.setPageSize(Integer.MAX_VALUE);
 
         return getAll(roleFilter).getSecond().stream()
                 .collect(Collectors.toMap(
