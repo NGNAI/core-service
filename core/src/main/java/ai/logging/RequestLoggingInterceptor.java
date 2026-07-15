@@ -56,7 +56,7 @@ public class RequestLoggingInterceptor implements Filter {
         String requestId = UUID.randomUUID().toString().substring(0, 8);
         MDC.put(MDC_KEY, requestId);
 
-        ContentCachingRequestWrapper wrappedReq = new ContentCachingRequestWrapper(httpReq, 1024 * 1024 * 12); // 12MB
+        ContentCachingRequestWrapper wrappedReq = new ContentCachingRequestWrapper(httpReq, 1024 * 1024); // 1MB
         ContentCachingResponseWrapper wrappedRes = new ContentCachingResponseWrapper(httpRes);
 
         long start = System.currentTimeMillis();
