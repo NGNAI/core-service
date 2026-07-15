@@ -1,9 +1,11 @@
 package ai.dto.own.request.report;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -29,4 +31,11 @@ public class ComprehensiveReportFilterDto {
     @Schema(description = "End date-time for activity data (ISO-8601)")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     Instant to;
+
+    @AssertTrue(message = "Khoảng thời gian from-to không được vượt quá 90 ngày")
+    @Schema(hidden = true)
+    boolean isDateRangeValid() {
+        if (from == null || to == null) return true;
+        return Duration.between(from, to).toDays() <= 90;
+    }
 }

@@ -11,7 +11,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import ai.dto.own.request.report.ComprehensiveReportFilterDto;
-import ai.dto.own.request.report.UserReportFilterDto;
 import ai.dto.own.response.report.ActivityReportResponseDto.DailyActivityDto;
 import ai.dto.own.response.report.ActivityReportResponseDto.UserActivitySummary;
 import ai.dto.own.response.report.ComprehensiveReportResponseDto;
@@ -58,28 +57,28 @@ public class ComprehensiveReportService {
 
         ComprehensiveReportResponseDto dto = new ComprehensiveReportResponseDto();
 
-        // User metrics
+        // User metrics (global — toàn hệ thống)
         dto.setTotalUsers(userRepository.countAllUsers());
         dto.setTotalOrganizations(orgRepository.countAllOrganizations());
 
-        // Content metrics
+        // Content metrics (filtered by from-to)
         dto.setTotalDrafts(draftRepository.countByDateRange(orgIds, from, to));
         dto.setTotalTopics(topicRepository.countByDateRange(orgIds, from, to));
         dto.setTotalNoteBooks(noteBookRepository.countByDateRange(orgIds, from, to));
         dto.setTotalDataIngestions(dataIngestionRepository.countByDateRange(orgIds, from, to));
         dto.setTotalNotes(noteRepository.countByDateRange(orgIds, from, to));
 
-        // Activity metrics
+        // Activity metrics (filtered by from-to)
         dto.setTotalActions(auditLogRepository.countActionsByOrgIdsAndDateRange(orgIds, from, to));
         dto.setTotalLogins(auditLogRepository.countLoginsByOrgIdsAndDateRange(orgIds, from, to));
         dto.setUniqueActiveUsers(auditLogRepository.countUniqueActiveUsersByOrgIdsAndDateRange(orgIds, from, to));
 
-        // Top 10 active users
+        // Top 10 active users (filtered by from-to)
         dto.setTopActiveUsers(buildTopActiveUsers(
                 auditLogRepository.findTopActiveUsers(orgIds, from, to, PageRequest.of(0, 10))));
 
-        // Recent daily trend (last 7 days)
-        dto.setRecentDailyTrend(buildRecentDailyTrend(orgIds));
+        // Daily trend (dùng from-to từ filter, fallback 7 ngày nếu null)
+        dto.setRecentDailyTrend(buildDailyTrend(orgIds, from, to));
 
         return dto;
     }
@@ -113,11 +112,14 @@ public class ComprehensiveReportService {
         return result;
     }
 
-    private List<DailyActivityDto> buildRecentDailyTrend(List<UUID> orgIds) {
-        LocalDate today = LocalDate.now(ZoneId.systemDefault());
-        LocalDate sevenDaysAgo = today.minusDays(6);
-        Instant from = sevenDaysAgo.atStartOfDay(ZoneId.systemDefault()).toInstant();
-        Instant to = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+    private List<DailyActivityDto> buildDailyTrend(List<UUID> orgIds, Instant from, Instant to) {
+        // Nếu không có from-to, mặc định 7 ngày gần nhất
+        if (from == null || to == null) {
+            LocalDate today = LocalDate.now(ZoneId.systemDefault());
+            LocalDate sevenDaysAgo = today.minusDays(6);
+            from = sevenDaysAgo.atStartOfDay(ZoneId.systemDefault()).toInstant();
+            to = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+        }
 
         List<Object[]> rows = auditLogRepository.findDailyActivityTrend(orgIds, from, to);
         List<DailyActivityDto> result = new ArrayList<>();

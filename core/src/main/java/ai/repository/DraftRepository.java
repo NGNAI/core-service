@@ -41,6 +41,22 @@ public interface DraftRepository extends JpaRepository<DraftEntity, UUID> {
     @Query("SELECT d.type, COUNT(d) FROM DraftEntity d WHERE d.organization.id = :orgId GROUP BY d.type")
     java.util.List<java.lang.Object[]> countByTypeByOrgId(UUID orgId);
 
+    @Query("SELECT d.type, COUNT(d) FROM DraftEntity d WHERE d.organization.id IN :orgIds GROUP BY d.type")
+    java.util.List<java.lang.Object[]> countByTypeByOrgIds(@Param("orgIds") Collection<UUID> orgIds);
+
+    @Query("""
+        SELECT d.type, COUNT(d)
+        FROM DraftEntity d
+        WHERE d.organization.id IN :orgIds
+        AND d.audit.createdAt >= COALESCE(:from, d.audit.createdAt)
+        AND d.audit.createdAt <= COALESCE(:to, d.audit.createdAt)
+        GROUP BY d.type
+        """)
+    java.util.List<java.lang.Object[]> countByTypeByOrgIdsAndDateRange(
+            @Param("orgIds") Collection<UUID> orgIds,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
     // Count drafts by updated date (day precision)
     // Use native query because JPQL DATE() does not support Instant type
     @Query(value = "SELECT COUNT(d) FROM draft d WHERE DATE(d.updated_at) = :date", nativeQuery = true)

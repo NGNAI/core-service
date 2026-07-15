@@ -55,27 +55,89 @@ public interface DataIngestionRepository extends JpaRepository<DataIngestionEnti
     @Query("SELECT d.ingestionStatus, COUNT(d) FROM DataIngestionEntity d WHERE d.organization.id = :orgId GROUP BY d.ingestionStatus")
     java.util.List<java.lang.Object[]> countByStatusByOrgId(UUID orgId);
     
+    @Query("SELECT d.ingestionStatus, COUNT(d) FROM DataIngestionEntity d WHERE d.organization.id IN :orgIds GROUP BY d.ingestionStatus")
+    java.util.List<java.lang.Object[]> countByStatusByOrgIds(@Param("orgIds") Collection<UUID> orgIds);
+
+    @Query("""
+        SELECT d.ingestionStatus, COUNT(d)
+        FROM DataIngestionEntity d
+        WHERE d.organization.id IN :orgIds
+        AND d.audit.createdAt >= COALESCE(:from, d.audit.createdAt)
+        AND d.audit.createdAt <= COALESCE(:to, d.audit.createdAt)
+        GROUP BY d.ingestionStatus
+        """)
+    java.util.List<java.lang.Object[]> countByStatusByOrgIdsAndDateRange(
+            @Param("orgIds") Collection<UUID> orgIds,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
     @Query("SELECT d.fromSource, COUNT(d) FROM DataIngestionEntity d GROUP BY d.fromSource")
     java.util.List<java.lang.Object[]> countBySource();
-    
+
     @Query("SELECT d.fromSource, COUNT(d) FROM DataIngestionEntity d WHERE d.organization.id = :orgId GROUP BY d.fromSource")
     java.util.List<java.lang.Object[]> countBySourceByOrgId(UUID orgId);
-    
+
+    @Query("SELECT d.fromSource, COUNT(d) FROM DataIngestionEntity d WHERE d.organization.id IN :orgIds GROUP BY d.fromSource")
+    java.util.List<java.lang.Object[]> countBySourceByOrgIds(@Param("orgIds") Collection<UUID> orgIds);
+
+    @Query("""
+        SELECT d.fromSource, COUNT(d)
+        FROM DataIngestionEntity d
+        WHERE d.organization.id IN :orgIds
+        AND d.audit.createdAt >= COALESCE(:from, d.audit.createdAt)
+        AND d.audit.createdAt <= COALESCE(:to, d.audit.createdAt)
+        GROUP BY d.fromSource
+        """)
+    java.util.List<java.lang.Object[]> countBySourceByOrgIdsAndDateRange(
+            @Param("orgIds") Collection<UUID> orgIds,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
     @Query("SELECT d.accessLevel, COUNT(d) FROM DataIngestionEntity d GROUP BY d.accessLevel")
     java.util.List<java.lang.Object[]> countByAccessLevel();
-    
+
     @Query("SELECT d.accessLevel, COUNT(d) FROM DataIngestionEntity d WHERE d.organization.id = :orgId GROUP BY d.accessLevel")
     java.util.List<java.lang.Object[]> countByAccessLevelByOrgId(UUID orgId);
 
-    // Count data ingestions by updated date (day precision)
-    @Query(value = "SELECT COUNT(d) FROM data_ingestion d WHERE DATE(d.updated_at) = :date", nativeQuery = true)
+    @Query("SELECT d.accessLevel, COUNT(d) FROM DataIngestionEntity d WHERE d.organization.id IN :orgIds GROUP BY d.accessLevel")
+    java.util.List<java.lang.Object[]> countByAccessLevelByOrgIds(@Param("orgIds") Collection<UUID> orgIds);
+
+    @Query("""
+        SELECT d.accessLevel, COUNT(d)
+        FROM DataIngestionEntity d
+        WHERE d.organization.id IN :orgIds
+        AND d.audit.createdAt >= COALESCE(:from, d.audit.createdAt)
+        AND d.audit.createdAt <= COALESCE(:to, d.audit.createdAt)
+        GROUP BY d.accessLevel
+        """)
+    java.util.List<java.lang.Object[]> countByAccessLevelByOrgIdsAndDateRange(
+            @Param("orgIds") Collection<UUID> orgIds,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
     long countDataIngestionsByDate(java.time.LocalDate date);
 
     // Count data ingestions by updated date and organization
     @Query(value = "SELECT COUNT(d) FROM data_ingestion d WHERE DATE(d.updated_at) = :date AND d.org_id = :orgId", nativeQuery = true)
     long countDataIngestionsByDateAndOrgId(java.time.LocalDate date, UUID orgId);
 
-    // Count data ingestions by owner (top N)
+    // Count by owner group by owner (top N)
+    @Query("""
+        SELECT d.owner.id as userId, d.owner.userName as userName, COUNT(d) as cnt, COALESCE(SUM(d.fileSize), 0) as totalSize
+        FROM DataIngestionEntity d
+        WHERE d.organization.id IN :orgIds
+        AND d.folder = false
+        AND d.audit.createdAt >= COALESCE(:from, d.audit.createdAt)
+        AND d.audit.createdAt <= COALESCE(:to, d.audit.createdAt)
+        GROUP BY d.owner.id, d.owner.userName
+        ORDER BY cnt DESC
+        """)
+    List<Object[]> countByOwnerGroupByOwnerAndDateRange(
+            @Param("orgIds") Collection<UUID> orgIds,
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            Pageable pageable);
+
+    // Count by owner group by owner (top N) - all time
     @Query("""
         SELECT d.owner.id as userId, d.owner.userName as userName, COUNT(d) as cnt, COALESCE(SUM(d.fileSize), 0) as totalSize
         FROM DataIngestionEntity d
@@ -86,9 +148,40 @@ public interface DataIngestionRepository extends JpaRepository<DataIngestionEnti
         """)
     List<Object[]> countByOwnerGroupByOwner(@Param("orgIds") Collection<UUID> orgIds, Pageable pageable);
 
+    // Sum file size by org and date range
+    @Query("""
+        SELECT COALESCE(SUM(d.fileSize), 0)
+        FROM DataIngestionEntity d
+        WHERE d.organization.id IN :orgIds
+        AND d.folder = false
+        AND d.audit.createdAt >= COALESCE(:from, d.audit.createdAt)
+        AND d.audit.createdAt <= COALESCE(:to, d.audit.createdAt)
+        """)
+    long sumFileSizeByOrgIdsAndDateRange(
+            @Param("orgIds") Collection<UUID> orgIds,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
     // Sum file size by org
     @Query("SELECT COALESCE(SUM(d.fileSize), 0) FROM DataIngestionEntity d WHERE d.organization.id IN :orgIds AND d.folder = false")
     long sumFileSizeByOrgIds(@Param("orgIds") Collection<UUID> orgIds);
+
+    // Count by content type and date range
+    @Query("""
+        SELECT d.contentType, COUNT(d)
+        FROM DataIngestionEntity d
+        WHERE d.organization.id IN :orgIds
+        AND d.contentType IS NOT NULL
+        AND d.folder = false
+        AND d.audit.createdAt >= COALESCE(:from, d.audit.createdAt)
+        AND d.audit.createdAt <= COALESCE(:to, d.audit.createdAt)
+        GROUP BY d.contentType
+        ORDER BY COUNT(d) DESC
+        """)
+    List<Object[]> countByContentTypeAndDateRange(
+            @Param("orgIds") Collection<UUID> orgIds,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
 
     // Count by content type
     @Query("""

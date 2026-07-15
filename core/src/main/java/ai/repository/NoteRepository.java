@@ -39,6 +39,20 @@ public interface NoteRepository extends JpaRepository<NoteEntity, UUID>, JpaSpec
         FROM NoteEntity n
         WHERE n.organization.id IN :orgIds
         AND n.sourceType IS NOT NULL
+        AND n.audit.createdAt >= COALESCE(:from, n.audit.createdAt)
+        AND n.audit.createdAt <= COALESCE(:to, n.audit.createdAt)
+        GROUP BY n.sourceType
+        """)
+    List<Object[]> countBySourceTypeAndDateRange(
+            @Param("orgIds") Collection<UUID> orgIds,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
+    @Query("""
+        SELECT n.sourceType, COUNT(n)
+        FROM NoteEntity n
+        WHERE n.organization.id IN :orgIds
+        AND n.sourceType IS NOT NULL
         GROUP BY n.sourceType
         """)
     List<Object[]> countBySourceType(@Param("orgIds") Collection<UUID> orgIds);
