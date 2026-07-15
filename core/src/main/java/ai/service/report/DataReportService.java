@@ -54,18 +54,18 @@ public class DataReportService {
 
         DataReportResponseDto dto = new DataReportResponseDto();
 
-        // Tổng quan
+        // Tổng quan (filtered by from-to)
         dto.setTotalDataIngestions(dataIngestionRepository.countByDateRange(orgIds, from, to));
         dto.setTotalDrafts(draftRepository.countByDateRange(orgIds, from, to));
         dto.setTotalTopics(topicRepository.countByDateRange(orgIds, from, to));
         dto.setTotalNoteBooks(noteBookRepository.countByDateRange(orgIds, from, to));
         dto.setTotalNotes(noteRepository.countByDateRange(orgIds, from, to));
 
-        // Chi tiết ingestion
-        dto.setIngestionDetail(buildIngestionDetail(orgIds));
+        // Chi tiết ingestion (filtered by from-to)
+        dto.setIngestionDetail(buildIngestionDetail(orgIds, from, to));
 
-        // Thống kê nội dung
-        dto.setContentStats(buildContentStats(orgIds));
+        // Thống kê nội dung (filtered by from-to)
+        dto.setContentStats(buildContentStats(orgIds, from, to));
 
         return dto;
     }
@@ -76,7 +76,7 @@ public class DataReportService {
     public DataIngestionDetailDto getIngestionDetail(DataReportFilterDto filter) {
         UUID orgId = resolveOrgId(filter.getOrgId());
         List<UUID> orgIds = resolveOrgIds(orgId, filter.isIncludeDescendants());
-        return buildIngestionDetail(orgIds);
+        return buildIngestionDetail(orgIds, filter.getFrom(), filter.getTo());
     }
 
     /**
@@ -85,8 +85,10 @@ public class DataReportService {
     public List<OwnerIngestionSummary> getTopOwners(DataReportFilterDto filter) {
         UUID orgId = resolveOrgId(filter.getOrgId());
         List<UUID> orgIds = resolveOrgIds(orgId, filter.isIncludeDescendants());
+        Instant from = filter.getFrom();
+        Instant to = filter.getTo();
 
-        return buildTopOwners(orgIds, filter.getTopN());
+        return buildTopOwners(orgIds, from, to, filter.getTopN());
     }
 
     /**
@@ -95,7 +97,7 @@ public class DataReportService {
     public ContentStatsDto getContentStats(DataReportFilterDto filter) {
         UUID orgId = resolveOrgId(filter.getOrgId());
         List<UUID> orgIds = resolveOrgIds(orgId, filter.isIncludeDescendants());
-        return buildContentStats(orgIds);
+        return buildContentStats(orgIds, filter.getFrom(), filter.getTo());
     }
 
     private UUID resolveOrgId(UUID orgId) {
@@ -115,12 +117,12 @@ public class DataReportService {
         return orgRepository.findDescendantOrgIds(orgId, pathPrefix);
     }
 
-    private DataIngestionDetailDto buildIngestionDetail(List<UUID> orgIds) {
+    private DataIngestionDetailDto buildIngestionDetail(List<UUID> orgIds, Instant from, Instant to) {
         DataIngestionDetailDto dto = new DataIngestionDetailDto();
 
         // By status
         Map<String, Long> byStatus = new HashMap<>();
-        dataIngestionRepository.countByStatus().forEach(row -> {
+        dataIngestionRepository.countByStatusByOrgIdsAndDateRange(orgIds, from, to).forEach(row -> {
             Object status = row[0];
             byStatus.put(status != null ? status.toString() : "UNKNOWN", ((Number) row[1]).longValue());
         });
@@ -128,27 +130,27 @@ public class DataReportService {
 
         // By source
         Map<String, Long> bySource = new HashMap<>();
-        dataIngestionRepository.countBySource().forEach(row -> {
+        dataIngestionRepository.countBySourceByOrgIdsAndDateRange(orgIds, from, to).forEach(row -> {
             bySource.put(row[0] != null ? row[0].toString() : "UNKNOWN", ((Number) row[1]).longValue());
         });
         dto.setBySource(bySource);
 
         // By access level
         Map<String, Long> byAccessLevel = new HashMap<>();
-        dataIngestionRepository.countByAccessLevel().forEach(row -> {
+        dataIngestionRepository.countByAccessLevelByOrgIdsAndDateRange(orgIds, from, to).forEach(row -> {
             byAccessLevel.put(row[0] != null ? row[0].toString() : "UNKNOWN", ((Number) row[1]).longValue());
         });
         dto.setByAccessLevel(byAccessLevel);
 
         // Top owners
-        dto.setTopOwners(buildTopOwners(orgIds, 10));
+        dto.setTopOwners(buildTopOwners(orgIds, from, to, 10));
 
         // Total file size
-        dto.setTotalFileSize(dataIngestionRepository.sumFileSizeByOrgIds(orgIds));
+        dto.setTotalFileSize(dataIngestionRepository.sumFileSizeByOrgIdsAndDateRange(orgIds, from, to));
 
         // By content type
         Map<String, Long> byContentType = new HashMap<>();
-        dataIngestionRepository.countByContentType(orgIds).forEach(row -> {
+        dataIngestionRepository.countByContentTypeAndDateRange(orgIds, from, to).forEach(row -> {
             byContentType.put(row[0] != null ? row[0].toString() : "UNKNOWN", ((Number) row[1]).longValue());
         });
         dto.setByContentType(byContentType);
@@ -156,8 +158,8 @@ public class DataReportService {
         return dto;
     }
 
-    private List<OwnerIngestionSummary> buildTopOwners(List<UUID> orgIds, int topN) {
-        List<Object[]> rows = dataIngestionRepository.countByOwnerGroupByOwner(orgIds, PageRequest.of(0, topN));
+    private List<OwnerIngestionSummary> buildTopOwners(List<UUID> orgIds, Instant from, Instant to, int topN) {
+        List<Object[]> rows = dataIngestionRepository.countByOwnerGroupByOwnerAndDateRange(orgIds, from, to, PageRequest.of(0, topN));
         List<OwnerIngestionSummary> result = new ArrayList<>();
         for (Object[] row : rows) {
             OwnerIngestionSummary s = new OwnerIngestionSummary();
@@ -170,24 +172,24 @@ public class DataReportService {
         return result;
     }
 
-    private ContentStatsDto buildContentStats(List<UUID> orgIds) {
+    private ContentStatsDto buildContentStats(List<UUID> orgIds, Instant from, Instant to) {
         ContentStatsDto dto = new ContentStatsDto();
 
         // Drafts by type
         Map<String, Long> draftsByType = new HashMap<>();
-        draftRepository.countByType().forEach(row -> {
+        draftRepository.countByTypeByOrgIdsAndDateRange(orgIds, from, to).forEach(row -> {
             draftsByType.put((String) row[0], (Long) row[1]);
         });
         dto.setDraftsByType(draftsByType);
 
         // Topics, notebooks, notes counts
-        dto.setTotalTopics(topicRepository.countAllTopics());
-        dto.setTotalNoteBooks(noteBookRepository.countAllNoteBooks());
-        dto.setTotalNotes(noteRepository.countAllNotesByOrgIds(orgIds));
+        dto.setTotalTopics(topicRepository.countByDateRange(orgIds, from, to));
+        dto.setTotalNoteBooks(noteBookRepository.countByDateRange(orgIds, from, to));
+        dto.setTotalNotes(noteRepository.countByDateRange(orgIds, from, to));
 
         // Notes by source type
         Map<String, Long> notesBySourceType = new HashMap<>();
-        noteRepository.countBySourceType(orgIds).forEach(row -> {
+        noteRepository.countBySourceTypeAndDateRange(orgIds, from, to).forEach(row -> {
             notesBySourceType.put(row[0] != null ? row[0].toString() : "UNKNOWN", ((Number) row[1]).longValue());
         });
         dto.setNotesBySourceType(notesBySourceType);

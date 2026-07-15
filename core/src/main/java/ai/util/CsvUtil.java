@@ -1,8 +1,8 @@
 package ai.util;
 
+import java.io.BufferedWriter;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -23,19 +23,23 @@ public class CsvUtil {
      * @param rows    the data rows, each row is a list of cell values
      */
     public static void writeCsv(OutputStream out, List<String> headers, List<List<String>> rows) {
-        try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8))) {
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8))) {
             // Write BOM for Excel UTF-8 compatibility
             writer.write('\uFEFF');
 
             // Write headers
-            writer.println(escapeCsvLine(headers));
+            writer.write(escapeCsvLine(headers));
+            writer.newLine();
 
             // Write data rows
             for (List<String> row : rows) {
-                writer.println(escapeCsvLine(row));
+                writer.write(escapeCsvLine(row));
+                writer.newLine();
             }
 
             writer.flush();
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to write CSV", e);
         }
     }
 
