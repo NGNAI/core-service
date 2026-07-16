@@ -48,4 +48,20 @@ public interface TopicRepository extends JpaRepository<TopicEntity, UUID>, JpaSp
         AND t.audit.createdAt <= COALESCE(:to, t.audit.createdAt)
         """)
     long countByDateRange(@Param("orgIds") Collection<UUID> orgIds, @Param("from") Instant from, @Param("to") Instant to);
+
+    // Count topics by owner (user dashboard) - scoped by orgId
+    @Query("SELECT COUNT(t) FROM TopicEntity t WHERE t.owner.id = :ownerId AND t.organization.id = :orgId")
+    long countByOwnerId(@Param("ownerId") UUID ownerId, @Param("orgId") UUID orgId);
+
+    @Query("""
+        SELECT COUNT(t)
+        FROM TopicEntity t
+        WHERE t.owner.id = :ownerId
+        AND t.audit.createdAt >= COALESCE(:from, t.audit.createdAt)
+        AND t.audit.createdAt <= COALESCE(:to, t.audit.createdAt)
+        """)
+    long countByOwnerIdAndDateRange(
+            @Param("ownerId") UUID ownerId,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
 }

@@ -48,4 +48,20 @@ public interface NoteBookRepository extends JpaRepository<NoteBookEntity, UUID>,
         AND n.audit.createdAt <= COALESCE(:to, n.audit.createdAt)
         """)
     long countByDateRange(@Param("orgIds") Collection<UUID> orgIds, @Param("from") Instant from, @Param("to") Instant to);
+
+    // Count notebooks by owner (user dashboard) - scoped by orgId
+    @Query("SELECT COUNT(n) FROM NoteBookEntity n WHERE n.owner.id = :ownerId AND n.organization.id = :orgId")
+    long countByOwnerId(@Param("ownerId") UUID ownerId, @Param("orgId") UUID orgId);
+
+    @Query("""
+        SELECT COUNT(n)
+        FROM NoteBookEntity n
+        WHERE n.owner.id = :ownerId
+        AND n.audit.createdAt >= COALESCE(:from, n.audit.createdAt)
+        AND n.audit.createdAt <= COALESCE(:to, n.audit.createdAt)
+        """)
+    long countByOwnerIdAndDateRange(
+            @Param("ownerId") UUID ownerId,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
 }
