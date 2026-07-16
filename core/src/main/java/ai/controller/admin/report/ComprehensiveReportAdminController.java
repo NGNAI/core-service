@@ -35,7 +35,7 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/admin/reports/comprehensive")
 @Tag(name = "Comprehensive Report", description = "Comprehensive report APIs - all metrics in one response")
 @RestController
-public class ComprehensiveReportControllerAdmin {
+public class ComprehensiveReportAdminController {
 
     ComprehensiveReportService comprehensiveReportService;
 

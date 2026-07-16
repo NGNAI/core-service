@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
  * để bật logging chi tiết request/response khi phát triển.
  */
 // @Profile("dev")
-// @Configuration
+@Configuration
 public class LoggingConfig {
 
     @Bean

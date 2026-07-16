@@ -1,4 +1,4 @@
-package ai.controller;
+package ai.controller.admin;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,7 +35,7 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/admin/roles")
 @Tag(name = "Role Admin", description = "Role admin APIs")
 @RestController
-public class RoleController {
+public class RoleAdminController {
     RoleService roleService;
 
     @Operation(summary = "Get all roles", description = "Retrieve a paginated list of roles based on filter criteria")

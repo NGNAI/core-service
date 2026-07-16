@@ -34,7 +34,7 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/admin/permissions")
 @Tag(name = "Permission Admin", description = "Permission admin APIs")
 @RestController
-public class PermissionControllerAdmin {
+public class PermissionAdminController {
     PermissionService permissionService;
 
     @Operation(summary = "Get all permissions", description = "Retrieve a paginated list of permissions with optional filtering")

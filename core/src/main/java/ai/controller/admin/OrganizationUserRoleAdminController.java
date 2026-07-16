@@ -37,7 +37,7 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/admin/organizations/{organizationId}")
 @Tag(name = "Organization User Role Admin", description = "Organization user role admin APIs")
 @RestController
-public class OrganizationUserRoleControllerAdmin {
+public class OrganizationUserRoleAdminController {
     OrganizationUserRoleService ourService;
 
     @Operation(summary = "Get users in organization", description = "Retrieve users with roles in the specified organization, supporting pagination and filtering")

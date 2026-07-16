@@ -1,4 +1,4 @@
-package ai.controller;
+package ai.controller.user;
 
 import java.util.List;
 import java.util.UUID;
@@ -56,7 +56,7 @@ import reactor.core.publisher.Flux;
 @RequestMapping("/user/topics")
 @RestController
 @Tag(name = "Topic", description = "APIs for managing topics, including creation, retrieval, updating, deletion, and message handling")
-public class TopicController {
+public class TopicUserController {
     TopicService topicService;
     MessageService messageService;
     TopicSourceService topicSourceService;

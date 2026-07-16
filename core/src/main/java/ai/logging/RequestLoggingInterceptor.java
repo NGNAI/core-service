@@ -56,11 +56,11 @@ public class RequestLoggingInterceptor implements Filter {
         String requestId = UUID.randomUUID().toString().substring(0, 8);
         MDC.put(MDC_KEY, requestId);
 
-        ContentCachingRequestWrapper wrappedReq = new ContentCachingRequestWrapper(httpReq, 1024 * 1024); // 1MB
+        ContentCachingRequestWrapper wrappedReq = new ContentCachingRequestWrapper(httpReq, 1024 * 50); // 50KB
         ContentCachingResponseWrapper wrappedRes = new ContentCachingResponseWrapper(httpRes);
 
         long start = System.currentTimeMillis();
-        logRequest(wrappedReq, requestId);
+        logRequestHeaders(wrappedReq, requestId);
 
         try {
             chain.doFilter(wrappedReq, wrappedRes);
@@ -76,9 +76,9 @@ public class RequestLoggingInterceptor implements Filter {
         // no-op
     }
 
-    private void logRequest(ContentCachingRequestWrapper request, String requestId) {
+    private void logRequestHeaders(ContentCachingRequestWrapper request, String requestId) {
         StringBuilder data = new StringBuilder();
-        data.append("\n--> [").append(requestId).append("] ")
+        data.append("\n--> REQUEST [").append(requestId).append("] ")
                 .append(request.getMethod()).append(" ").append(request.getRequestURI());
 
         if (request.getQueryString() != null) {
@@ -107,19 +107,32 @@ public class RequestLoggingInterceptor implements Filter {
     private void logResponse(ContentCachingRequestWrapper request, ContentCachingResponseWrapper response,
                              String requestId, long durationMs) {
         StringBuilder data = new StringBuilder();
-        data.append("\n<-- [").append(requestId).append("] ")
+        data.append("\n<-- RESPONSE [").append(requestId).append("] ")
                 .append(request.getMethod()).append(" ").append(request.getRequestURI())
                 .append(" -> ").append(response.getStatus())
                 .append(" (").append(durationMs).append("ms)\n");
+
+        // Request body (đã được cache sau khi chain.doFilter chạy)
+        if ("POST".equalsIgnoreCase(request.getMethod()) || "PUT".equalsIgnoreCase(request.getMethod())) {
+            byte[] buf = request.getContentAsByteArray();
+            if (buf.length > 0) {
+                String body = new String(buf, java.nio.charset.StandardCharsets.UTF_8);
+                if (body.length() < 2000) {
+                    data.append("  request body: ").append(body).append("\n");
+                } else {
+                    data.append("  request body: (").append(body.length()).append(" bytes)\n");
+                }
+            }
+        }
 
         // Response body
         byte[] buf = response.getContentAsByteArray();
         if (buf.length > 0) {
             String body = new String(buf, java.nio.charset.StandardCharsets.UTF_8);
             if (body.length() < 2000) {
-                data.append("  body: ").append(body).append("\n");
+                data.append("  response body: ").append(body).append("\n");
             } else {
-                data.append("  body: (").append(body.length()).append(" bytes)\n");
+                data.append("  response body: (").append(body.length()).append(" bytes)\n");
             }
         }
 

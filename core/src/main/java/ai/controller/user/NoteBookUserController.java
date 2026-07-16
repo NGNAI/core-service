@@ -1,4 +1,4 @@
-package ai.controller;
+package ai.controller.user;
 
 import java.util.Arrays;
 import java.util.List;
@@ -65,7 +65,7 @@ import reactor.core.publisher.Flux;
 @RequestMapping("/user/notebooks")
 @Tag(name = "Notebook", description = "Notebook APIs")
 @RestController
-public class NoteBookController {
+public class NoteBookUserController {
     NoteBookService notebookService;
     MessageService messageService;
     NoteBookSourceService noteBookSourceService;

@@ -1,4 +1,4 @@
-package ai.controller;
+package ai.controller.user;
 
 import java.util.Arrays;
 import java.util.List;
@@ -53,7 +53,7 @@ import reactor.core.publisher.Flux;
 @RequestMapping("/user/drafts")
 @Tag(name = "Draft", description = "Draft management APIs")
 @RestController
-public class DraftController {
+public class DraftUserController {
         DraftService draftService;
         MessageService messageService;
         RagService ragService;

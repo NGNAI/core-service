@@ -1,4 +1,4 @@
-package ai.controller;
+package ai.controller.user;
 
 import java.util.Arrays;
 import java.util.List;
@@ -62,7 +62,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/user/data-ingestion")
 @RestController
-public class DataIngestionController {
+public class DataIngestionUserController {
         DataIngestionService dataIngestionService;
         OrganizationUserRoleService ourService;
         PermissionCheckerService permissionCheckerService;
@@ -90,14 +90,11 @@ public class DataIngestionController {
 
         @Operation(summary = "Get list of available data ingestion statuses", description = "Get list of available data ingestion statuses")
         @GetMapping("/ingestion_status")
-        ResponseEntity<ApiResponseModel<List<String>>> ingestionStatus() {
-                List<String> ingestionStatuses = Arrays.asList(IngestionStatus.values()).stream()
-                                .map(Enum::name)
-                                .toList();
+        ResponseEntity<ApiResponseModel<List<IngestionStatus>>> ingestionStatus() {
                 return ResponseEntity.ok(
-                                ApiResponseModel.<List<String>>builder()
+                                ApiResponseModel.<List<IngestionStatus>>builder()
                                                 .message("Get data ingestion statuses successfully")
-                                                .data(ingestionStatuses)
+                                                .data(Arrays.asList(IngestionStatus.values()))
                                                 .build());
         }      
 

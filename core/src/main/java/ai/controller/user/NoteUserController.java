@@ -1,4 +1,4 @@
-package ai.controller;
+package ai.controller.user;
 
 import java.util.Arrays;
 import java.util.List;
@@ -39,7 +39,7 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/user/notes")
 @Tag(name = "Note", description = "Note APIs")
 @RestController
-public class NoteController {
+public class NoteUserController {
     NoteService noteService;
 
     @Operation(summary = "Get note source types", description = "Lấy danh sách source type khả dụng của note")

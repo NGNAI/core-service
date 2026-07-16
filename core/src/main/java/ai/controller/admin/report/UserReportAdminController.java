@@ -35,7 +35,7 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/admin/reports/users")
 @Tag(name = "User Report", description = "User report APIs")
 @RestController
-public class UserReportControllerAdmin {
+public class UserReportAdminController {
 
     UserReportService userReportService;
 
