@@ -1,6 +1,7 @@
 package ai.service;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -190,49 +191,54 @@ public class OrganizationUserRoleService {
         return new CustomPairModel<>(users.getTotalElements(), mapResult.values().stream().toList());
     }
 
-    public CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> getUsersByOrgIdAndNotInRole(UUID orgId, UUID roleId,UserFilterDto userFilterDto) {
+    public CustomPairModel<Long, List<UserWithRoleInOrgResponseDto>> getUsersByOrgIdAndNotInRole(UUID orgId, UUID roleId, UserFilterDto userFilterDto) {
         if (!orgRepository.existsById(orgId)) throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
 
-        Map<UUID, UserWithRoleInOrgResponseDto> mapResult = new HashMap<>();
+        // Step 1: Paginate on UserEntity (distinct users) with subquery to exclude users already having the role
+        Specification<UserEntity> userSpec = (root, query, criteriaBuilder) -> {
+            Predicate userSearch = userFilterDto.createSpec(root, criteriaBuilder);
 
-        Specification<OrganizationUserRoleEntity> spec = (root, query, criteriaBuilder) -> {
-            Join<OrganizationUserRoleEntity, UserEntity> userJoin = root.join("user", JoinType.INNER);
-            query.distinct(true);
+            Subquery<UUID> inOrgSub = query.subquery(UUID.class);
+            Root<OrganizationUserRoleEntity> ourInOrg = inOrgSub.from(OrganizationUserRoleEntity.class);
+            inOrgSub.select(ourInOrg.get("user").get("id"));
+            inOrgSub.where(criteriaBuilder.equal(ourInOrg.get("organization").get("id"), orgId));
+            Predicate inOrg = root.get("id").in(inOrgSub);
 
-            Predicate userSearch = userFilterDto.createSpec(userJoin, criteriaBuilder);
-            Predicate orgIdSearch = criteriaBuilder.equal(root.get("organization").get("id"), orgId);
+            Subquery<UUID> inRoleSub = query.subquery(UUID.class);
+            Root<OrganizationUserRoleEntity> ourInRole = inRoleSub.from(OrganizationUserRoleEntity.class);
+            inRoleSub.select(ourInRole.get("user").get("id"));
+            inRoleSub.where(
+                criteriaBuilder.equal(ourInRole.get("organization").get("id"), orgId),
+                criteriaBuilder.equal(ourInRole.get("role").get("id"), roleId));
+            Predicate notInRole = criteriaBuilder.not(root.get("id").in(inRoleSub));
 
-            Subquery<UUID> subquery = query.subquery(UUID.class);
-            Root<OrganizationUserRoleEntity> our = subquery.from(OrganizationUserRoleEntity.class);
-            subquery.select(our.get("id").get("userId"));
-            subquery.where(
-                criteriaBuilder.equal(our.get("organization").get("id"), orgId),
-                criteriaBuilder.equal(our.get("id").get("roleId"), roleId));
-
-            Predicate userNotInSearch = criteriaBuilder.not(root.get("user").get("id").in(subquery));
-
-            return criteriaBuilder.and(userSearch, orgIdSearch, userNotInSearch);
+            return criteriaBuilder.and(userSearch, inOrg, notInRole);
         };
-        if(userFilterDto.getSortBy()!=null)
-            userFilterDto.setSortPrefix("user");
-        Page<OrganizationUserRoleEntity> users = ourRepository.findAll(spec, userFilterDto.createPageable());
-        if (!users.isEmpty()) {
+        Page<UserEntity> userPage = userRepository.findAll(userSpec, userFilterDto.createPageable());
+
+        // Step 2: Fetch all OUR records for those users
+        List<OrganizationUserRoleEntity> ourList = userPage.hasContent()
+            ? ourRepository.findByOrganizationIdAndUserIdInWithFetch(orgId, userPage.getContent().stream().map(UserEntity::getId).toList())
+            : List.of();
+
+        // Step 3: Group by user into response DTOs
+        Map<UUID, UserWithRoleInOrgResponseDto> mapResult = new HashMap<>();
+        if (!ourList.isEmpty()) {
             Map<UUID, Map<String, Map<String, Map<String, String>>>> mapRolePermission = roleService.getPermissionListOfRole();
 
-            users.forEach(our -> {
+            ourList.forEach(our -> {
                 UUID userId = our.getUser().getId();
                 RoleSimplifyResponseDto role = roleMapper.entityToSimplifyResponseDto(our.getRole());
                 role.setPermissions(mapRolePermission.getOrDefault(role.getId(), Map.of()));
-                if (!mapResult.containsKey(userId)) {
-                    UserWithRoleInOrgResponseDto userResponseDto = userMapper.entityToWithRoleResponseDto(our.getUser());
-                    userResponseDto.getRoles().add(role);
-
-                    mapResult.put(userId, userResponseDto);
-                } else mapResult.get(userId).getRoles().add(role);
+                mapResult.computeIfAbsent(userId, id -> {
+                    UserWithRoleInOrgResponseDto dto = userMapper.entityToWithRoleResponseDto(our.getUser());
+                    dto.setRoles(new HashSet<>());
+                    return dto;
+                }).getRoles().add(role);
             });
         }
 
-        return new CustomPairModel<>(users.getTotalElements(), mapResult.values().stream().toList());
+        return new CustomPairModel<>(userPage.getTotalElements(), mapResult.values().stream().toList());
     }
 
     @Audited(action = AuditAction.ASSIGN, resource = AuditResource.ORG_USER_ROLE, resourceIdExpression = "#arg0", description = "Gán người dùng vào tổ chức: {0}")
