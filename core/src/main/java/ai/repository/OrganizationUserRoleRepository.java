@@ -62,6 +62,23 @@ public interface OrganizationUserRoleRepository extends JpaRepository<Organizati
     @Query("""
         SELECT COUNT(DISTINCT our.user.id)
         FROM OrganizationUserRoleEntity our
+        JOIN our.user u
+        WHERE our.organization.id = :orgId
+        AND (:keyword IS NULL OR :keyword = '' OR
+             LOWER(FUNCTION('unaccent', u.userName)) LIKE LOWER(CONCAT('%', FUNCTION('unaccent', :keyword), '%')) OR
+             LOWER(FUNCTION('unaccent', u.firstName)) LIKE LOWER(CONCAT('%', FUNCTION('unaccent', :keyword), '%')) OR
+             LOWER(FUNCTION('unaccent', u.lastName)) LIKE LOWER(CONCAT('%', FUNCTION('unaccent', :keyword), '%')) OR
+             LOWER(FUNCTION('unaccent', u.email)) LIKE LOWER(CONCAT('%', FUNCTION('unaccent', :keyword), '%')) OR
+             LOWER(FUNCTION('unaccent', u.phoneNumber)) LIKE LOWER(CONCAT('%', FUNCTION('unaccent', :keyword), '%')))
+        AND (:source IS NULL OR :source = '' OR u.source = :source)
+        """)
+    long countDistinctUsersByOrgId(@Param("orgId") UUID orgId,
+                                   @Param("keyword") String keyword,
+                                   @Param("source") String source);
+
+    @Query("""
+        SELECT COUNT(DISTINCT our.user.id)
+        FROM OrganizationUserRoleEntity our
         WHERE our.organization.id IN :orgIds
         """)
     long countUsersByOrgIds(@Param("orgIds") Collection<UUID> orgIds);

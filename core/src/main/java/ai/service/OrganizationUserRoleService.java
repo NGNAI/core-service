@@ -131,7 +131,8 @@ public class OrganizationUserRoleService {
             });
         }
 
-        return new CustomPairModel<>(users.getTotalElements(), mapResult.values().stream().toList());
+        long totalUsers = ourRepository.countDistinctUsersByOrgId(orgId, userFilterDto.getKeyword(), userFilterDto.getSource());
+        return new CustomPairModel<>(totalUsers, mapResult.values().stream().toList());
     }
 
     public CustomPairModel<Long, List<UserResponseDto>> getUsersNotInOrg(UUID orgId, UserFilterDto userFilterDto) {
