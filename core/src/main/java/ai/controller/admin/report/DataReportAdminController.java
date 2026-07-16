@@ -48,7 +48,7 @@ public class DataReportAdminController {
         content = @Content(mediaType = "application/json",
             schema = @Schema(implementation = DataReportResponseDto.class)))
     @GetMapping("/summary")
-    @PreAuthorize("@perm.canAccess(#filter.orgId, 'REPORT', 'READ', null)")
+    @PreAuthorize("@perm.canAccess(null, 'REPORT', 'READ', null)")
     public ResponseEntity<ApiResponseModel<DataReportResponseDto>> getDataSummary(
             @Valid @ModelAttribute DataReportFilterDto filter) {
         DataReportResponseDto report = dataReportService.getDataReport(filter);
@@ -67,7 +67,7 @@ public class DataReportAdminController {
         content = @Content(mediaType = "application/json",
             schema = @Schema(implementation = DataIngestionDetailDto.class)))
     @GetMapping("/ingestion/detail")
-    @PreAuthorize("@perm.canAccess(#filter.orgId, 'REPORT', 'READ', null)")
+    @PreAuthorize("@perm.canAccess(null, 'REPORT', 'READ', null)")
     public ResponseEntity<ApiResponseModel<DataIngestionDetailDto>> getIngestionDetail(
             @Valid @ModelAttribute DataReportFilterDto filter) {
         DataIngestionDetailDto detail = dataReportService.getIngestionDetail(filter);
@@ -86,7 +86,7 @@ public class DataReportAdminController {
         content = @Content(mediaType = "application/json",
             schema = @Schema(implementation = OwnerIngestionSummary.class)))
     @GetMapping("/ingestion/by-owner")
-    @PreAuthorize("@perm.canAccess(#filter.orgId, 'REPORT', 'READ', null)")
+    @PreAuthorize("@perm.canAccess(null, 'REPORT', 'READ', null)")
     public ResponseEntity<ApiResponseModel<List<OwnerIngestionSummary>>> getTopOwners(
             @Valid @ModelAttribute DataReportFilterDto filter) {
         List<OwnerIngestionSummary> topOwners = dataReportService.getTopOwners(filter);
@@ -105,7 +105,7 @@ public class DataReportAdminController {
         content = @Content(mediaType = "application/json",
             schema = @Schema(implementation = ContentStatsDto.class)))
     @GetMapping("/content-stats")
-    @PreAuthorize("@perm.canAccess(#filter.orgId, 'REPORT', 'READ', null)")
+    @PreAuthorize("@perm.canAccess(null, 'REPORT', 'READ', null)")
     public ResponseEntity<ApiResponseModel<ContentStatsDto>> getContentStats(
             @Valid @ModelAttribute DataReportFilterDto filter) {
         ContentStatsDto stats = dataReportService.getContentStats(filter);
@@ -123,7 +123,7 @@ public class DataReportAdminController {
     @ApiResponse(responseCode = "200", description = "CSV file downloaded successfully",
         content = @Content(mediaType = "text/csv"))
     @GetMapping("/export")
-    @PreAuthorize("@perm.canAccess(#filter.orgId, 'REPORT', 'READ', null)")
+    @PreAuthorize("@perm.canAccess(null, 'REPORT', 'READ', null)")
     public ResponseEntity<InputStreamResource> exportDataReport(
             @Valid @ModelAttribute DataReportFilterDto filter) {
         DataReportResponseDto report = dataReportService.getDataReport(filter);

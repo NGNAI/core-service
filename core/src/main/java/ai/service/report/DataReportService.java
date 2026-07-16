@@ -47,7 +47,10 @@ public class DataReportService {
      * Lấy báo cáo tổng quan dữ liệu.
      */
     public DataReportResponseDto getDataReport(DataReportFilterDto filter) {
-        UUID orgId = resolveOrgId(filter.getOrgId());
+        UUID orgId = JwtUtil.getOrgId();
+        if (orgId == null) {
+            throw new AppException(ApiResponseStatus.ORG_ID_REQUIRED);
+        }
         List<UUID> orgIds = resolveOrgIds(orgId, filter.isIncludeDescendants());
         Instant from = filter.getFrom();
         Instant to = filter.getTo();
@@ -74,7 +77,10 @@ public class DataReportService {
      * Lấy chi tiết thống kê ingestion.
      */
     public DataIngestionDetailDto getIngestionDetail(DataReportFilterDto filter) {
-        UUID orgId = resolveOrgId(filter.getOrgId());
+        UUID orgId = JwtUtil.getOrgId();
+        if (orgId == null) {
+            throw new AppException(ApiResponseStatus.ORG_ID_REQUIRED);
+        }
         List<UUID> orgIds = resolveOrgIds(orgId, filter.isIncludeDescendants());
         return buildIngestionDetail(orgIds, filter.getFrom(), filter.getTo());
     }
@@ -83,7 +89,10 @@ public class DataReportService {
      * Lấy top N người dùng nhập nhiều dữ liệu nhất.
      */
     public List<OwnerIngestionSummary> getTopOwners(DataReportFilterDto filter) {
-        UUID orgId = resolveOrgId(filter.getOrgId());
+        UUID orgId = JwtUtil.getOrgId();
+        if (orgId == null) {
+            throw new AppException(ApiResponseStatus.ORG_ID_REQUIRED);
+        }
         List<UUID> orgIds = resolveOrgIds(orgId, filter.isIncludeDescendants());
         Instant from = filter.getFrom();
         Instant to = filter.getTo();
@@ -95,17 +104,12 @@ public class DataReportService {
      * Lấy thống kê nội dung.
      */
     public ContentStatsDto getContentStats(DataReportFilterDto filter) {
-        UUID orgId = resolveOrgId(filter.getOrgId());
-        List<UUID> orgIds = resolveOrgIds(orgId, filter.isIncludeDescendants());
-        return buildContentStats(orgIds, filter.getFrom(), filter.getTo());
-    }
-
-    private UUID resolveOrgId(UUID orgId) {
-        UUID result = orgId != null ? orgId : JwtUtil.getOrgId();
-        if (result == null) {
+        UUID orgId = JwtUtil.getOrgId();
+        if (orgId == null) {
             throw new AppException(ApiResponseStatus.ORG_ID_REQUIRED);
         }
-        return result;
+        List<UUID> orgIds = resolveOrgIds(orgId, filter.isIncludeDescendants());
+        return buildContentStats(orgIds, filter.getFrom(), filter.getTo());
     }
 
     private List<UUID> resolveOrgIds(UUID orgId, boolean includeDescendants) {
