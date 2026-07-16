@@ -79,6 +79,39 @@ public interface OrganizationUserRoleRepository extends JpaRepository<Organizati
     @Query("""
         SELECT COUNT(DISTINCT our.user.id)
         FROM OrganizationUserRoleEntity our
+        JOIN our.user u
+        WHERE our.organization.id = :orgId
+        AND our.user.id NOT IN (
+            SELECT our2.user.id
+            FROM OrganizationUserRoleEntity our2
+            WHERE our2.organization.id = :orgId AND our2.role.id = :roleId
+        )
+        AND (:keyword IS NULL OR :keyword = '' OR
+             LOWER(FUNCTION('unaccent', u.userName)) LIKE LOWER(CONCAT('%', FUNCTION('unaccent', :keyword), '%')) OR
+             LOWER(FUNCTION('unaccent', u.firstName)) LIKE LOWER(CONCAT('%', FUNCTION('unaccent', :keyword), '%')) OR
+             LOWER(FUNCTION('unaccent', u.lastName)) LIKE LOWER(CONCAT('%', FUNCTION('unaccent', :keyword), '%')) OR
+             LOWER(FUNCTION('unaccent', u.email)) LIKE LOWER(CONCAT('%', FUNCTION('unaccent', :keyword), '%')) OR
+             LOWER(FUNCTION('unaccent', u.phoneNumber)) LIKE LOWER(CONCAT('%', FUNCTION('unaccent', :keyword), '%')))
+        AND (:source IS NULL OR :source = '' OR u.source = :source)
+        """)
+    long countDistinctUsersByOrgIdNotInRole(@Param("orgId") UUID orgId,
+                                            @Param("roleId") UUID roleId,
+                                            @Param("keyword") String keyword,
+                                            @Param("source") String source);
+
+    @Query("""
+        SELECT our
+        FROM OrganizationUserRoleEntity our
+        JOIN FETCH our.user
+        JOIN FETCH our.role
+        WHERE our.organization.id = :orgId
+        AND our.user.id IN :userIds
+        """)
+    List<OrganizationUserRoleEntity> findByOrganizationIdAndUserIdInWithFetch(@Param("orgId") UUID orgId, @Param("userIds") Collection<UUID> userIds);
+
+    @Query("""
+        SELECT COUNT(DISTINCT our.user.id)
+        FROM OrganizationUserRoleEntity our
         WHERE our.organization.id IN :orgIds
         """)
     long countUsersByOrgIds(@Param("orgIds") Collection<UUID> orgIds);
