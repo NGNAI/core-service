@@ -56,4 +56,30 @@ public interface NoteRepository extends JpaRepository<NoteEntity, UUID>, JpaSpec
         GROUP BY n.sourceType
         """)
     List<Object[]> countBySourceType(@Param("orgIds") Collection<UUID> orgIds);
+
+    // Count notes by owner (user dashboard) - scoped by orgId
+    @Query("SELECT COUNT(n) FROM NoteEntity n WHERE n.owner.id = :ownerId AND n.organization.id = :orgId")
+    long countByOwnerId(@Param("ownerId") UUID ownerId, @Param("orgId") UUID orgId);
+
+    @Query("""
+        SELECT COUNT(n)
+        FROM NoteEntity n
+        WHERE n.owner.id = :ownerId
+        AND n.audit.createdAt >= COALESCE(:from, n.audit.createdAt)
+        AND n.audit.createdAt <= COALESCE(:to, n.audit.createdAt)
+        """)
+    long countByOwnerIdAndDateRange(
+            @Param("ownerId") UUID ownerId,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
+    @Query("""
+        SELECT n.sourceType, COUNT(n)
+        FROM NoteEntity n
+        WHERE n.owner.id = :ownerId
+        AND n.organization.id = :orgId
+        AND n.sourceType IS NOT NULL
+        GROUP BY n.sourceType
+        """)
+    List<Object[]> countBySourceTypeByOwnerId(@Param("ownerId") UUID ownerId, @Param("orgId") UUID orgId);
 }

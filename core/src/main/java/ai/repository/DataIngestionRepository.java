@@ -207,4 +207,31 @@ public interface DataIngestionRepository extends JpaRepository<DataIngestionEnti
         AND d.audit.createdAt <= COALESCE(:to, d.audit.createdAt)
         """)
     long countByDateRange(@Param("orgIds") Collection<UUID> orgIds, @Param("from") Instant from, @Param("to") Instant to);
+
+    // Count data ingestions by owner (user dashboard) - scoped by orgId
+    @Query("SELECT COUNT(d) FROM DataIngestionEntity d WHERE d.owner.id = :ownerId AND d.organization.id = :orgId AND d.folder = false")
+    long countByOwnerId(@Param("ownerId") UUID ownerId, @Param("orgId") UUID orgId);
+
+    @Query("""
+        SELECT COUNT(d)
+        FROM DataIngestionEntity d
+        WHERE d.owner.id = :ownerId
+        AND d.folder = false
+        AND d.audit.createdAt >= COALESCE(:from, d.audit.createdAt)
+        AND d.audit.createdAt <= COALESCE(:to, d.audit.createdAt)
+        """)
+    long countByOwnerIdAndDateRange(
+            @Param("ownerId") UUID ownerId,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
+    @Query("""
+        SELECT d.ingestionStatus, COUNT(d)
+        FROM DataIngestionEntity d
+        WHERE d.owner.id = :ownerId
+        AND d.organization.id = :orgId
+        AND d.folder = false
+        GROUP BY d.ingestionStatus
+        """)
+    List<Object[]> countByStatusByOwnerId(@Param("ownerId") UUID ownerId, @Param("orgId") UUID orgId);
 }

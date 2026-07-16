@@ -1,20 +1,21 @@
 package ai.dto.own.response;
 
+import java.util.Set;
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
-
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
 
 @JsonPropertyOrder({
         "id",
         "name",
         "description",
         "parentId",
+        "totalUser",
         "children"
 })
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -26,5 +27,6 @@ public class OrganizationResponseDto {
     String description;
     UUID parentId;
     String path;
+    Long totalUser;
     Set<OrganizationResponseDto> children;
 }

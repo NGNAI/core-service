@@ -127,4 +127,54 @@ public interface AuditLogRepository extends JpaRepository<AuditLogEntity, UUID>,
             @Param("orgIds") Collection<UUID> orgIds,
             @Param("from") Instant from,
             @Param("to") Instant to);
+
+    // Count actions by userId (user dashboard) - scoped by orgId
+    @Query("""
+        SELECT COUNT(a)
+        FROM AuditLogEntity a
+        WHERE a.userId = :userId
+        AND a.orgId = :orgId
+        AND a.createdAt >= COALESCE(:from, a.createdAt)
+        AND a.createdAt <= COALESCE(:to, a.createdAt)
+        """)
+    long countActionsByUserIdAndDateRange(
+            @Param("userId") UUID userId,
+            @Param("orgId") UUID orgId,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
+    // Count logins by userId (user dashboard) - scoped by orgId
+    @Query("""
+        SELECT COUNT(a)
+        FROM AuditLogEntity a
+        WHERE a.userId = :userId
+        AND a.orgId = :orgId
+        AND a.action = 'LOGIN'
+        AND a.createdAt >= COALESCE(:from, a.createdAt)
+        AND a.createdAt <= COALESCE(:to, a.createdAt)
+        """)
+    long countLoginsByUserIdAndDateRange(
+            @Param("userId") UUID userId,
+            @Param("orgId") UUID orgId,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
+    // Daily activity trend by userId (user dashboard) - scoped by orgId
+    @Query("""
+        SELECT CAST(a.createdAt AS date) as date,
+               COUNT(a) as actionCount,
+               SUM(CASE WHEN a.action = 'LOGIN' THEN 1 ELSE 0 END) as loginCount
+        FROM AuditLogEntity a
+        WHERE a.userId = :userId
+        AND a.orgId = :orgId
+        AND a.createdAt >= COALESCE(:from, a.createdAt)
+        AND a.createdAt <= COALESCE(:to, a.createdAt)
+        GROUP BY CAST(a.createdAt AS date)
+        ORDER BY date ASC
+        """)
+    List<Object[]> findDailyActivityTrendByUserId(
+            @Param("userId") UUID userId,
+            @Param("orgId") UUID orgId,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
 }
