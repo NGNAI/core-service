@@ -1,7 +1,6 @@
-package ai.controller;
+package ai.controller.user;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.MediaType;
@@ -30,7 +29,7 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/user/events")
 @Tag(name = "System Event", description = "System event APIs")
 @RestController
-public class SystemEventController {
+public class SystemEventUserController {
     SystemEventSseService systemEventSseService;
 
     @Operation(summary = "Get system event contract", description = "Danh sách chuẩn event type/source để FE và BE dùng chung một contract cố định")

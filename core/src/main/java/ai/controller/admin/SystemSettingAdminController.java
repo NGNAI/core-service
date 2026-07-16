@@ -35,7 +35,7 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/admin/system-settings")
 @Tag(name = "System Setting Admin", description = "Admin APIs for managing system settings")
 @RestController
-public class SystemSettingControllerAdmin {
+public class SystemSettingAdminController {
 
     SystemSettingService systemSettingService;
 

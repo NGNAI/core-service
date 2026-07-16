@@ -1,4 +1,4 @@
-package ai.controller;
+package ai.controller.user;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +31,7 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/user/organizations")
 @Tag(name = "Organization", description = "Organization APIs")
 @RestController
-public class OrganizationController {
+public class OrganizationUserController {
     OrganizationService organizationService;
 
         @Operation(summary = "Get organization by ID", description = "Retrieve organization details by its UUID")

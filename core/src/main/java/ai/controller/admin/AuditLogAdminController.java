@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/admin/audit-logs")
 @Tag(name = "Audit Log Admin", description = "Audit log admin APIs")
 @RestController
-public class AuditLogControllerAdmin {
+public class AuditLogAdminController {
 
     AuditLogService auditLogService;
 

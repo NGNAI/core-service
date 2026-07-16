@@ -1,4 +1,4 @@
-package ai.controller;
+package ai.controller.user;
 
 import java.util.List;
 
@@ -34,7 +34,7 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/user/profile")
 @Tag(name = "User Profile", description = "User profile APIs")
 @RestController
-public class UserProfileController {
+public class ProfileUserController {
     UserProfileService userProfileService;
     AuthService authService;
 

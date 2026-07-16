@@ -35,7 +35,7 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/admin/users")
 @Tag(name = "User Admin", description = "User admin APIs")
 @RestController
-public class UserControllerAdmin {
+public class UserAdminController {
     UserService userService;
 
     @Operation(summary = "Get user by ID", description = "Retrieve a user by its UUID")

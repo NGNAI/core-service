@@ -37,7 +37,7 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/admin/organizations")
 @Tag(name = "Organization Admin", description = "Organization admin APIs")
 @RestController
-public class OrganizationControllerAdmin {
+public class OrganizationAdminController {
     OrganizationService organizationService;
 
         @Operation(summary = "Get organization by ID", description = "Retrieve an organization by its ID with optional nested child depth")

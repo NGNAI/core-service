@@ -36,7 +36,7 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/admin/reports/activities")
 @Tag(name = "Activity Report", description = "Activity report APIs")
 @RestController
-public class ActivityReportControllerAdmin {
+public class ActivityReportAdminController {
 
     ActivityReportService activityReportService;
 
