@@ -3,6 +3,7 @@ package ai.logging;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 /**
  * Đăng ký {@link RequestLoggingInterceptor} chỉ khi profile {@code dev} active.
@@ -10,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
  * Dùng {@code --spring.profiles.active=dev} (hoặc {@code application-dev.yml})
  * để bật logging chi tiết request/response khi phát triển.
  */
-// @Profile("dev")
+@Profile("dev")
 @Configuration
 public class LoggingConfig {
 

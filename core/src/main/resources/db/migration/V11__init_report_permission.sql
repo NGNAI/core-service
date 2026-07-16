@@ -1,6 +1,6 @@
 -- Report permissions
 INSERT INTO public."permission" (id,created_at,created_by,updated_at,updated_by,description,name,"action",code,resource,target_resource,scopes) VALUES
-	 ('a1b2c3d4-0001-4000-8000-000000000001'::uuid,now(),'1e6633fb-2654-4bd5-aa7d-51bb86418987'::uuid,now(),'1e6633fb-2654-4bd5-aa7d-51bb86418987'::uuid,'Xem báo cáo thống kê trong hệ thống','Xem báo cáo','READ','REPORT:READ','REPORT',NULL,'{ALL,OWN,DESCENDANT}')
+	 ('a1b2c3d4-0001-4000-8000-000000000001'::uuid,now(),'1e6633fb-2654-4bd5-aa7d-51bb86418987'::uuid,now(),'1e6633fb-2654-4bd5-aa7d-51bb86418987'::uuid,'Xem báo cáo thống kê trong hệ thống','Xem báo cáo','READ','REPORT:READ','REPORT',NULL,'{ALL}')
      ON CONFLICT (id) DO NOTHING;
 
 -- Assign REPORT:READ to ROOT role

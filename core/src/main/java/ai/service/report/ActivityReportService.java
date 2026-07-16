@@ -39,7 +39,10 @@ public class ActivityReportService {
      * Lấy báo cáo tổng quan hoạt động trong kỳ.
      */
     public ActivityReportResponseDto getActivityReport(ActivityReportFilterDto filter) {
-        UUID orgId = resolveOrgId(filter.getOrgId());
+        UUID orgId = JwtUtil.getOrgId();
+        if (orgId == null) {
+            throw new AppException(ApiResponseStatus.ORG_ID_REQUIRED);
+        }
         List<UUID> orgIds = resolveOrgIds(orgId, filter.isIncludeDescendants());
         Instant from = filter.getFrom();
         Instant to = filter.getTo();
@@ -80,7 +83,10 @@ public class ActivityReportService {
      * Lấy danh sách top N người dùng tích cực nhất.
      */
     public List<UserActivitySummary> getTopActiveUsers(ActivityReportFilterDto filter) {
-        UUID orgId = resolveOrgId(filter.getOrgId());
+        UUID orgId = JwtUtil.getOrgId();
+        if (orgId == null) {
+            throw new AppException(ApiResponseStatus.ORG_ID_REQUIRED);
+        }
         List<UUID> orgIds = resolveOrgIds(orgId, filter.isIncludeDescendants());
 
         return buildTopActiveUsers(
@@ -91,19 +97,14 @@ public class ActivityReportService {
      * Lấy tần suất đăng nhập của người dùng.
      */
     public List<LoginFrequencySummary> getLoginFrequency(ActivityReportFilterDto filter) {
-        UUID orgId = resolveOrgId(filter.getOrgId());
+        UUID orgId = JwtUtil.getOrgId();
+        if (orgId == null) {
+            throw new AppException(ApiResponseStatus.ORG_ID_REQUIRED);
+        }
         List<UUID> orgIds = resolveOrgIds(orgId, filter.isIncludeDescendants());
 
         return buildLoginFrequency(
                 auditLogRepository.findLoginFrequency(orgIds, filter.getFrom(), filter.getTo()));
-    }
-
-    private UUID resolveOrgId(UUID orgId) {
-        UUID result = orgId != null ? orgId : JwtUtil.getOrgId();
-        if (result == null) {
-            throw new AppException(ApiResponseStatus.ORG_ID_REQUIRED);
-        }
-        return result;
     }
 
     private List<UUID> resolveOrgIds(UUID orgId, boolean includeDescendants) {

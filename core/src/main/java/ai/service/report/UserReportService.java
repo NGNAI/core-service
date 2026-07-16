@@ -39,8 +39,8 @@ public class UserReportService {
      * @return UserReportResponseDto chứa thống kê tổng quan, theo đơn vị và theo vai trò
      */
     public UserReportResponseDto getUserReport(UserReportFilterDto filter) {
-        // 1. Xác định orgId (từ filter hoặc JWT)
-        UUID orgId = filter.getOrgId() != null ? filter.getOrgId() : JwtUtil.getOrgId();
+        // 1. Xác định orgId từ JWT token
+        UUID orgId = JwtUtil.getOrgId();
         if (orgId == null) {
             throw new AppException(ApiResponseStatus.ORG_ID_REQUIRED);
         }
