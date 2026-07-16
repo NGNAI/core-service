@@ -60,6 +60,7 @@ public class OrganizationService {
             appendChild(1,nestedChild, responseDto);
         else
             responseDto.setChildren(null);
+        populateTotalUser(responseDto);
         return responseDto;
     }
 
@@ -81,7 +82,7 @@ public class OrganizationService {
         OrganizationResponseDto responseDto = orgMapper.entityToResponseDto(orgRoot);
         if(nestedChild!=null && nestedChild > 0)
             appendChild(1,nestedChild, responseDto);
-
+        populateTotalUser(responseDto);
         return responseDto;
     }
 
@@ -188,6 +189,37 @@ public class OrganizationService {
             parentOrg.getChildren().add(childResponseDto);
             if (currentNestedLevel < nestedLevel) {
                 appendChild(currentNestedLevel+1,nestedLevel,childResponseDto);
+            }
+        }
+    }
+
+    /**
+     * Populate totalUser for this node and all descendants in the tree.
+     * totalUser = number of users directly assigned to this organization (not including descendants).
+     */
+    private void populateTotalUser(OrganizationResponseDto orgDto) {
+        if (orgDto == null) return;
+
+        Set<OrganizationResponseDto> toProcess = new HashSet<>();
+        collectAllNodes(orgDto, toProcess);
+
+        List<UUID> orgIds = toProcess.stream().map(OrganizationResponseDto::getId).toList();
+        if (orgIds.isEmpty()) return;
+
+        Map<UUID, Long> userCountByOrg = ourRepository.countUsersGroupByOrg(orgIds).stream()
+            .collect(Collectors.toMap(row -> (UUID) row[0], row -> (Long) row[1]));
+
+        for (OrganizationResponseDto node : toProcess) {
+            node.setTotalUser(userCountByOrg.getOrDefault(node.getId(), 0L));
+        }
+    }
+
+    private void collectAllNodes(OrganizationResponseDto orgDto, Set<OrganizationResponseDto> result) {
+        if (orgDto == null || result.contains(orgDto)) return;
+        result.add(orgDto);
+        if (orgDto.getChildren() != null) {
+            for (OrganizationResponseDto child : orgDto.getChildren()) {
+                collectAllNodes(child, result);
             }
         }
     }

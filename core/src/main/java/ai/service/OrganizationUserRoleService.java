@@ -105,9 +105,10 @@ public class OrganizationUserRoleService {
         Map<UUID, UserWithRoleInOrgResponseDto> mapResult = new HashMap<>();
 
         Specification<OrganizationUserRoleEntity> spec = (root, query, criteriaBuilder) -> {
-            Join<?, ?> user = root.join("user");
+            Join<OrganizationUserRoleEntity, UserEntity> userJoin = root.join("user", JoinType.INNER);
+            query.distinct(true);
 
-            Predicate userSearch = userFilterDto.createSpec(user, criteriaBuilder);
+            Predicate userSearch = userFilterDto.createSpec(userJoin, criteriaBuilder);
             Predicate orgIdSearch = criteriaBuilder.equal(root.get("organization").get("id"), orgId);
             return criteriaBuilder.and(userSearch, orgIdSearch);
         };
@@ -194,15 +195,18 @@ public class OrganizationUserRoleService {
         Map<UUID, UserWithRoleInOrgResponseDto> mapResult = new HashMap<>();
 
         Specification<OrganizationUserRoleEntity> spec = (root, query, criteriaBuilder) -> {
-            Join<?, ?> user = root.join("user");
+            Join<OrganizationUserRoleEntity, UserEntity> userJoin = root.join("user", JoinType.INNER);
+            query.distinct(true);
 
-            Predicate userSearch = userFilterDto.createSpec(user, criteriaBuilder);
+            Predicate userSearch = userFilterDto.createSpec(userJoin, criteriaBuilder);
             Predicate orgIdSearch = criteriaBuilder.equal(root.get("organization").get("id"), orgId);
 
             Subquery<UUID> subquery = query.subquery(UUID.class);
             Root<OrganizationUserRoleEntity> our = subquery.from(OrganizationUserRoleEntity.class);
             subquery.select(our.get("id").get("userId"));
-            subquery.where(criteriaBuilder.equal(our.get("id").get("roleId"), roleId));
+            subquery.where(
+                criteriaBuilder.equal(our.get("organization").get("id"), orgId),
+                criteriaBuilder.equal(our.get("id").get("roleId"), roleId));
 
             Predicate userNotInSearch = criteriaBuilder.not(root.get("user").get("id").in(subquery));
 
