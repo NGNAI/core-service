@@ -1,6 +1,7 @@
 package ai.configuration;
 
 import org.springdoc.core.customizers.OperationCustomizer;
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +22,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 
 @Configuration
 public class SwaggerConfig {
+        
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
@@ -40,6 +42,34 @@ public class SwaggerConfig {
                 )
                 .addSecurityItem(new SecurityRequirement().addList("Bearer token"))
                 .info(new Info().title("Backend core API").version("1.0"));
+    }
+
+    // 1. Nhóm API dành cho User
+    @Bean
+    public GroupedOpenApi userApi() {
+        return GroupedOpenApi.builder()
+                .group("User")
+                .pathsToMatch("/user/**")
+                .build();
+    }
+
+    // 2. Nhóm API dành cho Admin
+    @Bean
+    public GroupedOpenApi adminApi() {
+        return GroupedOpenApi.builder()
+                .group("Admin")
+                .pathsToMatch("/admin/**")
+                .build();
+    }
+
+    // 3. Nhóm API chung (loại trừ user và admin)
+    @Bean
+    public GroupedOpenApi publicApi() {
+        return GroupedOpenApi.builder()
+                .group("General")          // Tên nhóm hiển thị trên Swagger
+                .pathsToMatch("/**")        // Khớp với mọi API trong hệ thống
+                .pathsToExclude("/user/**", "/admin/**") // LOẠI TRỪ 2 nhóm trên
+                .build();
     }
 
     @Bean
