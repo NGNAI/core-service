@@ -177,3 +177,11 @@ auto-ingestion:
   access-level: "GLOBAL"
   from-source: "SYSTEM"
   delete-local-after-success: true
+
+
+# Setup Springdoc OpenAPI and Swagger UI
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
