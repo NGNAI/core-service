@@ -65,7 +65,7 @@ public class DataReportService {
         dto.setTotalNotes(noteRepository.countByDateRange(orgIds, from, to));
 
         // Chi tiết ingestion (filtered by from-to)
-        dto.setIngestionDetail(buildIngestionDetail(orgIds, from, to));
+        dto.setIngestionDetail(buildIngestionDetail(orgIds, from, to, filter.getTopN()));
 
         // Thống kê nội dung (filtered by from-to)
         dto.setContentStats(buildContentStats(orgIds, from, to));
@@ -82,7 +82,7 @@ public class DataReportService {
             throw new AppException(ApiResponseStatus.ORG_ID_REQUIRED);
         }
         List<UUID> orgIds = resolveOrgIds(orgId, filter.isIncludeDescendants());
-        return buildIngestionDetail(orgIds, filter.getFrom(), filter.getTo());
+        return buildIngestionDetail(orgIds, filter.getFrom(), filter.getTo(), filter.getTopN());
     }
 
     /**
@@ -121,7 +121,7 @@ public class DataReportService {
         return orgRepository.findDescendantOrgIds(orgId, pathPrefix);
     }
 
-    private DataIngestionDetailDto buildIngestionDetail(List<UUID> orgIds, Instant from, Instant to) {
+    private DataIngestionDetailDto buildIngestionDetail(List<UUID> orgIds, Instant from, Instant to, int topN) {
         DataIngestionDetailDto dto = new DataIngestionDetailDto();
 
         // By status
@@ -147,7 +147,7 @@ public class DataReportService {
         dto.setByAccessLevel(byAccessLevel);
 
         // Top owners
-        dto.setTopOwners(buildTopOwners(orgIds, from, to, 10));
+        dto.setTopOwners(buildTopOwners(orgIds, from, to, topN));
 
         // Total file size
         dto.setTotalFileSize(dataIngestionRepository.sumFileSizeByOrgIdsAndDateRange(orgIds, from, to));
