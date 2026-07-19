@@ -1,7 +1,6 @@
 package ai.service;
 
 import ai.AppProperties;
-import ai.annotation.Audited;
 import ai.dto.outer.otp.request.OtpAuthRequestDto;
 import ai.dto.outer.otp.response.OtpAuthResponseDto;
 import ai.dto.own.request.audit.AuditLogRequest;
@@ -16,14 +15,15 @@ import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
 import ai.enums.AuditResource;
-import ai.enums.AuditStatus;
 import ai.enums.TokenType;
 import ai.exception.AppException;
 import ai.mapper.OrganizationMapper;
 import ai.mapper.RoleMapper;
 import ai.mapper.UserMapper;
 import ai.model.OtpApiResponseModel;
+import ai.repository.OrganizationRepository;
 import ai.repository.OrganizationUserRoleRepository;
+import ai.repository.RoleRepository;
 import ai.repository.UserRepository;
 import ai.service.api.OtpApiService;
 import ai.util.JwtUtil;
@@ -59,6 +59,8 @@ public class AuthService {
 
     UserRepository userRepository;
     OrganizationUserRoleRepository ourRepository;
+    OrganizationRepository organizationRepository;
+    RoleRepository roleRepository;
 
     PasswordEncoder passwordEncoder;
 
@@ -109,15 +111,32 @@ public class AuthService {
                 if (authResponse.isSuccess()) {
                     OtpAuthResponseDto authResponseDto = authResponse.getData();
 
-                    userEntity = userRepository.findByUserNameAndSource(authResponseDto.getUserId(), "ldap")
-                            .orElse(new UserEntity());
+                    Optional<UserEntity> existingLdapUser = userRepository.findByUserNameAndSource(authResponseDto.getUserId(), "ldap");
+                    boolean isNewUser = existingLdapUser.isEmpty();
+
+                    // Kiểm tra conflict username: nếu user mới và đã có user local cùng username → báo lỗi
+                    if (isNewUser && userRepository.existsByUserName(authResponseDto.getUserId())) {
+                        throw new AppException(ApiResponseStatus.USER_EXISTED);
+                    }
+
+                    userEntity = existingLdapUser.orElseGet(() -> {
+                        UserEntity newUser = new UserEntity();
+                        newUser.setSource("ldap");
+                        newUser.setPassword("");
+                        newUser.setActive(true);
+                        newUser.setGender(0);
+                        return newUser;
+                    });
 
                     userEntity.setUserName(authResponseDto.getUserId());
-                    userEntity.setEmail(authResponseDto.getEmail());
-                    userEntity.setFirstName(authResponseDto.getFullName());
-                    userEntity.setSource("ldap");
 
-                    //FIXME remove this after recreate database
+                    // Chỉ cập nhật thông tin từ OTP nếu updateOnLogin = true HOẶC user mới tạo
+                    boolean updateOnLogin = appProperties.getLdap() != null && appProperties.getLdap().isUpdateOnLogin();
+                    if (isNewUser || updateOnLogin) {
+                        userEntity.setEmail(authResponseDto.getEmail());
+                        userEntity.setFirstName(authResponseDto.getFullName());
+                    }
+                    userEntity.setSource("ldap");
                     userEntity.setPassword("");
                 } else {
                     throw new AppException(ApiResponseStatus.AUTHENTICATE_FAILED);
@@ -129,6 +148,14 @@ public class AuthService {
             userEntity.setLockedUntil(null);
             userEntity.setLastLogin(Instant.now());
             userEntity = userRepository.save(userEntity);
+
+            // Auto-assign org mặc định cho user LDAP nếu chưa có org nào
+            if (authRequestDto.getSource().equals("ldap")) {
+                boolean hasNoOrg = ourRepository.findByUserWithPermission(userEntity.getId()).isEmpty();
+                if (hasNoOrg) {
+                    assignDefaultOrg(userEntity);
+                }
+            }
 
             UserWithOrgResponseDto userResponse = userMapper.entityToWithOrgResponseDto(userEntity);
 
@@ -281,5 +308,58 @@ public class AuthService {
 //        }
 
         return stringJoiner.toString();
+    }
+
+    /**
+     * Gán user LDAP vào organization mặc định + role mặc định (từ config LDAP).
+     * Nếu không có config → skip (admin tự phân bổ sau).
+     * Nếu user đã có org rồi → không gán lại.
+     */
+    private void assignDefaultOrg(UserEntity userEntity) {
+        AppProperties.Ldap ldapConfig = appProperties.getLdap();
+        if (ldapConfig == null) return;
+
+        String defaultOrgId = ldapConfig.getDefaultOrgId();
+        if (defaultOrgId == null || defaultOrgId.isBlank()) {
+            log.info("Không có ldap.default-org-id config → skip auto-assign cho user {}", userEntity.getUserName());
+            return;
+        }
+
+        UUID orgId;
+        try {
+            orgId = UUID.fromString(defaultOrgId);
+        } catch (IllegalArgumentException e) {
+            log.warn("ldap.default-org-id '{}' không phải UUID hợp lệ → skip", defaultOrgId);
+            return;
+        }
+
+        OrganizationEntity orgEntity = organizationRepository.findById(orgId).orElse(null);
+        if (orgEntity == null) {
+            log.warn("ldap.default-org-id '{}' không tồn tại trong DB → skip auto-assign", defaultOrgId);
+            return;
+        }
+
+        // Tìm role mặc định: dùng defaultRoleId từ config, hoặc fallback findByDefaultAssign()
+        RoleEntity roleEntity = null;
+        String defaultRoleId = ldapConfig.getDefaultRoleId();
+        if (defaultRoleId != null && !defaultRoleId.isBlank()) {
+            try {
+                UUID roleId = UUID.fromString(defaultRoleId);
+                roleEntity = roleRepository.findById(roleId).orElse(null);
+            } catch (IllegalArgumentException e) {
+                log.warn("ldap.default-role-id '{}' không phải UUID hợp lệ", defaultRoleId);
+            }
+        }
+        if (roleEntity == null) {
+            roleEntity = roleRepository.findByDefaultAssign().orElse(null);
+        }
+        if (roleEntity == null) {
+            log.warn("Không tìm thấy role mặc định (defaultRoleId trống + không có role defaultAssign) → skip auto-assign cho user {}", userEntity.getUserName());
+            return;
+        }
+
+        OrganizationUserRoleEntity our = new OrganizationUserRoleEntity(orgEntity, userEntity, roleEntity);
+        ourRepository.save(our);
+        log.info("Đã gán user LDAP '{}' vào org '{}' với role '{}'", userEntity.getUserName(), orgEntity.getName(), roleEntity.getName());
     }
 }
