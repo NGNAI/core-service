@@ -19,6 +19,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import ai.AppProperties;
 import ai.enums.TokenType;
+import ai.service.SystemSettingService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +33,9 @@ import lombok.experimental.FieldDefaults;
 @Configuration
 public class SecurityConfig {
     CustomJwtDecoder customJWTDecoder;
-        AppProperties appProperties;
+    AppProperties appProperties;
+    SystemSettingService systemSettingService;
+    ObjectMapper objectMapper;
 
     @Bean
     @Order(1)
@@ -134,6 +138,7 @@ public class SecurityConfig {
                 )
                 .addFilterBefore(new DataIngestionApiKeyFilter(appProperties), BearerTokenAuthenticationFilter.class)
                 .addFilterBefore(new AttachmentApiKeyFilter(appProperties), BearerTokenAuthenticationFilter.class)
+                .addFilterBefore(new MaintenanceModeFilter(systemSettingService, objectMapper), BearerTokenAuthenticationFilter.class)
                 .addFilterAfter(new TokenTypeFilter(TokenType.ACCESS), BearerTokenAuthenticationFilter.class)
                 .cors(cors -> {})
                 .csrf(AbstractHttpConfigurer::disable);

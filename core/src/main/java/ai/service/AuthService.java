@@ -55,6 +55,7 @@ public class AuthService {
     OrganizationService organizationService;
     RoleService roleService;
     AuditLogService auditLogService;
+    SystemSettingService systemSettingService;
 
     UserRepository userRepository;
     OrganizationUserRoleRepository ourRepository;
@@ -84,8 +85,24 @@ public class AuthService {
                 userEntity = userRepository.findByUserNameAndSource(authRequestDto.getUsername(), "local")
                         .orElseThrow(() -> new AppException(ApiResponseStatus.AUTHENTICATE_FAILED));
 
-                if (!passwordEncoder.matches(authRequestDto.getPassword(), userEntity.getPassword()))
+                // Kiểm tra tài khoản có bị khoá do đăng nhập sai quá nhiều lần không
+                if (userEntity.getLockedUntil() != null && userEntity.getLockedUntil().isAfter(Instant.now())) {
+                    log.warn("Tài khoản {} đang bị khoá đến {}", authRequestDto.getUsername(), userEntity.getLockedUntil());
+                    throw new AppException(ApiResponseStatus.USER_ACCOUNT_LOCKED);
+                }
+
+                if (!passwordEncoder.matches(authRequestDto.getPassword(), userEntity.getPassword())) {
+                    // Đăng nhập sai: tăng bộ đếm loginAttempts, khoá tài khoản nếu vượt giới hạn
+                    int maxAttempts = systemSettingService.getInt("security.maxLoginAttempts", 5);
+                    int attempts = userEntity.getLoginAttempts() + 1;
+                    userEntity.setLoginAttempts(attempts);
+                    if (attempts >= maxAttempts) {
+                        // Khoá tài khoản 30 phút
+                        userEntity.setLockedUntil(Instant.now().plus(30, ChronoUnit.MINUTES));
+                    }
+                    userRepository.save(userEntity);
                     throw new AppException(ApiResponseStatus.AUTHENTICATE_FAILED);
+                }
             } else {
                 OtpAuthRequestDto otpAuthRequestDto = new OtpAuthRequestDto(authRequestDto.getUsername(), authRequestDto.getPassword(), "ngn");
                 OtpApiResponseModel<OtpAuthResponseDto> authResponse = otpApiService.auth(otpAuthRequestDto);
@@ -107,6 +124,9 @@ public class AuthService {
                 }
             }
 
+            // Đăng nhập thành công: reset bộ đếm loginAttempts và xoá lockedUntil
+            userEntity.setLoginAttempts(0);
+            userEntity.setLockedUntil(null);
             userEntity.setLastLogin(Instant.now());
             userEntity = userRepository.save(userEntity);
 
@@ -218,11 +238,16 @@ public class AuthService {
 
     private String generateToken(UserEntity userEntity, TokenType type, UUID orgId) throws JOSEException {
         JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
+        // Đọc session timeout từ system settings (đơn vị: phút), fallback về appProperties nếu không có
+        long sessionTimeoutMinutes = systemSettingService.getLong("security.sessionTimeout", 0);
+        long expiryDurationSeconds = sessionTimeoutMinutes > 0
+                ? sessionTimeoutMinutes * 60
+                : appProperties.getJwt().getExpiryDuration();
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
                 .subject(userEntity.getUserName())
                 .issuer("NGN")
                 .issueTime(new Date())
-                .expirationTime(new Date(Instant.now().plus(appProperties.getJwt().getExpiryDuration(), ChronoUnit.SECONDS).toEpochMilli()))
+                .expirationTime(new Date(Instant.now().plus(expiryDurationSeconds, ChronoUnit.SECONDS).toEpochMilli()))
                 .jwtID(UUID.randomUUID().toString())
                 .claim("type",type)
                 .claim("scope",buildJwtScope(userEntity, orgId))

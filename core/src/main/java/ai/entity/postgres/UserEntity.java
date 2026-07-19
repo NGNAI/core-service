@@ -61,6 +61,13 @@ public class UserEntity {
     @Column(name = "source", nullable = false)
     String source;
 
+    @Builder.Default
+    @Column(name = "login_attempts", nullable = false)
+    int loginAttempts = 0;
+
+    @Column(name = "locked_until")
+    Instant lockedUntil;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     Set<OrganizationUserRoleEntity> orgUsersRole;
 

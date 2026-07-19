@@ -64,6 +64,7 @@ public class RagService {
     DraftService draftService;
     MessageService messageService;
     SystemEventSseService systemEventSseService;
+    SystemSettingService systemSettingService;
 
     ObjectMapper objectMapper;
 
@@ -151,10 +152,10 @@ public class RagService {
                 : Collections.emptySet());
         metadata.setSummaries(buildSummaryMetadata(topicEntity));
 
-        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
+        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
             .messages(historyConversations)
             .metadata(metadata)
-            .stream(true)
+            .stream(true))
             .build();
 
         StringBuilder fullAnswer = new StringBuilder();
@@ -265,10 +266,10 @@ public class RagService {
         metadata.setSummaries(buildSummaryMetadata(noteBookEntity));
         metadata.setUserInstruction(noteBookEntity.getInstruction());
 
-        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
+        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
             .messages(historyConversations)
             .metadata(metadata)
-            .stream(true)
+            .stream(true))
             .build();
 
         StringBuilder fullAnswer = new StringBuilder();
@@ -642,9 +643,9 @@ public class RagService {
                 + "### Note Content: " + input + ""
                 + "### Generated Title: ";
 
-        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
+        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
             .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
-            .stream(false)
+            .stream(false))
             .build();
 
         return ragApiService.general(ragCompletionRequestDto);
@@ -668,9 +669,9 @@ public class RagService {
                 + "### User Input: " + input + ""
                 + "### Generated Title: ";
 
-        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
+        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
             .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
-            .stream(false)
+            .stream(false))
             .build();
 
         return ragApiService.general(ragCompletionRequestDto);
@@ -691,9 +692,9 @@ public class RagService {
 
         prompt.append("\nUpdated summary:");
 
-        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
+        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
             .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt.toString())))
-            .stream(false)
+            .stream(false))
             .build();
 
         return ragApiService.general(ragCompletionRequestDto);
@@ -714,9 +715,9 @@ public class RagService {
 
         prompt.append("\nUpdated summary:");
 
-        RagCompletionRequestDto ragCompletionRequestDto = RagCompletionRequestDto.builder()
+        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
                 .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt.toString())))
-                .stream(false)
+                .stream(false))
                 .build();
 
         return ragApiService.general(ragCompletionRequestDto);
@@ -789,6 +790,34 @@ public class RagService {
             return defaultValue;
         }
         return configured;
+    }
+
+    /**
+     * Áp dụng cấu hình AI từ system settings vào {@link RagCompletionRequestDto.RagCompletionRequestDtoBuilder}.
+     * Đọc các settings:
+     * <ul>
+     *   <li>{@code ai.model} — model AI mặc định (ví dụ: gpt-4)</li>
+     *   <li>{@code ai.temperature} — nhiệt độ sinh (0.0 - 2.0)</li>
+     *   <li>{@code ai.maxTokens} — số token tối đa mỗi request</li>
+     * </ul>
+     * @param builder builder của RagCompletionRequestDto
+     * @return builder đã được apply AI settings
+     */
+    private RagCompletionRequestDto.RagCompletionRequestDtoBuilder applyAiSettings(
+            RagCompletionRequestDto.RagCompletionRequestDtoBuilder builder) {
+        String model = systemSettingService.getString("ai.model", "");
+        if (!isBlank(model)) {
+            builder.model(model);
+        }
+        double temperature = systemSettingService.getDouble("ai.temperature", -1);
+        if (temperature >= 0) {
+            builder.temperature(temperature);
+        }
+        int maxTokens = systemSettingService.getInt("ai.maxTokens", -1);
+        if (maxTokens > 0) {
+            builder.maxTokens(maxTokens);
+        }
+        return builder;
     }
 
     private boolean isBlank(String value) {
