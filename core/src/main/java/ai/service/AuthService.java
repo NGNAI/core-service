@@ -99,8 +99,9 @@ public class AuthService {
                     int attempts = userEntity.getLoginAttempts() + 1;
                     userEntity.setLoginAttempts(attempts);
                     if (attempts >= maxAttempts) {
-                        // Khoá tài khoản 30 phút
-                        userEntity.setLockedUntil(Instant.now().plus(30, ChronoUnit.MINUTES));
+                        // Khoá tài khoản theo cấu hình security.accountLockDuration (phút), fallback 30 phút
+                        int lockMinutes = systemSettingService.getInt("security.accountLockDuration", 30);
+                        userEntity.setLockedUntil(Instant.now().plus(lockMinutes, ChronoUnit.MINUTES));
                     }
                     userRepository.save(userEntity);
                     throw new AppException(ApiResponseStatus.AUTHENTICATE_FAILED);
