@@ -229,14 +229,24 @@ public enum ApiResponseStatus {
     SETTING_GROUP_CAN_NOT_BE_NULL_OR_EMPTY(1155, "Setting group cannot be null or empty", HttpStatus.BAD_REQUEST),
 
     // ========================================================================
-    // OTHER - 1156..1161
+    // SECURITY POLICY - 1162..1167
     // ========================================================================
-    RAG_SCOPE_CAN_NOT_BE_NULL_OR_EMPTY(1156, "Scope cannot be null or empty", HttpStatus.BAD_REQUEST),
-    INVALID_RAG_SCOPE_VALUE(1157, "Invalid scope value", HttpStatus.BAD_REQUEST),
-    UNAVAILABLE_FOR_LEGAL_REASONS(1158, "Unavailable for legal reasons", HttpStatus.UNAVAILABLE_FOR_LEGAL_REASONS),
-    REQUEST_METHOD_NOT_ALLOWED(1159, "Request method not allowed", HttpStatus.METHOD_NOT_ALLOWED),
-    INVALID_REQUEST_INFORMATION(1160, "Invalid request information", HttpStatus.BAD_REQUEST),
-    CHANGE_REQUEST_MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1161, "Change request message cannot be null or empty", HttpStatus.BAD_REQUEST),
+    USER_ACCOUNT_LOCKED(1162, "Tài khoản đã bị khoá do đăng nhập sai quá nhiều lần", HttpStatus.FORBIDDEN),
+    PASSWORD_TOO_SHORT(1163, "Mật khẩu quá ngắn, không đạt độ dài tối thiểu", HttpStatus.BAD_REQUEST),
+    FILE_SIZE_EXCEEDED(1164, "Kích thước file vượt quá giới hạn cho phép", HttpStatus.BAD_REQUEST),
+    FILE_TYPE_NOT_ALLOWED(1165, "Loại file không được phép tải lên", HttpStatus.BAD_REQUEST),
+    SYSTEM_MAINTENANCE(1166, "Hệ thống đang trong chế độ bảo trì", HttpStatus.SERVICE_UNAVAILABLE),
+    TWO_FACTOR_REQUIRED(1167, "Yêu cầu xác thực hai yếu tố", HttpStatus.BAD_REQUEST),
+
+    // ========================================================================
+    // OTHER - 1168..1173
+    // ========================================================================
+    RAG_SCOPE_CAN_NOT_BE_NULL_OR_EMPTY(1168, "Scope cannot be null or empty", HttpStatus.BAD_REQUEST),
+    INVALID_RAG_SCOPE_VALUE(1169, "Invalid scope value", HttpStatus.BAD_REQUEST),
+    UNAVAILABLE_FOR_LEGAL_REASONS(1170, "Unavailable for legal reasons", HttpStatus.UNAVAILABLE_FOR_LEGAL_REASONS),
+    REQUEST_METHOD_NOT_ALLOWED(1171, "Request method not allowed", HttpStatus.METHOD_NOT_ALLOWED),
+    INVALID_REQUEST_INFORMATION(1172, "Invalid request information", HttpStatus.BAD_REQUEST),
+    CHANGE_REQUEST_MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1173, "Change request message cannot be null or empty", HttpStatus.BAD_REQUEST),
 
     // ========================================================================
     // UNEXPECTED - 9999

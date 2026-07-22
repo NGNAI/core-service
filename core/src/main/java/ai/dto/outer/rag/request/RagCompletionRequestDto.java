@@ -20,6 +20,15 @@ public class RagCompletionRequestDto {
     Metadata metadata;
     boolean stream;
 
+    @JsonProperty("model")
+    String model;
+
+    @JsonProperty("temperature")
+    Double temperature;
+
+    @JsonProperty("max_tokens")
+    Integer maxTokens;
+
     @Data
     @NoArgsConstructor
     @FieldDefaults(level = AccessLevel.PRIVATE)

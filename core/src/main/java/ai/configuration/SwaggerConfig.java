@@ -1,6 +1,6 @@
 package ai.configuration;
 
-import org.springdoc.core.customizers.OperationCustomizer;
+import org.springdoc.core.customizers.GlobalOperationCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,10 +25,12 @@ public class SwaggerConfig {
         
     @Bean
     public OpenAPI openAPI() {
+        // Đổi từ "Bearer token" thành "bearerAuth" (viết liền, không dấu cách)
+        final String securitySchemeName = "bearerAuth";
         return new OpenAPI()
                 .components(new Components()
                         .addSecuritySchemes(
-                                "Bearer token",
+                                securitySchemeName,
                                 new SecurityScheme()
                                         .type(SecurityScheme.Type.HTTP)
                                         .in(SecurityScheme.In.HEADER)
@@ -40,7 +42,7 @@ public class SwaggerConfig {
                         .addSchemas("UnauthorizedResponseDto", ModelConverters.getInstance().read(UnauthorizedResponseDto.class).get("UnauthorizedResponseDto"))
                         .addSchemas("ForbiddenResponseDto", ModelConverters.getInstance().read(ForbiddenResponseDto.class).get("ForbiddenResponseDto"))
                 )
-                .addSecurityItem(new SecurityRequirement().addList("Bearer token"))
+                .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .info(new Info().title("Backend core API").version("1.0"));
     }
 
@@ -73,7 +75,7 @@ public class SwaggerConfig {
     }
 
     @Bean
-    public OperationCustomizer globalResponsesCustomizer() {
+    public GlobalOperationCustomizer globalResponsesCustomizer() {
         return (operation, handlerMethod) -> {
             ApiResponses responses = operation.getResponses();
             if (responses == null) {
@@ -119,7 +121,7 @@ public class SwaggerConfig {
     }
 
     @Bean
-    public OperationCustomizer customizePermissions() {
+    public GlobalOperationCustomizer customizePermissions() {
         return (operation, handlerMethod) -> {
             // Tìm xem method có gắn @PreAuthorize không
             PreAuthorize preAuthorize = handlerMethod.getMethodAnnotation(PreAuthorize.class);

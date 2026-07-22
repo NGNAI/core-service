@@ -180,3 +180,10 @@ auto-ingestion:
   access-level: "GLOBAL"
   from-source: "SYSTEM"
   delete-local-after-success: true
+
+# Cấu hình bảo mật bổ sung (không thuộc RBAC)
+security:
+  # Danh sách username được phép truy cập System Setting & System Health admin APIs
+  # (bỏ qua Role/Permission). Để trống/null → fallback về ["root"].
+  admin-allowed-usernames:
+    - "root"

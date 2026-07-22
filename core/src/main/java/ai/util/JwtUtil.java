@@ -28,4 +28,15 @@ public class JwtUtil {
         Jwt jwt = getJwt();
         return jwt != null ? UUID.fromString(jwt.getClaimAsString("org_id")) : null;
     }
+
+    /**
+     * Lấy username của user hiện tại từ JWT subject claim.
+     * JWT subject (sub) được set bằng {@code UserEntity.getUserName()} khi tạo token.
+     *
+     * @return username, hoặc {@code null} nếu không có JWT hợp lệ.
+     */
+    public String getUserName() {
+        Jwt jwt = getJwt();
+        return jwt != null ? jwt.getSubject() : null;
+    }
 }

@@ -64,6 +64,7 @@ public class DataIngestionService {
     UserService userService;
     OrganizationService organizationService;
     SystemEventSseService systemEventSseService;
+    SystemSettingService systemSettingService;
     AppProperties appProperties;
 
     /**
@@ -127,6 +128,9 @@ public class DataIngestionService {
     public DataIngestionResponseDto uploadDataIngestion(DataIngestionUploadRequestDto requestDto, UUID userId, UUID organizationId, DataSource fromSource) {
         UserEntity user = userService.getEntityById(userId);
         OrganizationEntity organization = organizationService.getEntityById(organizationId);
+
+        // Kiểm tra kích thước và loại file trước khi upload lên MinIO
+        validateUploadFile(requestDto.getFile());
 
         // Push lên MinIO trước để tránh trường hợp đã lưu data ingestion vào database nhưng
         // upload file lên MinIO thất bại, dẫn đến dữ liệu bị lỗi không thể retry
@@ -892,6 +896,62 @@ public class DataIngestionService {
         }
 
         return appProperties.getIntegration().getDataIngestionCallback().getUrl().trim();
+    }
+
+    /**
+     * Kiểm tra kích thước và loại file hợp lệ trước khi upload lên MinIO.
+     * Đọc cấu hình từ system settings:
+     * <ul>
+     *   <li>{@code system.maxFileSize} — kích thước tối đa (MB), mặc định 100</li>
+     *   <li>{@code system.allowedFileTypes} — danh sách extension cho phép (phân tách bởi dấu phẩy), rỗng = cho phép tất cả</li>
+     * </ul>
+     * @param file file cần kiểm tra
+     * @throws AppException nếu kích thước vượt giới hạn hoặc loại file không được phép
+     */
+    private void validateUploadFile(org.springframework.web.multipart.MultipartFile file) {
+        if (file == null || file.isEmpty()) return;
+
+        // Kiểm tra kích thước file
+        int maxFileSizeMb = systemSettingService.getInt("system.maxFileSize", 100);
+        long maxFileSizeBytes = (long) maxFileSizeMb * 1024 * 1024;
+        if (file.getSize() > maxFileSizeBytes) {
+            throw new AppException(ApiResponseStatus.FILE_SIZE_EXCEEDED);
+        }
+
+        // Kiểm tra loại file
+        String allowedTypes = systemSettingService.getString("system.allowedFileTypes", "");
+        if (allowedTypes != null && !allowedTypes.isBlank()) {
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || originalFilename.isBlank()) {
+                throw new AppException(ApiResponseStatus.FILE_TYPE_NOT_ALLOWED);
+            }
+            String extension = extractExtension(originalFilename);
+            if (extension == null || extension.isBlank()) {
+                throw new AppException(ApiResponseStatus.FILE_TYPE_NOT_ALLOWED);
+            }
+            String[] allowedExtensions = allowedTypes.toLowerCase().split("\\s*,\\s*");
+            boolean allowed = false;
+            for (String ext : allowedExtensions) {
+                if (ext.equals(extension.toLowerCase())) {
+                    allowed = true;
+                    break;
+                }
+            }
+            if (!allowed) {
+                throw new AppException(ApiResponseStatus.FILE_TYPE_NOT_ALLOWED);
+            }
+        }
+    }
+
+    /**
+     * Lấy extension (phần mở rộng) từ tên file, không bao gồm dấu chấm.
+     * @param filename tên file gốc
+     * @return extension hoặc null nếu không có
+     */
+    private String extractExtension(String filename) {
+        int lastDot = filename.lastIndexOf('.');
+        if (lastDot < 0 || lastDot == filename.length() - 1) return null;
+        return filename.substring(lastDot + 1);
     }
 
     private DataIngestionEntity getDataIngestionEntity(UUID dataIngestionId) {
