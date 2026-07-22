@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import ai.dto.own.response.SystemHealthResponseDto;
 import ai.model.ApiResponseModel;
+import ai.security.AdminAccessGuard;
 import ai.service.SystemHealthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -30,6 +31,21 @@ import lombok.experimental.FieldDefaults;
 public class SystemHealthAdminController {
 
     SystemHealthService systemHealthService;
+    AdminAccessGuard adminAccessGuard;
+
+    @Operation(
+        summary = "Kiểm tra quyền truy cập",
+        description = "Kiểm tra token hiện tại có quyền truy cập System Health admin APIs (dựa trên danh sách username được phép cấu hình trong hệ thống)"
+    )
+    @GetMapping("/access")
+    public ResponseEntity<ApiResponseModel<Boolean>> checkAccess() {
+        return ResponseEntity.ok(
+                ApiResponseModel.<Boolean>builder()
+                        .message("Check access successfully")
+                        .data(adminAccessGuard.isAllowed())
+                        .build()
+        );
+    }
 
     @Operation(
         summary = "Kiểm tra trạng thái hệ thống",
@@ -38,7 +54,7 @@ public class SystemHealthAdminController {
     @ApiResponse(responseCode = "200", description = "Kiểm tra thành công",
                  content = @Content(schema = @Schema(implementation = SystemHealthResponseDto.class)))
     @GetMapping
-    @PreAuthorize("@perm.canAccess(null, 'SYSTEM_HEALTH', 'READ', null)")
+    @PreAuthorize("@adminAccessGuard.isAllowed()")
     public ResponseEntity<ApiResponseModel<SystemHealthResponseDto>> getHealth() {
         SystemHealthResponseDto health = systemHealthService.checkAll();
         return ResponseEntity.ok(

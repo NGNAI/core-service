@@ -1,5 +1,7 @@
 package ai;
 
+import java.util.List;
+
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -22,6 +24,7 @@ public class AppProperties {
     Integration integration;
     AutoIngestion autoIngestion;
     Ldap ldap;
+    Security security;
 
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -165,5 +168,19 @@ public class AppProperties {
          * Mặc định: 2h sáng mỗi ngày.
          */
         String cron;
+    }
+
+    /**
+     * Cấu hình bảo mật bổ sung (không thuộc hệ thống RBAC).
+     */
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Security {
+        /**
+         * Danh sách username được phép truy cập các resource admin nhạy cảm
+         * (SYSTEM_SETTING, SYSTEM_HEALTH) mà không phụ thuộc Role/Permission.
+         * Để trống/null → fallback về ["root"].
+         */
+        List<String> adminAllowedUsernames;
     }
 }

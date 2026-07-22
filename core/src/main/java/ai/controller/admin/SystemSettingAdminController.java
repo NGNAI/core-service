@@ -19,6 +19,7 @@ import ai.dto.own.request.SystemSettingUpdateRequestDto;
 import ai.dto.own.response.SystemSettingGroupResponseDto;
 import ai.dto.own.response.SystemSettingResponseDto;
 import ai.model.ApiResponseModel;
+import ai.security.AdminAccessGuard;
 import ai.service.SystemSettingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -38,10 +39,22 @@ import lombok.experimental.FieldDefaults;
 public class SystemSettingAdminController {
 
     SystemSettingService systemSettingService;
+    AdminAccessGuard adminAccessGuard;
+
+    @Operation(summary = "Check access", description = "Kiểm tra token hiện tại có quyền truy cập System Setting admin APIs (dựa trên danh sách username được phép cấu hình trong hệ thống)")
+    @GetMapping("/access")
+    ResponseEntity<ApiResponseModel<Boolean>> checkAccess() {
+        return ResponseEntity.ok(
+                ApiResponseModel.<Boolean>builder()
+                        .message("Check access successfully")
+                        .data(adminAccessGuard.isAllowed())
+                        .build()
+        );
+    }
 
     @Operation(summary = "Get all settings grouped", description = "Retrieve all system settings grouped by their group name")
     @GetMapping
-    @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'READ',null)")
+    @PreAuthorize("@adminAccessGuard.isAllowed()")
     ResponseEntity<ApiResponseModel<List<SystemSettingGroupResponseDto>>> getAllGrouped() {
         List<SystemSettingGroupResponseDto> grouped = systemSettingService.getAllGrouped();
         return ResponseEntity.ok(
@@ -56,7 +69,7 @@ public class SystemSettingAdminController {
     @GetMapping("/{key}")
     @ApiResponse(responseCode = "200", description = "Get setting successfully",
                  content = @Content(schema = @Schema(implementation = SystemSettingResponseDto.class)))
-    @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'READ',null)")
+    @PreAuthorize("@adminAccessGuard.isAllowed()")
     ResponseEntity<ApiResponseModel<SystemSettingResponseDto>> getByKey(@PathVariable String key) {
         return ResponseEntity.ok(
                 ApiResponseModel.<SystemSettingResponseDto>builder()
@@ -70,7 +83,7 @@ public class SystemSettingAdminController {
     @GetMapping("/groups/{groupName}")
     @ApiResponse(responseCode = "200", description = "Get settings by group successfully",
                  content = @Content(schema = @Schema(implementation = SystemSettingResponseDto.class)))
-    @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'READ',null)")
+    @PreAuthorize("@adminAccessGuard.isAllowed()")
     ResponseEntity<ApiResponseModel<List<SystemSettingResponseDto>>> getByGroup(@PathVariable String groupName) {
         return ResponseEntity.ok(
                 ApiResponseModel.<List<SystemSettingResponseDto>>builder()
@@ -84,7 +97,7 @@ public class SystemSettingAdminController {
     @PostMapping
     @ApiResponse(responseCode = "200", description = "Create setting successfully",
                  content = @Content(schema = @Schema(implementation = SystemSettingResponseDto.class)))
-    @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'CREATE',null)")
+    @PreAuthorize("@adminAccessGuard.isAllowed()")
     ResponseEntity<ApiResponseModel<SystemSettingResponseDto>> create(
             @Valid @RequestBody SystemSettingCreateRequestDto requestDto) {
         return ResponseEntity.ok(
@@ -99,7 +112,7 @@ public class SystemSettingAdminController {
     @PutMapping("/{key}")
     @ApiResponse(responseCode = "200", description = "Update setting successfully",
                  content = @Content(schema = @Schema(implementation = SystemSettingResponseDto.class)))
-    @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'UPDATE',null)")
+    @PreAuthorize("@adminAccessGuard.isAllowed()")
     ResponseEntity<ApiResponseModel<SystemSettingResponseDto>> update(
             @PathVariable String key,
             @Valid @RequestBody SystemSettingUpdateRequestDto requestDto) {
@@ -115,7 +128,7 @@ public class SystemSettingAdminController {
     @PutMapping("/bulk")
     @ApiResponse(responseCode = "200", description = "Bulk update settings successfully",
                  content = @Content(schema = @Schema(implementation = SystemSettingResponseDto.class)))
-    @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'UPDATE',null)")
+    @PreAuthorize("@adminAccessGuard.isAllowed()")
     ResponseEntity<ApiResponseModel<List<SystemSettingResponseDto>>> bulkUpdate(
             @Valid @RequestBody List<SystemSettingUpdateRequestDto> requestDtos) {
         return ResponseEntity.ok(
@@ -130,7 +143,7 @@ public class SystemSettingAdminController {
     @DeleteMapping("/{key}")
     @ApiResponse(responseCode = "200", description = "Delete setting successfully",
                  content = @Content(schema = @Schema(implementation = Void.class)))
-    @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'DELETE',null)")
+    @PreAuthorize("@adminAccessGuard.isAllowed()")
     ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable String key) {
         systemSettingService.delete(key);
         return ResponseEntity.ok(
@@ -144,7 +157,7 @@ public class SystemSettingAdminController {
     @DeleteMapping("/id/{id}")
     @ApiResponse(responseCode = "200", description = "Delete setting successfully",
                  content = @Content(schema = @Schema(implementation = Void.class)))
-    @PreAuthorize("@perm.canAccess(null, 'SYSTEM_SETTING', 'DELETE',null)")
+    @PreAuthorize("@adminAccessGuard.isAllowed()")
     ResponseEntity<ApiResponseModel<Void>> deleteById(@PathVariable UUID id) {
         systemSettingService.deleteById(id);
         return ResponseEntity.ok(
