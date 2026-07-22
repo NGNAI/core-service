@@ -23,7 +23,7 @@ public class OtpApiService {
     OtpApiCore apiCore;
 
     public OtpApiResponseModel<OtpAuthResponseDto> auth(OtpAuthRequestDto requestDto) throws JsonProcessingException {
-        return apiCore.post("/register/auth", requestDto, new ParameterizedTypeReference<>(){});
+        return apiCore.post("/user/authLdap", requestDto, new ParameterizedTypeReference<>(){});
     }
 
     /**
@@ -33,7 +33,7 @@ public class OtpApiService {
     public OtpApiResponseModel<List<OtpUserResponseDto>> searchUsers(String keyword) {
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("search", keyword);
-        return apiCore.get("/register/users", params, new ParameterizedTypeReference<>(){});
+        return apiCore.get("/user/searchInLdap", params, new ParameterizedTypeReference<>(){});
     }
 
     /**
@@ -52,6 +52,6 @@ public class OtpApiService {
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("page", String.valueOf(page));
         params.add("size", String.valueOf(size));
-        return apiCore.get("/register/users", params, new ParameterizedTypeReference<>(){});
+        return apiCore.get("/user/searchInLdap", params, new ParameterizedTypeReference<>(){});
     }
 }
