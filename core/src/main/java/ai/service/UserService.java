@@ -33,6 +33,7 @@ public class UserService {
     UserRepository userRepository;
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
+    SystemSettingService systemSettingService;
 
     public UserResponseDto getById(UUID id){
         return userMapper.entityToResponseDto(getEntityById(id));
@@ -59,6 +60,7 @@ public class UserService {
     public UserResponseDto create(UserCreateRequestDto createRequestDto){
         if(userRepository.existsByUserName(createRequestDto.getUserName()))
             throw new AppException(ApiResponseStatus.USER_EXISTED);
+        validatePasswordLength(createRequestDto.getPassword());
         UserEntity newEntity = userMapper.createRequestDtoToEntity(createRequestDto);
 
         newEntity.setPassword(passwordEncoder.encode(createRequestDto.getPassword()));
@@ -86,8 +88,23 @@ public class UserService {
 
     @Audited(action = AuditAction.UPDATE, resource = AuditResource.USER, resourceIdExpression = "#arg0", description = "Reset password: {0}")
     public UserResponseDto resetPassword(UUID userId, String newPassword){
+        validatePasswordLength(newPassword);
         UserEntity entity = getEntityById(userId);
         entity.setPassword(passwordEncoder.encode(newPassword));
         return userMapper.entityToResponseDto(userRepository.save(entity));
+    }
+
+    /**
+     * Kiểm tra độ dài mật khẩu có đạt yêu cầu tối thiểu hay không.
+     * Đọc giá trị từ system setting {@code security.passwordMinLength}, mặc định 8.
+     * @param password mật khẩu cần kiểm tra
+     * @throws AppException nếu mật khẩu quá ngắn
+     */
+    private void validatePasswordLength(String password) {
+        if (password == null || password.isBlank()) return;
+        int minLength = systemSettingService.getInt("security.passwordMinLength", 8);
+        if (password.length() < minLength) {
+            throw new AppException(ApiResponseStatus.PASSWORD_TOO_SHORT);
+        }
     }
 }

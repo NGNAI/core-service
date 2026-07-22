@@ -6,10 +6,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import ai.annotation.Audited;
+import ai.constant.CacheName;
 import ai.dto.own.request.SystemSettingCreateRequestDto;
 import ai.dto.own.request.SystemSettingUpdateRequestDto;
 import ai.dto.own.response.SystemSettingGroupResponseDto;
@@ -81,7 +84,92 @@ public class SystemSettingService {
                 .collect(Collectors.toMap(SystemSettingEntity::getKey, SystemSettingEntity::getValue));
     }
 
+    // ========================================================================
+    // Helper methods: đọc giá trị setting theo kiểu dữ liệu (typed)
+    // ========================================================================
+
+    /**
+     * Lấy giá trị setting dạng String. Trả về defaultValue nếu setting không tồn tại hoặc không active.
+     * Kết quả được cache theo key để giảm tải DB.
+     * @param key khóa setting
+     * @param defaultValue giá trị mặc định nếu không tìm thấy
+     * @return giá trị setting hoặc defaultValue
+     */
+    @Cacheable(value = CacheName.SYSTEM_SETTINGS, key = "#key", unless = "#result == null")
+    public String getString(String key, String defaultValue) {
+        return settingRepository.findByKey(key)
+                .filter(entity -> entity.getIsActive() != null && entity.getIsActive())
+                .map(SystemSettingEntity::getValue)
+                .filter(v -> v != null && !v.isBlank())
+                .orElse(defaultValue);
+    }
+
+    /**
+     * Lấy giá trị setting dạng int. Trả về defaultValue nếu setting không tồn tại, không active, hoặc không parse được.
+     * @param key khóa setting
+     * @param defaultValue giá trị mặc định nếu không tìm thấy hoặc không hợp lệ
+     * @return giá trị setting hoặc defaultValue
+     */
+    public int getInt(String key, int defaultValue) {
+        try {
+            String value = getString(key, null);
+            if (value == null) return defaultValue;
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            log.warn("Setting '{}' không phải số nguyên hợp lệ, sử dụng mặc định: {}", key, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Lấy giá trị setting dạng long. Trả về defaultValue nếu setting không tồn tại, không active, hoặc không parse được.
+     * @param key khóa setting
+     * @param defaultValue giá trị mặc định nếu không tìm thấy hoặc không hợp lệ
+     * @return giá trị setting hoặc defaultValue
+     */
+    public long getLong(String key, long defaultValue) {
+        try {
+            String value = getString(key, null);
+            if (value == null) return defaultValue;
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException e) {
+            log.warn("Setting '{}' không phải số nguyên hợp lệ, sử dụng mặc định: {}", key, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Lấy giá trị setting dạng double. Trả về defaultValue nếu setting không tồn tại, không active, hoặc không parse được.
+     * @param key khóa setting
+     * @param defaultValue giá trị mặc định nếu không tìm thấy hoặc không hợp lệ
+     * @return giá trị setting hoặc defaultValue
+     */
+    public double getDouble(String key, double defaultValue) {
+        try {
+            String value = getString(key, null);
+            if (value == null) return defaultValue;
+            return Double.parseDouble(value.trim());
+        } catch (NumberFormatException e) {
+            log.warn("Setting '{}' không phải số thực hợp lệ, sử dụng mặc định: {}", key, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Lấy giá trị setting dạng boolean. Trả về defaultValue nếu setting không tồn tại hoặc không active.
+     * Chấp nhận "true"/"false" (không phân biệt hoa thường).
+     * @param key khóa setting
+     * @param defaultValue giá trị mặc định nếu không tìm thấy hoặc không hợp lệ
+     * @return giá trị setting hoặc defaultValue
+     */
+    public boolean getBoolean(String key, boolean defaultValue) {
+        String value = getString(key, null);
+        if (value == null) return defaultValue;
+        return Boolean.parseBoolean(value.trim());
+    }
+
     @Audited(action = AuditAction.CREATE, resource = AuditResource.SYSTEM_SETTING, description = "Tạo cấu hình hệ thống: {0}")
+    @CacheEvict(value = CacheName.SYSTEM_SETTINGS, key = "#requestDto.key")
     @Transactional
     public SystemSettingResponseDto create(SystemSettingCreateRequestDto requestDto) {
         if (settingRepository.existsByKey(requestDto.getKey())) {
@@ -93,6 +181,7 @@ public class SystemSettingService {
     }
 
     @Audited(action = AuditAction.UPDATE, resource = AuditResource.SYSTEM_SETTING, resourceIdExpression = "#arg0", description = "Cập nhật cấu hình hệ thống: {0}")
+    @CacheEvict(value = CacheName.SYSTEM_SETTINGS, key = "#key")
     @Transactional
     public SystemSettingResponseDto update(String key, SystemSettingUpdateRequestDto requestDto) {
         SystemSettingEntity entity = settingRepository.findByKey(key)
@@ -103,6 +192,7 @@ public class SystemSettingService {
     }
 
     @Audited(action = AuditAction.UPDATE, resource = AuditResource.SYSTEM_SETTING, description = "Cập nhật hàng loạt cấu hình hệ thống")
+    @CacheEvict(value = CacheName.SYSTEM_SETTINGS, allEntries = true)
     @Transactional
     public List<SystemSettingResponseDto> bulkUpdate(List<SystemSettingUpdateRequestDto> requestDtos) {
         return requestDtos.stream().map(dto -> {
@@ -117,6 +207,7 @@ public class SystemSettingService {
     }
 
     @Audited(action = AuditAction.DELETE, resource = AuditResource.SYSTEM_SETTING, resourceIdExpression = "#arg0", description = "Xoá cấu hình hệ thống: {0}")
+    @CacheEvict(value = CacheName.SYSTEM_SETTINGS, key = "#key")
     @Transactional
     public void delete(String key) {
         if (!settingRepository.existsByKey(key)) {
@@ -126,6 +217,7 @@ public class SystemSettingService {
     }
 
     @Audited(action = AuditAction.DELETE, resource = AuditResource.SYSTEM_SETTING, description = "Xoá cấu hình hệ thống theo ID")
+    @CacheEvict(value = CacheName.SYSTEM_SETTINGS, allEntries = true)
     @Transactional
     public void deleteById(UUID id) {
         if (!settingRepository.existsById(id)) {

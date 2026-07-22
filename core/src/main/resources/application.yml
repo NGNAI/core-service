@@ -178,6 +178,27 @@ auto-ingestion:
   from-source: "SYSTEM"
   delete-local-after-success: true
 
+# Cấu hình bảo mật bổ sung (không thuộc RBAC)
+security:
+  # Danh sách username được phép truy cập System Setting & System Health admin APIs
+  # (bỏ qua Role/Permission). Để trống/null → fallback về ["root"].
+  admin-allowed-usernames:
+    - "root"
+
+# Cấu hình tích hợp LDAP (qua OTP Service trung gian)
+ldap:
+  # UUID của organization mặc định để gán user LDAP mới (login lần đầu / auto-sync)
+  # Để trống nếu không muốn auto-assign
+  default-org-id: "293e74ba-7b2d-40f2-922f-73eaff0cb3cd"
+  # UUID của role mặc định khi gán user LDAP. Để trống → fallback về role có defaultAssign=true
+  default-role-id: ""
+  # Có cập nhật thông tin user từ OTP Service khi login lại không (mặc định KHÔNG)
+  update-on-login: false
+  # Cấu hình auto-sync user LDAP định kỳ
+  sync:
+    enabled: false
+    cron: "0 0 2 * * ?"
+
 
 # Setup Springdoc OpenAPI and Swagger UI
 springdoc:

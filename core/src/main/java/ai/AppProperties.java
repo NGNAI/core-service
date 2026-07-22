@@ -1,5 +1,7 @@
 package ai;
 
+import java.util.List;
+
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -21,6 +23,8 @@ public class AppProperties {
     Minio minio;
     Integration integration;
     AutoIngestion autoIngestion;
+    Ldap ldap;
+    Security security;
 
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -119,5 +123,64 @@ public class AppProperties {
         DataScope accessLevel;
         DataSource fromSource;
         boolean deleteLocalAfterSuccess;
+    }
+
+    /**
+     * Cấu hình tích hợp LDAP (qua OTP Service trung gian).
+     */
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Ldap {
+        /**
+         * UUID của organization mặc định để gán user LDAP mới (khi login lần đầu hoặc auto-sync).
+         * Để trống nếu không muốn auto-assign.
+         */
+        String defaultOrgId;
+
+        /**
+         * UUID của role mặc định khi gán user LDAP vào organization.
+         * Để trống → fallback về {@code RoleRepository.findByDefaultAssign()}.
+         */
+        String defaultRoleId;
+
+        /**
+         * Có cập nhật thông tin user (email, fullName, phoneNumber) từ OTP Service khi login lại không.
+         * Mặc định false để tránh ghi đè thông tin admin đã chỉnh trong hệ thống.
+         */
+        boolean updateOnLogin;
+
+        /**
+         * Cấu hình auto-sync user LDAP từ OTP Service về DB local.
+         */
+        Sync sync;
+    }
+
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Sync {
+        /**
+         * Bật/tắt scheduler đồng bộ user LDAP định kỳ.
+         */
+        boolean enabled;
+
+        /**
+         * Cron expression cho scheduler đồng bộ.
+         * Mặc định: 2h sáng mỗi ngày.
+         */
+        String cron;
+    }
+
+    /**
+     * Cấu hình bảo mật bổ sung (không thuộc hệ thống RBAC).
+     */
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Security {
+        /**
+         * Danh sách username được phép truy cập các resource admin nhạy cảm
+         * (SYSTEM_SETTING, SYSTEM_HEALTH) mà không phụ thuộc Role/Permission.
+         * Để trống/null → fallback về ["root"].
+         */
+        List<String> adminAllowedUsernames;
     }
 }
