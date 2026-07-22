@@ -1,6 +1,6 @@
 package ai.configuration;
 
-import org.springdoc.core.customizers.OperationCustomizer;
+import org.springdoc.core.customizers.GlobalOperationCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -75,7 +75,7 @@ public class SwaggerConfig {
     }
 
     @Bean
-    public OperationCustomizer globalResponsesCustomizer() {
+    public GlobalOperationCustomizer globalResponsesCustomizer() {
         return (operation, handlerMethod) -> {
             ApiResponses responses = operation.getResponses();
             if (responses == null) {
@@ -121,7 +121,7 @@ public class SwaggerConfig {
     }
 
     @Bean
-    public OperationCustomizer customizePermissions() {
+    public GlobalOperationCustomizer customizePermissions() {
         return (operation, handlerMethod) -> {
             // Tìm xem method có gắn @PreAuthorize không
             PreAuthorize preAuthorize = handlerMethod.getMethodAnnotation(PreAuthorize.class);
