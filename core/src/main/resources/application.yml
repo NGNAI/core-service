@@ -184,6 +184,7 @@ security:
   # (bỏ qua Role/Permission). Để trống/null → fallback về ["root"].
   admin-allowed-usernames:
     - "root"
+    - "admin"
 
 # Cấu hình tích hợp LDAP (qua OTP Service trung gian)
 ldap:

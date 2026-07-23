@@ -187,3 +187,4 @@ security:
   # (bỏ qua Role/Permission). Để trống/null → fallback về ["root"].
   admin-allowed-usernames:
     - "root"
+    - "admin"
