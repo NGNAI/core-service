@@ -123,6 +123,21 @@ public class AuditLogService {
         return page.map(auditLogMapper::entityToResponseDto);
     }
 
+    /**
+     * Lấy danh sách hoạt động (audit log) của chính user đang đăng nhập trong org hiện tại.
+     * <p>
+     * Ép filter theo {@code userId} và {@code orgId} lấy từ JWT để đảm bảo user chỉ thấy
+     * log của chính mình trong org hiện tại, bất kể client truyền giá trị nào trong filter.
+     * 
+     * @param filterDto bộ lọc (action, resource, status, from, to, keyword, phân trang) — userId/orgId bị bỏ qua
+     * @return trang AuditLogResponseDto của user hiện tại
+     */
+    public Page<AuditLogResponseDto> getMyActivities(AuditLogFilterDto filterDto) {
+        filterDto.setUserId(JwtUtil.getUserId());
+        filterDto.setOrgId(JwtUtil.getOrgId());
+        return getAll(filterDto);
+    }
+
     public AuditLogResponseDto getById(UUID id) {
         return auditLogRepository.findById(id)
                 .map(auditLogMapper::entityToResponseDto)

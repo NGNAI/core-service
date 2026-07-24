@@ -43,5 +43,6 @@ application.log.*.gz
 
 
 /logs/
+core/logs/
 *.log
 spring-boot-logger.log
