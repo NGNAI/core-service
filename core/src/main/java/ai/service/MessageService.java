@@ -69,11 +69,29 @@ public class MessageService {
     DraftMessagesRepository draftMessagesRepository;
 
     public CustomPairModel<Long,List<MessageResponseDto>> getAll(UUID parentId,MessageParentType parentType, MessageFilterDto filterDto){
+        return getAllInternal(parentId, parentType, filterDto, true);
+    }
+
+    /**
+     * Lấy messages cho public share link flow — <b>không kiểm tra ownership</b>.
+     * Viewer chỉ được xem (read-only), không có JWT.
+     * Chỉ hỗ trợ TOPIC và NOTEBOOK (DRAFT không được share).
+     */
+    public CustomPairModel<Long,List<MessageResponseDto>> getAllShared(UUID parentId, MessageParentType parentType, MessageFilterDto filterDto) {
+        if (parentType == MessageParentType.DRAFT) {
+            throw new AppException(ApiResponseStatus.SHARE_LINK_RESOURCE_MISMATCH);
+        }
+        return getAllInternal(parentId, parentType, filterDto, false);
+    }
+
+    private CustomPairModel<Long,List<MessageResponseDto>> getAllInternal(UUID parentId, MessageParentType parentType, MessageFilterDto filterDto, boolean validateOwnership) {
         Page<? extends MessageRelationEntity> page = null;
 
         switch (parentType) {
             case TOPIC -> {
-                topicService.validateTopicOfUser(parentId, JwtUtil.getUserId());
+                if (validateOwnership) {
+                    topicService.validateTopicOfUser(parentId, JwtUtil.getUserId());
+                }
                 Specification<TopicMessageEntity> spec = (root, query, criteriaBuilder) -> {
                     boolean isCountQuery = query.getResultType() == Long.class || query.getResultType() == long.class;
 
@@ -97,7 +115,9 @@ public class MessageService {
                 page = topicMessagesRepository.findAll(spec,filterDto.createPageable());
             }
             case NOTEBOOK -> {
-                noteBookService.validateNoteBookOfUser(parentId, JwtUtil.getUserId());
+                if (validateOwnership) {
+                    noteBookService.validateNoteBookOfUser(parentId, JwtUtil.getUserId());
+                }
                 Specification<NotebookMessageEntity> spec = (root, query, criteriaBuilder) -> {
                     boolean isCountQuery = query.getResultType() == Long.class || query.getResultType() == long.class;
 
@@ -123,7 +143,9 @@ public class MessageService {
                 page = notebookMessagesRepository.findAll(spec,filterDto.createPageable());
             }
             case DRAFT -> {
-                draftService.validateDraftOfUser(parentId, JwtUtil.getUserId());
+                if (validateOwnership) {
+                    draftService.validateDraftOfUser(parentId, JwtUtil.getUserId());
+                }
                 Specification<DraftMessageEntity> spec = (root, query, criteriaBuilder) -> {
                     boolean isCountQuery = query.getResultType() == Long.class || query.getResultType() == long.class;
 

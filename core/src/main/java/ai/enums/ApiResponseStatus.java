@@ -249,6 +249,17 @@ public enum ApiResponseStatus {
     CHANGE_REQUEST_MESSAGE_CAN_NOT_BE_NULL_OR_EMPTY(1173, "Change request message cannot be null or empty", HttpStatus.BAD_REQUEST),
 
     // ========================================================================
+    // SHARE LINK - 1174..1180
+    // ========================================================================
+    SHARE_LINK_NOT_EXISTS(1174, "Link chia sẻ không tồn tại", HttpStatus.NOT_FOUND),
+    SHARE_LINK_EXPIRED(1175, "Link chia sẻ đã hết hạn", HttpStatus.FORBIDDEN),
+    SHARE_LINK_REVOKED(1176, "Link chia sẻ đã bị hủy", HttpStatus.FORBIDDEN),
+    SHARE_LINK_PASSWORD_REQUIRED(1177, "Link chia sẻ yêu cầu mật khẩu", HttpStatus.FORBIDDEN),
+    SHARE_LINK_PASSWORD_INVALID(1178, "Mật khẩu link chia sẻ không đúng", HttpStatus.FORBIDDEN),
+    SHARE_LINK_RESOURCE_MISMATCH(1179, "Loại tài nguyên không khớp với link chia sẻ", HttpStatus.BAD_REQUEST),
+    SHARE_LINK_RESOURCE_OWNER_ONLY(1180, "Chỉ owner mới được quản lý link chia sẻ", HttpStatus.FORBIDDEN),
+
+    // ========================================================================
     // UNEXPECTED - 9999
     // ========================================================================
     UNEXPECTED(9999, "An unexpected error occurred!", HttpStatus.INTERNAL_SERVER_ERROR);

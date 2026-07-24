@@ -56,6 +56,13 @@ public class TopicSourceService {
     
     public Pair<Long, List<TopicSourceResponseDto>> getSources(UUID topicId, int page, int size) {
         topicService.validateTopicOfUser(topicId, JwtUtil.getUserId());
+        return getSourcesShared(topicId, page, size);
+    }
+
+    /**
+     * Lấy sources cho public share link flow — <b>không kiểm tra ownership</b>.
+     */
+    public Pair<Long, List<TopicSourceResponseDto>> getSourcesShared(UUID topicId, int page, int size) {
         Page<TopicSourceEntity> result = topicSourceRepository.findByTopicId(topicId, PageRequest.of(page, size));
         return Pair.of(result.getTotalElements(),
                 result.getContent().stream().map(topicSourceMapper::entityToResponseDto).toList());
@@ -152,6 +159,13 @@ public class TopicSourceService {
 
     public TopicSourcePresignedUrlResponseDto getSourceDownloadUrl(UUID topicId, UUID sourceId, Integer expiresInSeconds) {
         topicService.validateTopicOfUser(topicId, JwtUtil.getUserId());
+        return getSourceDownloadUrlShared(topicId, sourceId, expiresInSeconds);
+    }
+
+    /**
+     * Lấy presigned download URL cho public share link flow — <b>không kiểm tra ownership</b>.
+     */
+    public TopicSourcePresignedUrlResponseDto getSourceDownloadUrlShared(UUID topicId, UUID sourceId, Integer expiresInSeconds) {
         TopicSourceEntity source = getSourceEntity(topicId, sourceId);
         validateDownloadableSource(source);
 
