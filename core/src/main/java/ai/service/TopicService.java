@@ -120,4 +120,14 @@ public class TopicService {
             topicRepository.save(entity);
         });
     }
+
+    /**
+     * Lấy entity Topic theo id <b>không kiểm tra ownership</b>.
+     * Dùng cho public share link flow (viewer không cần JWT).
+     * Chỉ validate topic tồn tại.
+     */
+    public TopicEntity getEntityByIdShared(UUID topicId) {
+        return topicRepository.findById(topicId)
+                .orElseThrow(() -> new AppException(ApiResponseStatus.TOPIC_ID_NOT_EXISTS));
+    }
 }

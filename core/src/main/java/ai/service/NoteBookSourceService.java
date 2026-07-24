@@ -75,6 +75,13 @@ public class NoteBookSourceService {
      */
     public CustomPairModel<Long, List<NoteBookSourceResponseDto>> getSources(UUID noteBookId, int page, int size) {
         noteBookService.validateNoteBookOfUser(noteBookId, JwtUtil.getUserId());
+        return getSourcesShared(noteBookId, page, size);
+    }
+
+    /**
+     * Lấy sources cho public share link flow — <b>không kiểm tra ownership</b>.
+     */
+    public CustomPairModel<Long, List<NoteBookSourceResponseDto>> getSourcesShared(UUID noteBookId, int page, int size) {
         Page<NoteBookSourceEntity> result = noteBookSourceRepository.findByNoteBookId(noteBookId, PageRequest.of(page, size));
         return new CustomPairModel<>(result.getTotalElements(),
                 result.getContent().stream().map(noteBookSourceMapper::entityToResponseDto).toList());
@@ -296,6 +303,13 @@ public class NoteBookSourceService {
      */
     public NoteBookSourcePresignedUrlResponseDto getSourceDownloadUrl(UUID noteBookId, UUID sourceId, Integer expiresInSeconds) {
         noteBookService.validateNoteBookOfUser(noteBookId, JwtUtil.getUserId());
+        return getSourceDownloadUrlShared(noteBookId, sourceId, expiresInSeconds);
+    }
+
+    /**
+     * Lấy presigned download URL cho public share link flow — <b>không kiểm tra ownership</b>.
+     */
+    public NoteBookSourcePresignedUrlResponseDto getSourceDownloadUrlShared(UUID noteBookId, UUID sourceId, Integer expiresInSeconds) {
         NoteBookSourceEntity source = getSourceEntity(noteBookId, sourceId);
         validateDownloadableSource(source);
 

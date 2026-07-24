@@ -2,8 +2,10 @@ package ai.controller.user;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -16,10 +18,13 @@ import com.nimbusds.jose.JOSEException;
 import ai.dto.own.request.OrganizationSelectRequestDto;
 import ai.dto.own.request.UserPasswordUpdateRequestDto;
 import ai.dto.own.request.UserProfileUpdateRequestDto;
+import ai.dto.own.request.filter.AuditLogFilterDto;
+import ai.dto.own.response.AuditLogResponseDto;
 import ai.dto.own.response.OrganizationSelectResponseDto;
 import ai.dto.own.response.OrganizationWithUserRoleDto;
 import ai.dto.own.response.UserProfileResponseDto;
 import ai.model.ApiResponseModel;
+import ai.service.AuditLogService;
 import ai.service.AuthService;
 import ai.service.UserProfileService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,6 +42,7 @@ import lombok.experimental.FieldDefaults;
 public class ProfileUserController {
     UserProfileService userProfileService;
     AuthService authService;
+    AuditLogService auditLogService;
 
     @Operation(summary = "Get user profile", description = "Retrieve the current user's profile information")
     @GetMapping()
@@ -89,6 +95,19 @@ public class ProfileUserController {
                 ApiResponseModel.<List<OrganizationWithUserRoleDto>>builder()
                         .message("Get organization list successfully")
                         .data(userProfileService.listOrg())
+                        .build()
+        );
+    }
+
+    @Operation(summary = "Get my activity log", description = "Retrieve the current user's activity history (login, create, update, delete) within the current organization. User id and org id are taken from the JWT and cannot be overridden.")
+    @GetMapping("/activity")
+    ResponseEntity<ApiResponseModel<List<AuditLogResponseDto>>> getMyActivity(@Valid @ModelAttribute AuditLogFilterDto filterDto) {
+        Page<AuditLogResponseDto> page = auditLogService.getMyActivities(filterDto);
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<AuditLogResponseDto>>builder()
+                        .message("Get my activity log successfully")
+                        .count(page.getTotalElements())
+                        .data(page.getContent())
                         .build()
         );
     }

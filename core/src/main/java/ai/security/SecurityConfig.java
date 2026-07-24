@@ -36,6 +36,22 @@ public class SecurityConfig {
     AppProperties appProperties;
     SystemSettingService systemSettingService;
     ObjectMapper objectMapper;
+    ai.service.ShareLinkService shareLinkService;
+
+    @Bean
+    @Order(0)
+    public SecurityFilterChain publicFilterChain(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity
+                .securityMatcher("/public/**")
+                .authorizeHttpRequests(request -> request
+                        // /public/** permitAll — share link filter tự xác thực token
+                        .anyRequest().permitAll()
+                )
+                .addFilterBefore(new ShareLinkAuthFilter(shareLinkService), org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
+                .cors(cors -> {})
+                .csrf(AbstractHttpConfigurer::disable);
+        return httpSecurity.build();
+    }
 
     @Bean
     @Order(1)

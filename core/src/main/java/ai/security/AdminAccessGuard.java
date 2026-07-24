@@ -4,6 +4,7 @@ import java.util.List;
 
 import ai.AppProperties;
 import ai.util.JwtUtil;
+import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -35,6 +36,31 @@ public class AdminAccessGuard {
     AppProperties appProperties;
 
     /**
+     * Log danh sách username được phép truy cập System Setting & System Health
+     * khi ứng dụng khởi động, giúp kiểm tra nhanh cấu hình.
+     */
+    @PostConstruct
+    void logAllowedUsernames() {
+        log.info("AdminAccessGuard: System Setting & System Health admin APIs are protected by allowed usernames: {}", getEffectiveAllowedUsernames());
+    }
+
+    /**
+     * Lấy danh sách username được phép, áp dụng fallback {@link #DEFAULT_ALLOWED_USERNAMES}
+     * khi cấu hình {@code security.admin-allowed-usernames} rỗng/null.
+     *
+     * @return danh sách username hiệu lực (không null, không rỗng).
+     */
+    List<String> getEffectiveAllowedUsernames() {
+        List<String> allowed = appProperties.getSecurity() != null
+                ? appProperties.getSecurity().getAdminAllowedUsernames()
+                : null;
+        if (allowed == null || allowed.isEmpty()) {
+            allowed = DEFAULT_ALLOWED_USERNAMES;
+        }
+        return allowed;
+    }
+
+    /**
      * Kiểm tra xem user hiện tại (lấy từ JWT subject) có nằm trong danh sách
      * username được phép truy cập admin resource nhạy cảm hay không.
      *
@@ -48,15 +74,8 @@ public class AdminAccessGuard {
             return false;
         }
 
-        List<String> allowed = appProperties.getSecurity() != null
-                ? appProperties.getSecurity().getAdminAllowedUsernames()
-                : null;
-        if (allowed == null || allowed.isEmpty()) {
-            allowed = DEFAULT_ALLOWED_USERNAMES;
-        }
-
-        boolean permitted = allowed.contains(username);
-        log.debug("AdminAccessGuard: username={} allowed={} → {}", username, allowed, permitted);
+        boolean permitted = getEffectiveAllowedUsernames().contains(username);
+        log.debug("AdminAccessGuard: username={} → {}", username, permitted);
         return permitted;
     }
 }

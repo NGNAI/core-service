@@ -25,6 +25,7 @@ public class AppProperties {
     AutoIngestion autoIngestion;
     Ldap ldap;
     Security security;
+    Share share;
 
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -182,5 +183,36 @@ public class AppProperties {
          * Để trống/null → fallback về ["root"].
          */
         List<String> adminAllowedUsernames;
+    }
+
+    /**
+     * Cấu hình tính năng Share Link (public share cho Topic / Notebook).
+     */
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Share {
+        /**
+         * Base URL dùng để build link chia sẻ trả về cho FE.
+         * Vd: https://ai.example.com/share → link đầy đủ: {baseUrl}/{token}.
+         * Để trống → chỉ trả token, FE tự build URL.
+         */
+        String baseUrl;
+
+        /**
+         * Số ngày hết hạn mặc định khi tạo link (nếu owner không chỉ định expiryDays).
+         * {@code null} = vĩnh viễn (mặc định).
+         */
+        Integer defaultExpiryDays;
+
+        /**
+         * Số ngày hết hạn tối đa owner được phép đặt. Mặc định 365.
+         */
+        Integer maxExpiryDays;
+
+        /**
+         * Độ dài token tính bằng byte (mã hóa base64 URL-safe → ~1.33x ký tự).
+         * Mặc định 32 byte (~43 ký tự). Không nên nhỏ hơn 16.
+         */
+        Integer tokenLength;
     }
 }

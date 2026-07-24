@@ -128,4 +128,14 @@ public class NoteBookService {
             noteBookRepository.save(entity);
         });
     }
+
+    /**
+     * Lấy entity Notebook theo id <b>không kiểm tra ownership</b>.
+     * Dùng cho public share link flow (viewer không cần JWT).
+     * Chỉ validate notebook tồn tại.
+     */
+    public NoteBookEntity getEntityByIdShared(UUID noteBookId) {
+        return noteBookRepository.findById(noteBookId)
+                .orElseThrow(() -> new AppException(ApiResponseStatus.NOTEBOOK_ID_NOT_EXISTS));
+    }
 }

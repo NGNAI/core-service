@@ -26,7 +26,9 @@ public enum AuditAction {
     DOWNLOAD("DOWNLOAD", "Tải xuống"),
     INGEST("INGEST", "Nạp dữ liệu"),
     CHAT("CHAT", "Hội thoại"),
-    FEEDBACK("FEEDBACK", "Phản hồi");
+    FEEDBACK("FEEDBACK", "Phản hồi"),
+    SHARE("SHARE", "Chia sẻ"),
+    REVOKE("REVOKE", "Thu hồi chia sẻ");
 
     String key;
     String name;

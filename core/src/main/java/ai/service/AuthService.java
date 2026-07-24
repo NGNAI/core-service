@@ -123,7 +123,7 @@ public class AuthService {
                     userEntity = existingLdapUser.orElseGet(() -> {
                         UserEntity newUser = new UserEntity();
                         newUser.setSource("ldap");
-                        newUser.setPassword("");
+                        newUser.setPassword("");    
                         newUser.setActive(true);
                         newUser.setGender(0);
                         return newUser;

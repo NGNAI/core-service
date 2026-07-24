@@ -16,7 +16,7 @@ spring:
       max-request-size: "100MB"
 
   datasource:
-    url: "jdbc:postgresql://192.168.30.72:5432/core_service_4"
+    url: "jdbc:postgresql://192.168.30.72:5432/core_service"
     username: "postgres"
     password: "P@ssw0rd"
 
@@ -199,6 +199,21 @@ ldap:
   sync:
     enabled: false
     cron: "0 0 2 * * ?"
+
+# Cấu hình tính năng Share Link (public share cho Topic / Notebook)
+share:
+  # Base URL dùng để build link chia sẻ trả về cho FE.
+  # Vd: https://ai.example.com/share → link đầy đủ: https://ai.example.com/share/{token}
+  # Để trống → chỉ trả token, FE tự build URL.
+  base-url: ""
+  # Số ngày hết hạn mặc định khi tạo link (nếu owner không chỉ định expiryDays).
+  # null = vĩnh viễn (mặc định).
+  default-expiry-days:
+  # Số ngày hết hạn tối đa owner được phép đặt (mặc định 365).
+  max-expiry-days: 365
+  # Độ dài token tính bằng byte (mã hóa base64 URL-safe → ~1.33x ký tự).
+  # Mặc định 32 byte (~43 ký tự). Không nên nhỏ hơn 16.
+  token-length: 32
 
 
 # Setup Springdoc OpenAPI and Swagger UI
