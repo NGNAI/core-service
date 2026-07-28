@@ -51,7 +51,7 @@ public class OtpApiService {
                 keyword = "*";
             }
             Map<String, Object> body = new HashMap<>();
-            body.put("search", keyword);
+            body.put("userId", keyword);
             body.put("customerCode", appProperties.getOtp().getCustomerCode());
             return apiCore.post("/user/searchInLdap", body, new ParameterizedTypeReference<>(){});
         } catch (JsonProcessingException e) {
