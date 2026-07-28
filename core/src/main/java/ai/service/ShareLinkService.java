@@ -83,6 +83,9 @@ public class ShareLinkService {
         // Validate owner của resource
         validateResourceOwnership(request.getResourceType(), request.getResourceId(), ownerId);
 
+        // Validate expiryDays không vượt quá maxExpiryDays từ config
+        validateExpiryDays(request.getExpiryDays());
+
         // Sinh token unique
         String token = generateUniqueToken();
 
@@ -329,6 +332,22 @@ public class ShareLinkService {
     // ========================================================================
     // Helpers
     // ========================================================================
+
+    /**
+     * Validate expiryDays không vượt quá maxExpiryDays từ config.
+     * Nếu expiryDays = null (vĩnh viễn) thì bỏ qua.
+     */
+    private void validateExpiryDays(Integer expiryDays) {
+        if (expiryDays == null) {
+            return;
+        }
+        Integer maxDays = appProperties.getShare() != null && appProperties.getShare().getMaxExpiryDays() != null
+                ? appProperties.getShare().getMaxExpiryDays()
+                : 365;
+        if (expiryDays > maxDays) {
+            throw new AppException(ApiResponseStatus.SHARE_LINK_EXPIRY_DAYS_EXCEED_MAX);
+        }
+    }
 
     private void validateResourceOwnership(ShareResource resourceType, UUID resourceId, UUID ownerId) {
         switch (resourceType) {

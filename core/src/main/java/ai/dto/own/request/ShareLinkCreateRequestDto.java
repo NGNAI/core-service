@@ -20,11 +20,11 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ShareLinkCreateRequestDto {
-    @Schema(description = "Loại tài nguyên được share", example = "TOPIC", required = true)
+    @Schema(description = "Loại tài nguyên được share", example = "TOPIC")
     @NotNull(message = "Resource type cannot be null")
     ShareResource resourceType;
 
-    @Schema(description = "UUID của Topic / Notebook cần share", required = true)
+    @Schema(description = "UUID của Topic / Notebook cần share")
     @NotNull(message = "Resource id cannot be null")
     UUID resourceId;
 
@@ -34,7 +34,7 @@ public class ShareLinkCreateRequestDto {
     @Schema(description = "Password bảo vệ link (tùy chọn). null = ai có link vào được.")
     String password;
 
-    @Schema(description = "Số ngày hết hạn. null = vĩnh viễn. Tối đa theo cấu hình share.maxExpiryDays (mặc định 365).", example = "30")
+    @Schema(description = "Số ngày hết hạn. null = vĩnh viễn. Nếu lớn hơn share.maxExpiryDays (mặc định 365) sẽ bị từ chối với mã lỗi SHARE_LINK_EXPIRY_DAYS_EXCEED_MAX.", example = "30")
     @Min(value = 1, message = "Expiry days must be at least 1")
     Integer expiryDays;
 }
