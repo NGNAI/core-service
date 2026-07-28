@@ -67,7 +67,13 @@ public class ShareLinkAuthFilter extends OncePerRequestFilter {
         String password = request.getHeader(PASSWORD_HEADER);
 
         try {
-            ShareLinkEntity link = shareLinkService.validateAccess(token, password);
+            // Endpoint metadata (GET /public/share/{token}) chỉ check revoked/expired,
+            // KHÔNG yêu cầu password — để viewer biết link có cần password không.
+            boolean isMetadataRequest = servletPath.equals("/public/share/" + token);
+            ShareLinkEntity link = isMetadataRequest
+                    ? shareLinkService.validateTokenOnly(token)
+                    : shareLinkService.validateAccess(token, password);
+
             // Tăng view count async (không block response)
             shareLinkService.incrementViewCount(link.getId());
             // Put vào request attribute cho controller

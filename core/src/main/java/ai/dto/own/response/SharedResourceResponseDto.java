@@ -30,7 +30,8 @@ import lombok.experimental.FieldDefaults;
         "ownerDisplayName",
         "createdAt",
         "messageCount",
-        "sourceCount"
+        "sourceCount",
+        "passwordRequired"
 })
 public class SharedResourceResponseDto {
     ShareResource resourceType;

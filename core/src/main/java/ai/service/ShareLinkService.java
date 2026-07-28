@@ -215,6 +215,27 @@ public class ShareLinkService {
     }
 
     /**
+     * Validate token-only cho public viewer (dùng cho endpoint metadata).
+     * Chỉ check revoked/expired — KHÔNG check password — để viewer biết
+     * link có yêu cầu password hay không trước khi nhập.
+     * <p>
+     * Dùng trong {@link ai.security.ShareLinkAuthFilter} cho
+     * {@code GET /public/share/{token}} (metadata).
+     */
+    @Transactional(readOnly = true)
+    public ShareLinkEntity validateTokenOnly(String token) {
+        ShareLinkEntity entity = getByToken(token);
+
+        if (entity.isRevoked()) {
+            throw new AppException(ApiResponseStatus.SHARE_LINK_REVOKED);
+        }
+        if (entity.isExpired()) {
+            throw new AppException(ApiResponseStatus.SHARE_LINK_EXPIRED);
+        }
+        return entity;
+    }
+
+    /**
      * Tăng view count nguyên tử (async, không block response).
      */
     @Async
