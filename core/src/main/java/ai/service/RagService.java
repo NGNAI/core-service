@@ -817,6 +817,9 @@ public class RagService {
         if (maxTokens > 0) {
             builder.maxTokens(maxTokens);
         }
+
+        System.out.println("Applied AI settings: model=" + model + ", temperature=" + temperature + ", maxTokens=" + maxTokens);
+        System.out.println("RagCompletionRequestDto builder: " + builder);
         return builder;
     }
 
