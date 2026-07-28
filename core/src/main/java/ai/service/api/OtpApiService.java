@@ -35,6 +35,7 @@ public class OtpApiService {
             body.put("customerCode", appProperties.getOtp().getCustomerCode());
             return apiCore.post("/user/authLdap", body, new ParameterizedTypeReference<>(){});
         } catch (JsonProcessingException e) {
+            e.printStackTrace();
             throw new RuntimeException("Failed to serialize request body for authLdap", e);
         }
     }
@@ -55,6 +56,7 @@ public class OtpApiService {
             body.put("customerCode", appProperties.getOtp().getCustomerCode());
             return apiCore.post("/user/searchInLdap", body, new ParameterizedTypeReference<>(){});
         } catch (JsonProcessingException e) {
+            e.printStackTrace();
             throw new RuntimeException("Failed to serialize request body for searchUsers", e);
         }
     }
@@ -68,8 +70,9 @@ public class OtpApiService {
             Map<String, Object> body = new HashMap<>();
             body.put("userId", userId);
             body.put("customerCode", appProperties.getOtp().getCustomerCode());
-            return apiCore.post("/users/get", body, new ParameterizedTypeReference<>(){});
+            return apiCore.post("/user/get", body, new ParameterizedTypeReference<>(){});
         } catch (JsonProcessingException e) {
+            e.printStackTrace();
             throw new RuntimeException("Failed to serialize request body for getUserDetail", e);
         }
     }
