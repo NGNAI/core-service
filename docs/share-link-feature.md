@@ -94,6 +94,7 @@ Bảng `share_links` (Flyway `V16__create_share_links.sql`):
 | 1178 | `SHARE_LINK_PASSWORD_INVALID` | 403 | Password sai |
 | 1179 | `SHARE_LINK_RESOURCE_MISMATCH` | 400 | Loại resource không khớp |
 | 1180 | `SHARE_LINK_RESOURCE_OWNER_ONLY` | 403 | Chỉ owner mới quản lý link |
+| 1181 | `SHARE_LINK_EXPIRY_DAYS_EXCEED_MAX` | 400 | Số ngày hết hạn vượt quá giới hạn cho phép (`share.maxExpiryDays`) |
 
 ## Files chính
 

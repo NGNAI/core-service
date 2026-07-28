@@ -258,6 +258,7 @@ public enum ApiResponseStatus {
     SHARE_LINK_PASSWORD_INVALID(1178, "Mật khẩu link chia sẻ không đúng", HttpStatus.FORBIDDEN),
     SHARE_LINK_RESOURCE_MISMATCH(1179, "Loại tài nguyên không khớp với link chia sẻ", HttpStatus.BAD_REQUEST),
     SHARE_LINK_RESOURCE_OWNER_ONLY(1180, "Chỉ owner mới được quản lý link chia sẻ", HttpStatus.FORBIDDEN),
+    SHARE_LINK_EXPIRY_DAYS_EXCEED_MAX(1181, "Số ngày hết hạn vượt quá giới hạn cho phép", HttpStatus.BAD_REQUEST),
 
     // ========================================================================
     // UNEXPECTED - 9999
