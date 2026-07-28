@@ -75,24 +75,20 @@ public class LdapSyncService {
             OrganizationEntity defaultOrg = getDefaultOrg(ldapConfig);
             RoleEntity defaultRole = getDefaultRole(ldapConfig);
 
-            // Phân trang lấy all user từ OTP
-            int page = 0;
-            int size = 100;
-            boolean hasMore = true;
+            // Lấy tất cả user LDAP từ OTP (không phân trang)
+            OtpApiResponseModel<List<OtpUserResponseDto>> response = otpApiService.searchUsers("");
+            if (response == null || !response.isSuccess() || response.getData() == null) {
+                log.warn("OTP Service trả về response không hợp lệ khi đồng bộ LDAP");
+                return;
+            }
 
-            while (hasMore) {
-                OtpApiResponseModel<List<OtpUserResponseDto>> response = otpApiService.getAllUsers(page, size);
-                if (response == null || !response.isSuccess() || response.getData() == null) {
-                    log.warn("OTP Service trả về response không hợp lệ tại page {}", page);
-                    break;
-                }
+            List<OtpUserResponseDto> users = response.getData();
+            if (users.isEmpty()) {
+                log.info("Không có user LDAP nào để đồng bộ");
+                return;
+            }
 
-                List<OtpUserResponseDto> users = response.getData();
-                if (users.isEmpty()) {
-                    break;
-                }
-
-                for (OtpUserResponseDto otpUser : users) {
+            for (OtpUserResponseDto otpUser : users) {
                     try {
                         Optional<UserEntity> existingUser = userRepository.findByUserNameAndSource(otpUser.getUserId(), "ldap");
 
@@ -102,7 +98,7 @@ public class LdapSyncService {
                                 UserEntity user = existingUser.get();
                                 user.setEmail(otpUser.getEmail());
                                 user.setFirstName(otpUser.getFullName());
-                                user.setPhoneNumber(otpUser.getPhoneNumber());
+                                user.setPhoneNumber(otpUser.getPhone1());
                                 userRepository.save(user);
                                 updatedCount++;
                             } else {
@@ -121,7 +117,7 @@ public class LdapSyncService {
                             newUser.setUserName(otpUser.getUserId());
                             newUser.setEmail(otpUser.getEmail() != null ? otpUser.getEmail() : otpUser.getUserId() + "@ldap.local");
                             newUser.setFirstName(otpUser.getFullName() != null ? otpUser.getFullName() : otpUser.getUserId());
-                            newUser.setPhoneNumber(otpUser.getPhoneNumber());
+                            newUser.setPhoneNumber(otpUser.getPhone1());
                             newUser.setSource("ldap");
                             newUser.setPassword("");
                             newUser.setActive(true);
@@ -141,11 +137,6 @@ public class LdapSyncService {
                         skippedCount++;
                     }
                 }
-
-                // Nếu số user trả về < size → hết
-                hasMore = users.size() >= size;
-                page++;
-            }
 
             // Ghi audit log tổng kết
             auditLogService.record(AuditLogRequest.builder()

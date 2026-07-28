@@ -1,8 +1,7 @@
 package ai.service;
 
 import ai.AppProperties;
-import ai.dto.outer.otp.request.OtpAuthRequestDto;
-import ai.dto.outer.otp.response.OtpAuthResponseDto;
+import ai.dto.outer.otp.response.OtpUserResponseDto;
 import ai.dto.own.request.audit.AuditLogRequest;
 import ai.dto.own.request.AuthRequestDto;
 import ai.dto.own.request.IntrospectRequestDto;
@@ -107,10 +106,10 @@ public class AuthService {
                     throw new AppException(ApiResponseStatus.AUTHENTICATE_FAILED);
                 }
             } else {
-                OtpAuthRequestDto otpAuthRequestDto = new OtpAuthRequestDto(authRequestDto.getUsername(), authRequestDto.getPassword(), "ngn");
-                OtpApiResponseModel<OtpAuthResponseDto> authResponse = otpApiService.auth(otpAuthRequestDto);
+                OtpApiResponseModel<OtpUserResponseDto> authResponse = otpApiService.auth(
+                        authRequestDto.getUsername(), authRequestDto.getPassword());
                 if (authResponse.isSuccess()) {
-                    OtpAuthResponseDto authResponseDto = authResponse.getData();
+                    OtpUserResponseDto authResponseDto = authResponse.getData();
 
                     Optional<UserEntity> existingLdapUser = userRepository.findByUserNameAndSource(authResponseDto.getUserId(), "ldap");
                     boolean isNewUser = existingLdapUser.isEmpty();

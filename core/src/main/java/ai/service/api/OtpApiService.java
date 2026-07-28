@@ -1,57 +1,76 @@
 package ai.service.api;
 
+import ai.AppProperties;
 import ai.api.OtpApiCore;
-import ai.dto.outer.otp.request.OtpAuthRequestDto;
-import ai.dto.outer.otp.response.OtpAuthResponseDto;
 import ai.dto.outer.otp.response.OtpUserResponseDto;
 import ai.model.OtpApiResponseModel;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class OtpApiService {
     OtpApiCore apiCore;
+    AppProperties appProperties;
 
-    public OtpApiResponseModel<OtpAuthResponseDto> auth(OtpAuthRequestDto requestDto) throws JsonProcessingException {
-        return apiCore.post("/user/authLdap", requestDto, new ParameterizedTypeReference<>(){});
+    /**
+     * Xác thực user LDAP qua OTP Service.
+     * POST /user/authLdap body: { userId, password, customerCode }
+     */
+    public OtpApiResponseModel<OtpUserResponseDto> auth(String userId, String password) {
+       try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("userId", userId);
+            body.put("password", password);
+            body.put("customerCode", appProperties.getOtp().getCustomerCode());
+            return apiCore.post("/user/authLdap", body, new ParameterizedTypeReference<>(){});
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize request body for authLdap", e);
+        }
     }
 
     /**
-     * Tìm kiếm user LDAP qua OTP Service.
-     * Endpoint: GET /register/users?search={keyword}
+     * Tìm kiếm / lấy toàn bộ user LDAP qua OTP Service.
+     * POST /user/searchInLdap body: { search, customerCode }
+     * Truyền keyword rỗng ("") để lấy tất cả (không phân trang).
      */
     public OtpApiResponseModel<List<OtpUserResponseDto>> searchUsers(String keyword) {
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("search", keyword);
-        return apiCore.get("/user/searchInLdap", params, new ParameterizedTypeReference<>(){});
+        try {
+            // Nếu lấy tất cả mặc định thì keyword = "*" để tránh lỗi từ OTP Service.
+            if (keyword == null || keyword.isBlank()) {
+                keyword = "*";
+            }
+            Map<String, Object> body = new HashMap<>();
+            body.put("search", keyword);
+            body.put("customerCode", appProperties.getOtp().getCustomerCode());
+            return apiCore.post("/user/searchInLdap", body, new ParameterizedTypeReference<>(){});
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize request body for searchUsers", e);
+        }
     }
 
     /**
      * Lấy chi tiết 1 user LDAP theo userId.
-     * Endpoint: GET /register/users/{userId}
+     * POST /users/get{userId} body: { customerCode }
      */
     public OtpApiResponseModel<OtpUserResponseDto> getUserDetail(String userId) {
-        return apiCore.get("/register/users/" + userId, new ParameterizedTypeReference<>(){});
-    }
-
-    /**
-     * Lấy danh sách tất cả user LDAP (phân trang).
-     * Endpoint: GET /register/users?page={page}&size={size}
-     */
-    public OtpApiResponseModel<List<OtpUserResponseDto>> getAllUsers(int page, int size) {
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("page", String.valueOf(page));
-        params.add("size", String.valueOf(size));
-        return apiCore.get("/user/searchInLdap", params, new ParameterizedTypeReference<>(){});
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("userId", userId);
+            body.put("customerCode", appProperties.getOtp().getCustomerCode());
+            return apiCore.post("/users/get", body, new ParameterizedTypeReference<>(){});
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize request body for getUserDetail", e);
+        }
     }
 }

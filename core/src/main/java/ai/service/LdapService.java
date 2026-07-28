@@ -66,7 +66,7 @@ public class LdapService {
                     .userId(otpUser.getUserId())
                     .fullName(otpUser.getFullName())
                     .email(otpUser.getEmail())
-                    .phoneNumber(otpUser.getPhoneNumber())
+                    .phoneNumber(otpUser.getPhone1())
                     .organization(otpUser.getOrganization())
                     .domain(otpUser.getDomain())
                     .enable(otpUser.getEnable())
@@ -92,7 +92,7 @@ public class LdapService {
                 .userId(otpUser.getUserId())
                 .fullName(otpUser.getFullName())
                 .email(otpUser.getEmail())
-                .phoneNumber(otpUser.getPhoneNumber())
+                .phoneNumber(otpUser.getPhone1())
                 .organization(otpUser.getOrganization())
                 .domain(otpUser.getDomain())
                 .enable(otpUser.getEnable())
@@ -176,7 +176,7 @@ public class LdapService {
             userEntity = existingUser.get();
             userEntity.setEmail(otpUser.getEmail());
             userEntity.setFirstName(otpUser.getFullName());
-            userEntity.setPhoneNumber(otpUser.getPhoneNumber());
+            userEntity.setPhoneNumber(otpUser.getPhone1());
             userEntity = userRepository.save(userEntity);
         } else {
             // Chưa có → kiểm tra conflict username với user local
@@ -193,7 +193,7 @@ public class LdapService {
             userEntity.setUserName(otpUser.getUserId());
             userEntity.setEmail(otpUser.getEmail() != null ? otpUser.getEmail() : otpUser.getUserId() + "@ldap.local");
             userEntity.setFirstName(otpUser.getFullName() != null ? otpUser.getFullName() : otpUser.getUserId());
-            userEntity.setPhoneNumber(otpUser.getPhoneNumber());
+            userEntity.setPhoneNumber(otpUser.getPhone1());
             userEntity.setSource("ldap");
             userEntity.setPassword("");
             userEntity.setActive(true);

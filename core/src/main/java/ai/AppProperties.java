@@ -39,6 +39,8 @@ public class AppProperties {
     public static class Otp {
         String url;
         String xApiKey;
+        /** Customer code mặc định gửi lên OTP Service (VD: "ngn") */
+        String customerCode;
     }
 
     @Data
