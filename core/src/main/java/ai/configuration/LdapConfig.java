@@ -33,7 +33,7 @@ public class LdapConfig {
     public void validateLdapConfig() {
         AppProperties.Ldap ldap = appProperties.getLdap();
         if (ldap == null) {
-            log.warn("LDAP config chưa được cấu hình trong application.yml");
+            log.warn("LDAP config is not configured in application.yml");
             return;
         }
 
@@ -44,15 +44,15 @@ public class LdapConfig {
                 UUID orgId = UUID.fromString(defaultOrgId);
                 Optional<OrganizationEntity> org = organizationRepository.findById(orgId);
                 if (org.isEmpty()) {
-                    log.warn("LDAP default-org-id '{}' không tồn tại trong DB. Auto-assign org sẽ bị skip.", defaultOrgId);
+                    log.warn("LDAP default-org-id '{}' does not exist in DB. Auto-assign org will be skipped.", defaultOrgId);
                 } else {
                     log.info("LDAP default-org-id: '{}' ({})", defaultOrgId, org.get().getName());
                 }
             } catch (IllegalArgumentException e) {
-                log.warn("LDAP default-org-id '{}' không phải UUID hợp lệ", defaultOrgId);
+                log.warn("LDAP default-org-id '{}' is not a valid UUID", defaultOrgId);
             }
         } else {
-            log.info("LDAP default-org-id để trống → auto-assign org sẽ bị skip khi user đăng nhập lần đầu");
+            log.info("LDAP default-org-id is empty → auto-assign org will be skipped on first user login");
         }
 
         // Validate defaultRoleId
@@ -62,28 +62,28 @@ public class LdapConfig {
                 UUID roleId = UUID.fromString(defaultRoleId);
                 Optional<RoleEntity> role = roleRepository.findById(roleId);
                 if (role.isEmpty()) {
-                    log.warn("LDAP default-role-id '{}' không tồn tại trong DB. Sẽ fallback về findByDefaultAssign().", defaultRoleId);
+                    log.warn("LDAP default-role-id '{}' does not exist in DB. Will fallback to findByDefaultAssign().", defaultRoleId);
                 } else {
                     log.info("LDAP default-role-id: '{}' ({})", defaultRoleId, role.get().getName());
                 }
             } catch (IllegalArgumentException e) {
-                log.warn("LDAP default-role-id '{}' không phải UUID hợp lệ", defaultRoleId);
+                log.warn("LDAP default-role-id '{}' is not a valid UUID", defaultRoleId);
             }
         } else {
             // Fallback: kiểm tra role defaultAssign có tồn tại không
             Optional<RoleEntity> defaultRole = roleRepository.findByDefaultAssign();
             if (defaultRole.isEmpty()) {
-                log.warn("LDAP default-role-id để trống VÀ không có role nào có defaultAssign=true trong DB");
+                log.warn("LDAP default-role-id is empty AND no role with defaultAssign=true found in DB");
             } else {
-                log.info("LDAP default-role-id để trống → fallback về role: '{}' ({})", defaultRole.get().getId(), defaultRole.get().getName());
+                log.info("LDAP default-role-id is empty → fallback to role: '{}' ({})", defaultRole.get().getId(), defaultRole.get().getName());
             }
         }
 
         // Validate sync config
         if (ldap.getSync() != null && ldap.getSync().isEnabled()) {
-            log.info("LDAP auto-sync đã BẬT. Cron: '{}'", ldap.getSync().getCron());
+            log.info("LDAP auto-sync is ENABLED. Cron: '{}'", ldap.getSync().getCron());
             if (defaultOrgId == null || defaultOrgId.isBlank()) {
-                log.warn("LDAP auto-sync đang bật nhưng default-org-id để trống. User mới sẽ KHÔNG được gán org.");
+                log.warn("LDAP auto-sync is enabled but default-org-id is empty. New users will NOT be assigned an org.");
             }
         }
     }
