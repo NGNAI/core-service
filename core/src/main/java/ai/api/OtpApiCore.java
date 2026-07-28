@@ -41,6 +41,8 @@ public class OtpApiCore {
     }
 
     public <T> T post(String endPoint, Object body, ParameterizedTypeReference<T> responseType) throws JsonProcessingException {
+        System.out.println("Posting to " + endPoint + " with body: " + objectMapper.writeValueAsString(body));
+
         return otpRestClient.post()
                 .uri(uriBuilder -> uriBuilder
                         .path(endPoint)
