@@ -29,9 +29,13 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Service xử lý import user LDAP từ OTP Service vào hệ thống.
@@ -51,29 +55,80 @@ public class LdapService {
     AppProperties appProperties;
 
     /**
-     * Tìm kiếm user LDAP qua OTP Service.
-     * Trả về danh sách user kèm trạng thái đã import trong hệ thống chưa.
+     * Tìm kiếm user LDAP qua OTP Service (không filter org/role).
      */
     public List<LdapUserResponseDto> searchLdapUsers(String keyword) {
+        return searchLdapUsers(keyword, null, null);
+    }
+
+    /**
+     * Tìm kiếm user LDAP qua OTP Service, có lọc theo org và role.
+     *
+     * @param keyword        từ khoá tìm kiếm
+     * @param excludeUsersInOrganizationId optional — nếu truyền sẽ loại bỏ user đã có trong org đó
+     * @param excludeUsersInRoleId         optional — nếu truyền cùng excludeUsersInOrganizationId sẽ loại bỏ user đã có role đó trong org
+     */
+    public List<LdapUserResponseDto> searchLdapUsers(String keyword, UUID excludeUsersInOrganizationId, UUID excludeUsersInRoleId) {
         OtpApiResponseModel<List<OtpUserResponseDto>> response = otpApiService.searchUsers(keyword);
         if (response == null || !response.isSuccess() || response.getData() == null) {
             return List.of();
         }
 
-        return response.getData().stream().map(otpUser -> {
-            Optional<UserEntity> existingUser = userRepository.findByUserNameAndSource(otpUser.getUserId(), "ldap");
-            return LdapUserResponseDto.builder()
-                    .userId(otpUser.getUserId())
-                    .fullName(otpUser.getFullName())
-                    .email(otpUser.getEmail())
-                    .phoneNumber(otpUser.getPhone1())
-                    .organization(otpUser.getOrganization())
-                    .domain(otpUser.getDomain())
-                    .enable(otpUser.getEnable())
-                    .imported(existingUser.isPresent())
-                    .existingUserId(existingUser.map(UserEntity::getId).orElse(null))
-                    .build();
-        }).toList();
+        List<OtpUserResponseDto> otpUsers = response.getData();
+
+        // Tìm user LDAP đã tồn tại trong DB
+        List<String> otpUserIds = otpUsers.stream().map(OtpUserResponseDto::getUserId).toList();
+        List<UserEntity> existingUsers = userRepository.findByUserNameInAndSource(otpUserIds, "ldap");
+        Map<String, UUID> userNameToUserId = existingUsers.stream()
+                .collect(Collectors.toMap(UserEntity::getUserName, UserEntity::getId));
+
+        // Nếu có orgId → xác định set user cần loại bỏ
+        Set<String> excludedUserNames = new HashSet<>();
+        if (excludeUsersInOrganizationId != null && !userNameToUserId.isEmpty()) {
+            List<UUID> existingUuids = new ArrayList<>(userNameToUserId.values());
+            List<OrganizationUserRoleEntity> oursInOrg = ourRepository.findByOrganizationIdAndUserIdIn(excludeUsersInOrganizationId, existingUuids);
+
+            if (excludeUsersInRoleId != null) {
+                // Chỉ loại bỏ user đã có role đó trong org
+                Set<UUID> userIdsWithRole = oursInOrg.stream()
+                        .filter(our -> our.getId().getRoleId().equals(excludeUsersInRoleId))
+                        .map(our -> our.getId().getUserId())
+                        .collect(Collectors.toSet());
+                userNameToUserId.forEach((userName, uuid) -> {
+                    if (userIdsWithRole.contains(uuid)) {
+                        excludedUserNames.add(userName);
+                    }
+                });
+            } else {
+                // Loại bỏ tất cả user đã có trong org
+                Set<UUID> userIdsInOrg = oursInOrg.stream()
+                        .map(our -> our.getId().getUserId())
+                        .collect(Collectors.toSet());
+                userNameToUserId.forEach((userName, uuid) -> {
+                    if (userIdsInOrg.contains(uuid)) {
+                        excludedUserNames.add(userName);
+                    }
+                });
+            }
+        }
+
+        // Build response, filter out excluded users
+        return otpUsers.stream()
+                .filter(otpUser -> !excludedUserNames.contains(otpUser.getUserId()))
+                .map(otpUser -> {
+                    UUID existingId = userNameToUserId.get(otpUser.getUserId());
+                    return LdapUserResponseDto.builder()
+                            .userId(otpUser.getUserId())
+                            .fullName(otpUser.getFullName())
+                            .email(otpUser.getEmail())
+                            .phoneNumber(otpUser.getPhone1())
+                            .organization(otpUser.getOrganization())
+                            .domain(otpUser.getDomain())
+                            .enable(otpUser.getEnable())
+                            .imported(existingId != null)
+                            .existingUserId(existingId)
+                            .build();
+                }).toList();
     }
 
     /**
@@ -103,21 +158,21 @@ public class LdapService {
 
     /**
      * Import một loạt user LDAP vào hệ thống.
-     * Mỗi user được xử lý độc lập trong transaction riêng (REQUIRES_NEW):
-     * nếu 1 user fail thì tiếp tục user còn lại (partial success).
-     * Mỗi user thành công đều được ghi audit log.
+     * Nếu có organizationId → gán user vào org + role luôn.
+     * Nếu không → chỉ tạo user trong hệ thống (admin tự phân bổ org sau).
+     * Mỗi user được xử lý độc lập trong transaction riêng (REQUIRES_NEW).
      */
     public LdapImportResponseDto importLdapUsers(LdapImportRequestDto request) {
-        // Validate org
-        UUID orgId = request.getOrganizationId();
-        if (orgId == null) {
-            throw new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS);
-        }
-        OrganizationEntity orgEntity = organizationRepository.findById(orgId)
-                .orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
+        // Validate org (optional)
+        OrganizationEntity orgEntity = null;
+        RoleEntity roleEntity = null;
 
-        // Validate role: dùng request.roleId hoặc fallback findByDefaultAssign()
-        RoleEntity roleEntity = resolveRole(request.getRoleId());
+        UUID orgId = request.getOrganizationId();
+        if (orgId != null) {
+            orgEntity = organizationRepository.findById(orgId)
+                    .orElseThrow(() -> new AppException(ApiResponseStatus.ORGANIZATION_NOT_EXISTS));
+            roleEntity = resolveRole(request.getRoleId());
+        }
 
         List<LdapImportResponseDto.LdapImportItemResult> results = new ArrayList<>();
         int successCount = 0;
@@ -152,10 +207,12 @@ public class LdapService {
 
     /**
      * Import 1 user LDAP trong transaction riêng.
-     * Nếu fail → throw exception → caller catch và ghi nhận fail.
+     * Nếu orgEntity == null → chỉ tạo/save user, không gán org.
+     * Nếu orgEntity != null → tạo user + gán org (+ role).
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public LdapImportResponseDto.LdapImportItemResult importSingleUser(String ldapUserId, OrganizationEntity orgEntity, RoleEntity roleEntity) {
+    public LdapImportResponseDto.LdapImportItemResult importSingleUser(
+            String ldapUserId, OrganizationEntity orgEntity, RoleEntity roleEntity) {
         // 1. Lấy thông tin user từ OTP Service
         OtpApiResponseModel<OtpUserResponseDto> otpResponse = otpApiService.getUserDetail(ldapUserId);
         if (otpResponse == null || !otpResponse.isSuccess() || otpResponse.getData() == null) {
@@ -201,31 +258,46 @@ public class LdapService {
             userEntity = userRepository.save(userEntity);
         }
 
-        // 3. Gán vào org + role (nếu chưa có)
-        List<OrganizationUserRoleEntity> existingOurs = ourRepository.findByOrganizationIdAndUserIdIn(orgEntity.getId(), List.of(userEntity.getId()));
-        if (existingOurs.isEmpty()) {
-            OrganizationUserRoleEntity our = new OrganizationUserRoleEntity(orgEntity, userEntity, roleEntity);
-            ourRepository.save(our);
-        }
+        // 3. Gán vào org + role (nếu có orgEntity)
+        if (orgEntity != null) {
+            List<OrganizationUserRoleEntity> existingOurs = ourRepository.findByOrganizationIdAndUserIdIn(
+                    orgEntity.getId(), List.of(userEntity.getId()));
+            if (existingOurs.isEmpty()) {
+                OrganizationUserRoleEntity our = new OrganizationUserRoleEntity(orgEntity, userEntity, roleEntity);
+                ourRepository.save(our);
+            }
 
-        // 4. Ghi audit log
-        auditLogService.record(AuditLogRequest.builder()
-                .action(AuditAction.ASSIGN)
-                .resource(AuditResource.ORG_USER_ROLE)
-                .userId(userEntity.getId())
-                .userName(userEntity.getUserName())
-                .orgId(orgEntity.getId())
-                .organizationName(orgEntity.getName())
-                .resourceId(orgEntity.getId().toString())
-                .resourceName(orgEntity.getName())
-                .success(true)
-                .description("Import user LDAP '" + ldapUserId + "' vào org '" + orgEntity.getName() + "'")
-                .build());
+            // 4a. Ghi audit log (khi có gán org)
+            auditLogService.record(AuditLogRequest.builder()
+                    .action(AuditAction.ASSIGN)
+                    .resource(AuditResource.ORG_USER_ROLE)
+                    .userId(userEntity.getId())
+                    .userName(userEntity.getUserName())
+                    .orgId(orgEntity.getId())
+                    .organizationName(orgEntity.getName())
+                    .resourceId(orgEntity.getId().toString())
+                    .resourceName(orgEntity.getName())
+                    .success(true)
+                    .description("Import user LDAP '" + ldapUserId + "' vào org '" + orgEntity.getName() + "'")
+                    .build());
+        } else {
+            // 4b. Ghi audit log (không gán org)
+            auditLogService.record(AuditLogRequest.builder()
+                    .action(AuditAction.CREATE)
+                    .resource(AuditResource.USER)
+                    .userId(userEntity.getId())
+                    .userName(userEntity.getUserName())
+                    .success(true)
+                    .description("Import user LDAP '" + ldapUserId + "' vào hệ thống (chưa gán org)")
+                    .build());
+        }
 
         return LdapImportResponseDto.LdapImportItemResult.builder()
                 .ldapUserId(ldapUserId)
                 .success(true)
-                .message("Import thành công")
+                .message(orgEntity != null
+                        ? "Import thành công vào org '" + orgEntity.getName() + "'"
+                        : "Import thành công (chưa gán org)")
                 .importedUserId(userEntity.getId().toString())
                 .build();
     }
