@@ -1,6 +1,7 @@
 package ai.controller.admin;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,12 +33,14 @@ import lombok.experimental.FieldDefaults;
 public class LdapControllerAdmin {
     LdapService ldapService;
 
-    @Operation(summary = "Tìm kiếm user LDAP", description = "Tìm kiếm user trong LDAP qua OTP Service. Trả về danh sách kèm trạng thái đã import trong hệ thống chưa.")
+    @Operation(summary = "Tìm kiếm user LDAP", description = "Tìm kiếm user trong LDAP qua OTP Service. Trả về danh sách kèm trạng thái đã import. Có thể truyền organizationId và roleId để loại bỏ user đã có trong org đó.")
     @GetMapping("/users/search")
     @PreAuthorize("@perm.canAccess(null, 'USER', 'READ', null)")
     ResponseEntity<ApiResponseModel<List<LdapUserResponseDto>>> searchLdapUsers(
-            @RequestParam(required = false, defaultValue = "") String keyword) {
-        List<LdapUserResponseDto> users = ldapService.searchLdapUsers(keyword);
+            @RequestParam(required = false, defaultValue = "") String keyword,
+            @RequestParam(name = "excludeUsersInOrganizationId", required = false) UUID excludeUsersInOrganizationId,
+            @RequestParam(name = "excludeUsersInRoleId", required = false) UUID excludeUsersInRoleId) {
+        List<LdapUserResponseDto> users = ldapService.searchLdapUsers(keyword, excludeUsersInOrganizationId, excludeUsersInRoleId);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<LdapUserResponseDto>>builder()
                         .message("Search LDAP users successfully")
