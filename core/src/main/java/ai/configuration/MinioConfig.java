@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 @Configuration
 @RequiredArgsConstructor
 public class MinioConfig {
-    AppProperties appProperties;
+    final AppProperties appProperties;
 
     @Bean
     public MinioClient minioClient() {
