@@ -41,6 +41,12 @@ public class MessageEntity {
     @Column(name = "feedback")
     String feedback;
 
+    @Column(name = "suggested_replies", columnDefinition = "TEXT")
+    String suggestedReplies;
+
+    @Column(name = "reasoning_steps", columnDefinition = "TEXT")
+    String reasoningSteps;
+
     @Embedded
     AuditEmbed audit= new AuditEmbed();
 }

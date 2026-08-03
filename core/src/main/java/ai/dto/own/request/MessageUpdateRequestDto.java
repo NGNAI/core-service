@@ -11,4 +11,6 @@ import lombok.experimental.FieldDefaults;
 public class MessageUpdateRequestDto {
     String content;
     String source;
+    String suggestedReplies;
+    String reasoningSteps;
 }

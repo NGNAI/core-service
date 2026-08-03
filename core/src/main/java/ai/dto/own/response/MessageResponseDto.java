@@ -15,6 +15,8 @@ import lombok.experimental.FieldDefaults;
         "parentId",
         "content",
         "source",
+        "suggestedReplies",
+        "reasoningSteps",
         "type",
         "parentType"
 })
@@ -28,6 +30,10 @@ public class MessageResponseDto extends AuditResponseDto {
     @JsonRawValue
     String source;
     String feedback;
+    @JsonRawValue
+    String suggestedReplies;
+    @JsonRawValue
+    String reasoningSteps;
     String type;
     String parentType;
 }

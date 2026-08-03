@@ -69,6 +69,51 @@ public class RagService {
     ObjectMapper objectMapper;
 
     /**
+     * Generate a string response from RAG API based on the provided request DTO.
+     * This method handles the JSON response, extracting the content from the
+     * "choices" array and returning it as a string. If the response is empty or
+     * does not contain the expected structure, it returns null.
+     * @param requestDto
+     * @return
+     */
+    public String generateString(RagCompletionRequestDto requestDto) {
+        try {
+            String response = ragApiService.general(requestDto);
+
+            if (response == null || response.isBlank()) {
+                return null;
+            }
+
+            JsonNode root = objectMapper.readTree(response);
+            JsonNode contentNode = root.path("choices").path(0).path("message").path("content");
+
+            if (contentNode.isTextual()) {
+                return contentNode.asText();
+            }
+
+            if (contentNode.isArray()) {
+                StringBuilder content = new StringBuilder();
+                for (JsonNode part : contentNode) {
+                    if (part.isTextual()) {
+                        content.append(part.asText());
+                    } else if (part.isObject()) {
+                        JsonNode textPart = part.path("text");
+                        if (textPart.isTextual()) {
+                            content.append(textPart.asText());
+                        }
+                    }
+                }
+                return content.length() > 0 ? content.toString() : null;
+            }
+
+            return null;
+        } catch (JsonProcessingException e) {
+            log.error("Error processing JSON response from RAG API", e);
+            return null;
+        }
+    }
+
+    /**
      * Chat with topic, if topicId is null, create new topic and chat, else chat
      * with exist topic
      * 
@@ -77,7 +122,8 @@ public class RagService {
      * @return
      * @throws JsonProcessingException
      */
-    public Flux<String> chatTopic(UUID topicId, TopicCreateConversationRequestDto requestDto, List<TopicSourceResponseDto> uploadedSources)
+    public Flux<String> chatTopic(UUID topicId, TopicCreateConversationRequestDto requestDto,
+            List<TopicSourceResponseDto> uploadedSources)
             throws JsonProcessingException {
         UUID capturedUserId = JwtUtil.getUserId();
         UUID capturedOrgId = JwtUtil.getOrgId();
@@ -112,7 +158,9 @@ public class RagService {
         // Query history
         List<RagCompletionRequestDto.Message> historyConversations = messageService
                 .getAll(finalTopicId, MessageParentType.TOPIC, messageFilterDto).getSecond()
-            .stream().map(messageResponseDto -> createRagMessage(messageResponseDto.getType(), messageResponseDto.getContent()))
+                .stream()
+                .map(messageResponseDto -> createRagMessage(messageResponseDto.getType(),
+                        messageResponseDto.getContent()))
                 .collect(Collectors.toList());
 
         Collections.reverse(historyConversations);
@@ -138,28 +186,37 @@ public class RagService {
                         .build());
 
         // Get attachments of topic - Khoa xử lý tiếp nha
-        //List<TopicSourceResponseDto> attachments = topicSourceService.getAllSources(finalTopicId);
+        // List<TopicSourceResponseDto> attachments =
+        // topicSourceService.getAllSources(finalTopicId);
 
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
         metadata.setUserId(JwtUtil.getUserId());
         metadata.setOrganizationId(JwtUtil.getOrgId());
         metadata.setTopic_id(finalTopicId);
         metadata.setScopes(requestDto.getScopes());
-        //metadata.setFileIds(attachments.stream().map(e -> e.getId().toString()).collect(Collectors.toSet()));
-        // Chỗ fileIds này tạm thời là lấy theo attachment của message đầu vào, sau này có thể điều chỉnh lại nếu muốn lấy attachment theo topic thay vì message (hiện tại FE chưa support upload attachment riêng cho message, mà chỉ có upload attachment chung cho topic, nên tạm thời cứ lấy attachment của message đầu vào đã, sau này nếu FE support upload attachment riêng cho message thì sẽ lấy attachment theo message thay vì topic)
+        // metadata.setFileIds(attachments.stream().map(e ->
+        // e.getId().toString()).collect(Collectors.toSet()));
+        // Chỗ fileIds này tạm thời là lấy theo attachment của message đầu vào, sau này
+        // có thể điều chỉnh lại nếu muốn lấy attachment theo topic thay vì message
+        // (hiện tại FE chưa support upload attachment riêng cho message, mà chỉ có
+        // upload attachment chung cho topic, nên tạm thời cứ lấy attachment của message
+        // đầu vào đã, sau này nếu FE support upload attachment riêng cho message thì sẽ
+        // lấy attachment theo message thay vì topic)
         metadata.setFileIds(uploadedSources != null
                 ? uploadedSources.stream().map(e -> e.getId().toString()).collect(Collectors.toSet())
                 : Collections.emptySet());
         metadata.setSummaries(buildSummaryMetadata(topicEntity));
 
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
-            .messages(historyConversations)
-            .metadata(metadata)
-            .stream(true))
-            .build();
+                .messages(historyConversations)
+                .metadata(metadata)
+                .stream(true))
+                .build();
 
+        StringBuilder reasoningSteps = new StringBuilder();
         StringBuilder fullAnswer = new StringBuilder();
         StringBuilder source = new StringBuilder();
+        StringBuilder suggestedReplies = new StringBuilder();
 
         System.out.println(new ObjectMapper().writeValueAsString(ragCompletionRequestDto));
 
@@ -167,17 +224,51 @@ public class RagService {
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"topicId\": \"%s\"}", topicId))
                 // Trả thêm về dto assistant message luôn
-                .startWith(String.format("{\"assistantMessage\": %s}", new ObjectMapper().writeValueAsString(assistantMessage)))
+                .startWith(String.format("{\"assistantMessage\": %s}",
+                        new ObjectMapper().writeValueAsString(assistantMessage)))
                 .doOnNext(raw -> {
                     try {
-                        if (!raw.trim().equals("[DONE]")) {
-                            JsonNode node = objectMapper.readTree(raw);
+                        JsonNode node = objectMapper.readTree(raw);
+                        // Bỏ qua các event metadata không có trường event (assistantMessage, topicId,
+                        // messageId)
+                        if (!node.has("event")) {
+                            return;
+                        }
 
-                            if (node.has("token")) {
-                                fullAnswer.append(node.get("token").asText());
+                        switch (node.get("event").asText()) {
+                            case "delta" -> {
+                                if (node.has("content")) {
+                                    fullAnswer.append(node.get("content").asText());
+                                }
                             }
-                            if (node.has("sources")) {
-                                source.append(node.get("sources"));
+                            case "sources" -> {
+                                if (node.has("sources")) {
+                                    source.setLength(0);
+                                    source.append(node.get("sources").toString());
+                                }
+                            }
+                            case "final_answer" -> {
+                                if (node.has("reasoning_steps")) {
+                                    reasoningSteps.append(node.get("reasoning_steps").toString());
+                                }
+
+                                // Fallback: nếu chưa tích lũy được nội dung từ delta thì dùng response đầy đủ
+                                if (fullAnswer.isEmpty() && node.has("response") && node.get("response").isTextual()) {
+                                    fullAnswer.append(node.get("response").asText());
+                                }
+                                // Fallback: nếu event "sources" chưa gửi thì dùng sources trong final_answer
+                                if (source.isEmpty() && node.has("sources")) {
+                                    source.append(node.get("sources").toString());
+                                }
+                            }
+                            case "suggested_replies" -> {
+                                if (node.has("suggested_replies")) {
+                                    suggestedReplies.setLength(0);
+                                    suggestedReplies.append(node.get("suggested_replies").toString());
+                                }
+                            }
+                            default -> {
+                                // "done" và các event khác không cần xử lý
                             }
                         }
                     } catch (JsonProcessingException e) {
@@ -185,12 +276,20 @@ public class RagService {
                     }
                 })
                 .doOnComplete(() -> {
-                    if(source.isEmpty()) {
+                    if (source.isEmpty()) {
                         source.append("[]");
+                    }
+                    if (suggestedReplies.isEmpty()) {
+                        suggestedReplies.append("[]");
+                    }
+                    if (reasoningSteps.isEmpty()) {
+                        reasoningSteps.append("[]");
                     }
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
                             .content(fullAnswer.toString())
                             .source(source.toString())
+                            .suggestedReplies(suggestedReplies.toString())
+                            .reasoningSteps(reasoningSteps.toString())
                             .build());
 
                     asyncUpdateTopicSummary(finalTopicId);
@@ -233,7 +332,9 @@ public class RagService {
         // Query history
         List<RagCompletionRequestDto.Message> historyConversations = messageService
                 .getAll(finalNoteBookId, MessageParentType.NOTEBOOK, messageFilterDto).getSecond()
-            .stream().map(messageResponseDto -> createRagMessage(messageResponseDto.getType(), messageResponseDto.getContent()))
+                .stream()
+                .map(messageResponseDto -> createRagMessage(messageResponseDto.getType(),
+                        messageResponseDto.getContent()))
                 .collect(Collectors.toList());
 
         Collections.reverse(historyConversations);
@@ -267,13 +368,15 @@ public class RagService {
         metadata.setUserInstruction(noteBookEntity.getInstruction());
 
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
-            .messages(historyConversations)
-            .metadata(metadata)
-            .stream(true))
-            .build();
+                .messages(historyConversations)
+                .metadata(metadata)
+                .stream(true))
+                .build();
 
         StringBuilder fullAnswer = new StringBuilder();
         StringBuilder source = new StringBuilder();
+        StringBuilder reasoningSteps = new StringBuilder();
+        StringBuilder suggestedReplies = new StringBuilder();
 
         System.out.println(new ObjectMapper().writeValueAsString(ragCompletionRequestDto));
 
@@ -281,17 +384,61 @@ public class RagService {
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"noteBookId\": \"%s\"}", noteBookId))
                 // Trả thêm về dto assistant message luôn
-                .startWith(String.format("{\"assistantMessage\": %s}", new ObjectMapper().writeValueAsString(assistantMessage)))
+                .startWith(String.format("{\"assistantMessage\": %s}",
+                        new ObjectMapper().writeValueAsString(assistantMessage)))
                 .doOnNext(raw -> {
                     try {
                         if (!raw.trim().equals("[DONE]")) {
                             JsonNode node = objectMapper.readTree(raw);
 
-                            if (node.has("token")) {
-                                fullAnswer.append(node.get("token").asText());
-                            }
-                            if (node.has("sources")) {
-                                source.append(node.get("sources").asText());
+                            // Stream theo event (giống chatTopic): final_answer/sources/suggested_replies
+                            if (node.has("event")) {
+                                switch (node.get("event").asText()) {
+                                    case "final_answer" -> {
+                                        if (node.has("reasoning_steps")) {
+                                            reasoningSteps.setLength(0);
+                                            reasoningSteps.append(node.get("reasoning_steps").toString());
+                                        }
+                                        if (node.has("sources")) {
+                                            source.setLength(0);
+                                            source.append(node.get("sources").toString());
+                                        }
+                                        // Fallback: nếu chưa tích lũy token thì dùng response đầy đủ
+                                        if (fullAnswer.isEmpty() && node.has("response")
+                                                && node.get("response").isTextual()) {
+                                            fullAnswer.append(node.get("response").asText());
+                                        }
+                                    }
+                                    case "sources" -> {
+                                        if (node.has("sources")) {
+                                            source.setLength(0);
+                                            source.append(node.get("sources").toString());
+                                        }
+                                    }
+                                    case "suggested_replies" -> {
+                                        if (node.has("suggested_replies")) {
+                                            suggestedReplies.setLength(0);
+                                            suggestedReplies.append(node.get("suggested_replies").toString());
+                                        }
+                                    }
+                                    default -> {
+                                        // "delta", "done", ... không cần xử lý
+                                    }
+                                }
+                            } else {
+                                // Format cũ: token/sources trực tiếp trong từng chunk
+                                if (node.has("token")) {
+                                    fullAnswer.append(node.get("token").asText());
+                                }
+                                if (node.has("sources")) {
+                                    source.append(node.get("sources").asText());
+                                }
+                                if (node.has("reasoning_steps")) {
+                                    reasoningSteps.append(node.get("reasoning_steps").asText());
+                                }
+                                if (node.has("suggested_replies")) {
+                                    suggestedReplies.append(node.get("suggested_replies").asText());
+                                }
                             }
                         }
                     } catch (JsonProcessingException e) {
@@ -299,12 +446,20 @@ public class RagService {
                     }
                 })
                 .doOnComplete(() -> {
-                    if(source.isEmpty()) {
+                    if (source.isEmpty()) {
                         source.append("[]");
+                    }
+                    if (reasoningSteps.isEmpty()) {
+                        reasoningSteps.append("[]");
+                    }
+                    if (suggestedReplies.isEmpty()) {
+                        suggestedReplies.append("[]");
                     }
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
                             .content(fullAnswer.toString())
                             .source(source.toString())
+                            .reasoningSteps(reasoningSteps.toString())
+                            .suggestedReplies(suggestedReplies.toString())
                             .build());
 
                     asyncUpdateNoteBookSummary(finalNoteBookId);
@@ -325,13 +480,13 @@ public class RagService {
                         .build());
 
         RagDraftCreateRequestDto ragDraftCreateRequestDto = RagDraftCreateRequestDto.builder()
-            .user_request(draftResponse.getTitle())
-            .document_type(draftResponse.getType())
-            .context(draftResponse.getDetailedDescription())
-            .userId(capturedUserId)
-            .organizationId(capturedOrgId)
-            .stream(true)
-            .build();
+                .user_request(draftResponse.getTitle())
+                .document_type(draftResponse.getType())
+                .context(draftResponse.getDetailedDescription())
+                .userId(capturedUserId)
+                .organizationId(capturedOrgId)
+                .stream(true)
+                .build();
 
         StringBuilder sessionId = new StringBuilder();
         StringBuilder status = new StringBuilder();
@@ -342,7 +497,8 @@ public class RagService {
         return ragApiService.draftCreate(ragDraftCreateRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"draftId\": \"%s\"}", draftResponse.getId()))
-                .startWith(String.format("{\"assistantMessage\": %s}", new ObjectMapper().writeValueAsString(assistantMessage)))
+                .startWith(String.format("{\"assistantMessage\": %s}",
+                        new ObjectMapper().writeValueAsString(assistantMessage)))
                 .doOnNext(raw -> {
                     try {
                         JsonNode node = objectMapper.readTree(raw);
@@ -380,12 +536,12 @@ public class RagService {
                     draftService.updateSessionId(draftResponse.getId(), sessionIdStr);
 
                     // Update assistant message with generated content
-                    if(!status.isEmpty() && status.toString().equalsIgnoreCase("completed")) {
+                    if (!status.isEmpty() && status.toString().equalsIgnoreCase("completed")) {
                         questionForUser.setLength(0);
                         questionForUser.append("Đã hoàn thành");
                     }
 
-                    if(thoughts.isEmpty()) {
+                    if (thoughts.isEmpty()) {
                         thoughts.append("[]");
                     }
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
@@ -393,29 +549,29 @@ public class RagService {
                             .source(thoughts.toString())
                             .build());
 
-                    // Lưu thành 1 version mới của draft để theo dõi lịch sử chỉnh sửa nếu có draftContent
+                    // Lưu thành 1 version mới của draft để theo dõi lịch sử chỉnh sửa nếu có
+                    // draftContent
                     String draftContentStr = draftContent.toString();
-                    if(!draftContentStr.isEmpty()) {
+                    if (!draftContentStr.isEmpty()) {
                         DraftVersionResponseDto newVersion = draftService.saveVersion(
                                 draftResponse.getId(),
                                 DraftSaveVersionRequestDto.builder()
                                         .currentDraftContent(draftContentStr)
                                         .changeRequest(null)
                                         .build());
-                        log.info("Draft {} updated to version {} via chat", draftResponse.getId(), newVersion.getVersionNumber());
+                        log.info("Draft {} updated to version {} via chat", draftResponse.getId(),
+                                newVersion.getVersionNumber());
                     }
                 })
                 .concatWith(
-                    Mono.fromCallable(() -> {
-                        assistantMessage.setContent(questionForUser.toString());
-                        assistantMessage.setSource(thoughts.toString());
-                        log.info("assistantMessage before sending: {}", assistantMessage);
-                        return String.format(
-                            "{\"updatedAssistantMessage\": %s}",
-                            new ObjectMapper().writeValueAsString(assistantMessage)
-                        );
-                    }).flatMapMany(Flux::just)
-                )
+                        Mono.fromCallable(() -> {
+                            assistantMessage.setContent(questionForUser.toString());
+                            assistantMessage.setSource(thoughts.toString());
+                            log.info("assistantMessage before sending: {}", assistantMessage);
+                            return String.format(
+                                    "{\"updatedAssistantMessage\": %s}",
+                                    new ObjectMapper().writeValueAsString(assistantMessage));
+                        }).flatMapMany(Flux::just))
                 .doOnError(e -> {
                     log.error("Error during draft chat streaming", e);
                 })
@@ -423,7 +579,10 @@ public class RagService {
     }
 
     /**
-     * Chat with draft, draft is a special type that only user can see, used for user to iteratively edit a piece of content via chatting with AI. If draftId is null, create new draft and chat, else chat with exist draft
+     * Chat with draft, draft is a special type that only user can see, used for
+     * user to iteratively edit a piece of content via chatting with AI. If draftId
+     * is null, create new draft and chat, else chat with exist draft
+     * 
      * @param draftId
      * @param requestDto
      * @return
@@ -454,10 +613,10 @@ public class RagService {
                         .build());
 
         RagDraftReviseRequestDto ragDraftReviseRequestDto = RagDraftReviseRequestDto.builder()
-            .session_id(draftEntity.getSessionId())
-            .feedback(requestDto.getMessage())
-            .stream(true)
-            .build();
+                .session_id(draftEntity.getSessionId())
+                .feedback(requestDto.getMessage())
+                .stream(true)
+                .build();
 
         StringBuilder status = new StringBuilder();
         StringBuilder questionForUser = new StringBuilder();
@@ -467,7 +626,8 @@ public class RagService {
         return ragApiService.draftRevise(ragDraftReviseRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"draftId\": \"%s\"}", draftId))
-                .startWith(String.format("{\"assistantMessage\": %s}", new ObjectMapper().writeValueAsString(assistantMessage)))
+                .startWith(String.format("{\"assistantMessage\": %s}",
+                        new ObjectMapper().writeValueAsString(assistantMessage)))
                 .doOnNext(raw -> {
                     try {
                         JsonNode node = objectMapper.readTree(raw);
@@ -497,22 +657,23 @@ public class RagService {
                 })
                 .doOnComplete(() -> {
                     // Update assistant message with generated content
-                    if(!status.isEmpty() && status.toString().equalsIgnoreCase("completed")) {
+                    if (!status.isEmpty() && status.toString().equalsIgnoreCase("completed")) {
                         questionForUser.setLength(0);
                         questionForUser.append("Đã hoàn thành");
                     }
 
-                    if(thoughts.isEmpty()) {
+                    if (thoughts.isEmpty()) {
                         thoughts.append("[]");
-                    } 
+                    }
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
                             .content(questionForUser.toString())
                             .source(thoughts.toString())
                             .build());
 
-                    // Lưu thành 1 version mới của draft để theo dõi lịch sử chỉnh sửa nếu có draftContent
+                    // Lưu thành 1 version mới của draft để theo dõi lịch sử chỉnh sửa nếu có
+                    // draftContent
                     String draftContentStr = draftContent.toString();
-                    if(!draftContentStr.isEmpty()) {
+                    if (!draftContentStr.isEmpty()) {
                         DraftVersionResponseDto newVersion = draftService.saveVersion(
                                 draftId,
                                 DraftSaveVersionRequestDto.builder()
@@ -523,20 +684,17 @@ public class RagService {
                     }
                 })
                 .concatWith(
-                    Mono.fromCallable(() -> {
-                        assistantMessage.setContent(questionForUser.toString());
-                        assistantMessage.setSource(thoughts.toString());
-                        log.info("assistantMessage before sending: {}", assistantMessage);
-                        return String.format(
-                            "{\"updatedAssistantMessage\": %s}",
-                            new ObjectMapper().writeValueAsString(assistantMessage)
-                        );
-                    }).flatMapMany(Flux::just)
-                )
+                        Mono.fromCallable(() -> {
+                            assistantMessage.setContent(questionForUser.toString());
+                            assistantMessage.setSource(thoughts.toString());
+                            log.info("assistantMessage before sending: {}", assistantMessage);
+                            return String.format(
+                                    "{\"updatedAssistantMessage\": %s}",
+                                    new ObjectMapper().writeValueAsString(assistantMessage));
+                        }).flatMapMany(Flux::just))
                 .doOnError(e -> log.error("Error during draft chat streaming", e))
                 .doFinally(signalType -> log.info("Draft chat streaming completed with signal: {}", signalType));
     }
-
 
     /**
      * Async: generate a better title for a newly created topic via AI, update DB,
@@ -644,11 +802,11 @@ public class RagService {
                 + "### Generated Title: ";
 
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
-            .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
-            .stream(false))
-            .build();
+                .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
+                .stream(false))
+                .build();
 
-        return ragApiService.general(ragCompletionRequestDto);
+        return generateString(ragCompletionRequestDto);
     }
 
     /**
@@ -670,41 +828,22 @@ public class RagService {
                 + "### Generated Title: ";
 
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
-            .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
-            .stream(false))
-            .build();
+                .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
+                .stream(false))
+                .build();
 
-        return ragApiService.general(ragCompletionRequestDto);
+        return generateString(ragCompletionRequestDto);
     }
 
-    public String generalSummaryOfTopic(String existingSummary, List<MessageResponseDto> messages) throws JsonProcessingException {
+    public String generalSummaryOfTopic(String existingSummary, List<MessageResponseDto> messages)
+            throws JsonProcessingException {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("Act as a conversation memory compressor for Topic chat. Update a long-running topic summary so future turns retain important context. ");
-        prompt.append("Write in the same language as the conversation. Keep only durable facts, decisions, constraints, user preferences, named entities, unresolved questions, and progress state. ");
-        prompt.append("Do not include greetings, filler, duplicated wording, or markdown bullets unless they are essential. Return only the updated summary text.\n\n");
-        prompt.append("Existing summary:\n");
-        prompt.append(isBlank(existingSummary) ? "(none)" : existingSummary);
-        prompt.append("\n\nNew messages to absorb:\n");
-
-        for (MessageResponseDto message : messages) {
-            prompt.append(message.getType()).append(": ").append(message.getContent()).append('\n');
-        }
-
-        prompt.append("\nUpdated summary:");
-
-        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
-            .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt.toString())))
-            .stream(false))
-            .build();
-
-        return ragApiService.general(ragCompletionRequestDto);
-    }
-
-    public String generalSummaryOfNoteBook(String existingSummary, List<MessageResponseDto> messages) throws JsonProcessingException {
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("Act as a conversation memory compressor for Notebook chat. Update the notebook conversation summary for long-term memory. ");
-        prompt.append("Write in the same language as the conversation. Prioritize: requirements, tasks, plans, assumptions, decisions, unresolved action items, and key references from exchanged content. ");
-        prompt.append("Do not include greetings, filler, duplicated wording, or markdown bullets unless essential. Return only the updated summary text.\n\n");
+        prompt.append(
+                "Act as a conversation memory compressor for Topic chat. Update a long-running topic summary so future turns retain important context. ");
+        prompt.append(
+                "Write in the same language as the conversation. Keep only durable facts, decisions, constraints, user preferences, named entities, unresolved questions, and progress state. ");
+        prompt.append(
+                "Do not include greetings, filler, duplicated wording, or markdown bullets unless they are essential. Return only the updated summary text.\n\n");
         prompt.append("Existing summary:\n");
         prompt.append(isBlank(existingSummary) ? "(none)" : existingSummary);
         prompt.append("\n\nNew messages to absorb:\n");
@@ -720,7 +859,34 @@ public class RagService {
                 .stream(false))
                 .build();
 
-        return ragApiService.general(ragCompletionRequestDto);
+        return generateString(ragCompletionRequestDto);
+    }
+
+    public String generalSummaryOfNoteBook(String existingSummary, List<MessageResponseDto> messages)
+            throws JsonProcessingException {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append(
+                "Act as a conversation memory compressor for Notebook chat. Update the notebook conversation summary for long-term memory. ");
+        prompt.append(
+                "Write in the same language as the conversation. Prioritize: requirements, tasks, plans, assumptions, decisions, unresolved action items, and key references from exchanged content. ");
+        prompt.append(
+                "Do not include greetings, filler, duplicated wording, or markdown bullets unless essential. Return only the updated summary text.\n\n");
+        prompt.append("Existing summary:\n");
+        prompt.append(isBlank(existingSummary) ? "(none)" : existingSummary);
+        prompt.append("\n\nNew messages to absorb:\n");
+
+        for (MessageResponseDto message : messages) {
+            prompt.append(message.getType()).append(": ").append(message.getContent()).append('\n');
+        }
+
+        prompt.append("\nUpdated summary:");
+
+        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
+                .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt.toString())))
+                .stream(false))
+                .build();
+
+        return generateString(ragCompletionRequestDto);
     }
 
     private String buildSummaryMetadata(TopicEntity topicEntity) {
@@ -747,10 +913,18 @@ public class RagService {
     }
 
     /**
-     * Định nghĩa khi nào cần gọi API tóm tắt lại cuộc hội thoại để cập nhật summary. Nếu tổng số tin nhắn sau checkpoint (tức là tin nhắn chưa được tóm tắt) vượt quá recentWindow + minMessagesToCompress, thì sẽ gọi API tóm tắt.
-     * recentWindow đảm bảo rằng luôn có một số lượng tin nhắn gần đây được giữ nguyên trong summary để duy trì ngữ cảnh tươi mới, trong khi minMessagesToCompress đảm bảo rằng chỉ gọi API tóm tắt khi có đủ tin nhắn mới cần được nén lại, tránh việc gọi API quá thường xuyên với lượng tin nhắn quá ít.
+     * Định nghĩa khi nào cần gọi API tóm tắt lại cuộc hội thoại để cập nhật
+     * summary. Nếu tổng số tin nhắn sau checkpoint (tức là tin nhắn chưa được tóm
+     * tắt) vượt quá recentWindow + minMessagesToCompress, thì sẽ gọi API tóm tắt.
+     * recentWindow đảm bảo rằng luôn có một số lượng tin nhắn gần đây được giữ
+     * nguyên trong summary để duy trì ngữ cảnh tươi mới, trong khi
+     * minMessagesToCompress đảm bảo rằng chỉ gọi API tóm tắt khi có đủ tin nhắn mới
+     * cần được nén lại, tránh việc gọi API quá thường xuyên với lượng tin nhắn quá
+     * ít.
+     * 
      * @param totalMessagesAfterCheckpoint tổng số tin nhắn sau checkpoint
-     * @param recentWindow số lượng tin nhắn gần đây được giữ nguyên trong summary
+     * @param recentWindow                 số lượng tin nhắn gần đây được giữ nguyên
+     *                                     trong summary
      * @return true nếu cần tóm tắt, false nếu không
      */
     private boolean shouldSummarize(int totalMessagesAfterCheckpoint, int recentWindow) {
@@ -758,9 +932,11 @@ public class RagService {
     }
 
     /**
-     * Đọc cấu hình từ appProperties, nếu không có hoặc không hợp lệ (null hoặc <=0) thì trả về giá trị mặc định.
+     * Đọc cấu hình từ appProperties, nếu không có hoặc không hợp lệ (null hoặc <=0)
+     * thì trả về giá trị mặc định.
+     * 
      * @return giá trị cấu hình hợp lệ hoặc giá trị mặc định
-    */
+     */
     private int topicRecentMessageWindow() {
         return readPositiveMemoryConfig(
                 appProperties.getRag() != null && appProperties.getRag().getMemory() != null
@@ -793,13 +969,15 @@ public class RagService {
     }
 
     /**
-     * Áp dụng cấu hình AI từ system settings vào {@link RagCompletionRequestDto.RagCompletionRequestDtoBuilder}.
+     * Áp dụng cấu hình AI từ system settings vào
+     * {@link RagCompletionRequestDto.RagCompletionRequestDtoBuilder}.
      * Đọc các settings:
      * <ul>
-     *   <li>{@code ai.model} — model AI mặc định (ví dụ: gpt-4)</li>
-     *   <li>{@code ai.temperature} — nhiệt độ sinh (0.0 - 2.0)</li>
-     *   <li>{@code ai.maxTokens} — số token tối đa mỗi request</li>
+     * <li>{@code ai.model} — model AI mặc định (ví dụ: gpt-4)</li>
+     * <li>{@code ai.temperature} — nhiệt độ sinh (0.0 - 2.0)</li>
+     * <li>{@code ai.maxTokens} — số token tối đa mỗi request</li>
      * </ul>
+     * 
      * @param builder builder của RagCompletionRequestDto
      * @return builder đã được apply AI settings
      */
@@ -818,7 +996,8 @@ public class RagService {
             builder.maxTokens(maxTokens);
         }
 
-        System.out.println("Applied AI settings: model=" + model + ", temperature=" + temperature + ", maxTokens=" + maxTokens);
+        System.out.println(
+                "Applied AI settings: model=" + model + ", temperature=" + temperature + ", maxTokens=" + maxTokens);
         System.out.println("RagCompletionRequestDto builder: " + builder);
         return builder;
     }

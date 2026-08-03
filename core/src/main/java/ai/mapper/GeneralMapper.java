@@ -29,4 +29,22 @@ public interface GeneralMapper {
     default String instantToString(Instant time) {
         return time!=null ? time.toString() : null;
     }
+
+    /**
+     * Đảm bảo suggestedReplies luôn trả về mảng JSON rỗng ([]) khi chưa có dữ liệu,
+     * để client luôn nhận được dạng array thay vì null.
+     */
+    @Named("suggestedRepliesOrDefault")
+    default String suggestedRepliesOrDefault(String value) {
+        return value == null ? "[]" : value;
+    }
+
+    /**
+     * Đảm bảo reasoningSteps luôn trả về mảng JSON rỗng ([]) khi chưa có dữ liệu,
+     * để client luôn nhận được dạng array thay vì null.
+     */
+    @Named("reasoningStepsOrDefault")
+    default String reasoningStepsOrDefault(String value) {
+        return value == null ? "[]" : value;
+    }
 }
