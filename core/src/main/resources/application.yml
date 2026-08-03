@@ -10,6 +10,13 @@ spring:
   main:
     allow-circular-references: true
 
+  # Cấu hình thread pool cho các job @Scheduled (mặc định Spring Boot chỉ dùng 1 thread -> dễ nghẽn cổ chai)
+  task:
+    scheduling:
+      pool:
+        size: 5
+      thread-name-prefix: "scheduling-"
+
   servlet:
     multipart:
       max-file-size: "100MB"
@@ -178,6 +185,13 @@ auto-ingestion:
   access-level: "GLOBAL"
   from-source: "SYSTEM"
   delete-local-after-success: true
+
+# Cấu hình giới hạn retry cho các scheduler maintenance (tránh retry vô hạn)
+maintenance:
+  # Số lần retry tối đa cho việc xóa trong delete queue (data ingestion + notebook source)
+  max-delete-retries: 5
+  # Số lần retry tối đa cho việc re-dispatch source notebook lên ingestion service
+  max-dispatch-retries: 5
 
 # Cấu hình bảo mật bổ sung (không thuộc RBAC)
 security:

@@ -36,6 +36,6 @@ public class RagApiService {
     }
 
     public String general(RagCompletionRequestDto requestDto) throws JsonProcessingException {
-        return apiCore.postForString("/v2/generate/chat/completions_simple", requestDto);
+        return apiCore.postForString("/generate/v1/chat/completions_simple", requestDto);
     }
 }

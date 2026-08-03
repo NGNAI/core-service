@@ -14,7 +14,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.Pollers;
 import org.springframework.integration.file.inbound.FileReadingMessageSource;
-import org.springframework.integration.file.filters.AcceptOnceFileListFilter;
 import org.springframework.integration.file.filters.AbstractFileListFilter;
 import org.springframework.integration.file.filters.CompositeFileListFilter;
 import org.springframework.integration.file.filters.LastModifiedFileListFilter;
@@ -64,6 +63,8 @@ public class DataIngestionAutoImportScheduler {
 		ensureDirectoryExists(resolveInputDir());
 		ensureDirectoryExists(resolveProcessingDir());
 		ensureDirectoryExists(resolveFailedDir());
+		// Khôi phục các file còn sót trong thư mục processing (do app crash/restart giữa chừng) về input để xử lý lại
+		recoverStaleProcessingFiles();
 
 		RecursiveDirectoryScanner scanner = new RecursiveDirectoryScanner();
 		scanner.setFilter(buildFilter());
@@ -81,6 +82,14 @@ public class DataIngestionAutoImportScheduler {
 	private CompositeFileListFilter<File> buildFilter() {
 		log.info("Building file filter for auto-ingestion...");
 		CompositeFileListFilter<File> filter = new CompositeFileListFilter<File>();
+        // Chỉ lấy file khi auto-ingestion được bật. Filter này phải đặt TRƯỚC AcceptOnceFileListFilter để khi tính năng bị tắt,
+        // file không bị đánh dấu là "đã xử lý" — nếu không, các file đang có sẵn trong thư mục đầu vào sẽ bị bỏ qua vĩnh viễn khi bật lại tính năng.
+		filter.addFilter(new AbstractFileListFilter<File>() {
+			@Override
+			public boolean accept(File file) {
+				return isEnabled();
+			}
+		});
         // Lấy tất cả file, sau đó sẽ lọc tiếp ở filter bên dưới để đảm bảo chỉ lấy file nằm trong thư mục đầu vào, không lấy file trong thư mục xử lý tạm thời hoặc thư mục failed
 		filter.addFilter(new RegexPatternFileListFilter(".*"));
         // Lọc file để chỉ lấy file (không lấy thư mục), nằm trong thư mục đầu vào (không lấy file trong thư mục xử lý tạm thời hoặc thư mục failed)
@@ -107,8 +116,8 @@ public class DataIngestionAutoImportScheduler {
 		});
         // Lọc file để chỉ lấy file đã ổn định (không còn đang được ghi dữ liệu) và chưa từng được xử lý trước đó, tránh tình trạng file bị xử lý khi đang được ghi dữ liệu hoặc bị xử lý đồng thời
 		filter.addFilter(new LastModifiedFileListFilter(resolveStableFileAgeMs() / 1000));
-        // Lọc file để chỉ lấy file chưa từng được xử lý trước đó, tránh tình trạng file bị xử lý đồng thời bởi nhiều luồng hoặc bị xử lý lại khi đã xử lý xong nhưng chưa kịp xóa hoặc di chuyển đi
-		filter.addFilter(new AcceptOnceFileListFilter<File>());
+        // Ghi chú: không dùng AcceptOnceFileListFilter vì việc move file sang thư mục processing (atomic move) đã đảm bảo chống xử lý trùng.
+        // Hơn nữa, AcceptOnce là filter in-memory sẽ chặn vĩnh viễn các file trùng tên và khiến file không thể retry sau lỗi tạm thời.
 		return filter;
 	}
 
@@ -140,24 +149,24 @@ public class DataIngestionAutoImportScheduler {
 			return;
 		}
 
-		UUID ownerId = userService.getRoot().getId();
-		UUID orgId = organizationService.getRoot().getId();
-
-		if (ownerId == null || orgId == null) {
-			log.error("Auto-ingestion skipped because owner-id or organization-id is missing/invalid. file={}", originalFile);
-			moveToFailed(stagedFile, relativePath);
-			return;
-		}
-
-		DataScope accessLevel = appProperties.getAutoIngestion().getAccessLevel() == null
-				? DataScope.GLOBAL
-				: appProperties.getAutoIngestion().getAccessLevel();
-
-		DataSource fromSource = appProperties.getAutoIngestion().getFromSource() == null
-				? DataSource.SYSTEM
-				: appProperties.getAutoIngestion().getFromSource();
-
 		try {
+			UUID ownerId = userService.getRoot().getId();
+			UUID orgId = organizationService.getRoot().getId();
+
+			if (ownerId == null || orgId == null) {
+				log.error("Auto-ingestion skipped because owner-id or organization-id is missing/invalid. file={}", originalFile);
+				moveToFailed(stagedFile, relativePath);
+				return;
+			}
+
+			DataScope accessLevel = appProperties.getAutoIngestion().getAccessLevel() == null
+					? DataScope.GLOBAL
+					: appProperties.getAutoIngestion().getAccessLevel();
+
+			DataSource fromSource = appProperties.getAutoIngestion().getFromSource() == null
+					? DataSource.SYSTEM
+					: appProperties.getAutoIngestion().getFromSource();
+
 			DataIngestionResponseDto response = dataIngestionService.ingestLocalFile(
 					stagedFile,
 					relativePath,
@@ -176,8 +185,11 @@ public class DataIngestionAutoImportScheduler {
 				Files.deleteIfExists(stagedFile);
 			}
 		} catch (Exception exception) {
-			log.error("Auto-ingestion failed. file={}", originalFile, exception);
-			moveToFailed(stagedFile, relativePath);
+			// Ngoại lệ (vd ingestion service tạm downtime, DB lỗi, thiếu root user...) thường là lỗi tạm thời.
+			// Không move sang .failed ngay mà đưa file trở lại thư mục input để retry ở lần quét sau,
+			// tránh việc file bị loại vĩnh viễn khỏi pipeline chỉ vì sự cố tạm thời.
+			log.error("Auto-ingestion failed (transient), moving file back to input for retry. file={}", originalFile, exception);
+			moveBackToInput(stagedFile, relativePath);
 		}
 	}
 
@@ -204,6 +216,17 @@ public class DataIngestionAutoImportScheduler {
 			moveFile(stagedFile, target);
 		} catch (Exception exception) {
 			log.error("Cannot move file to failed area. file={}", stagedFile, exception);
+		}
+	}
+
+    // Đưa file từ thư mục xử lý tạm thời trở lại thư mục đầu vào để được retry ở lần quét sau (dùng cho lỗi tạm thời)
+	private void moveBackToInput(Path stagedFile, Path relativePath) {
+		try {
+			Path target = resolveInputDir().resolve(relativePath).normalize();
+			ensureDirectoryExists(target.getParent());
+			moveFile(stagedFile, target);
+		} catch (Exception exception) {
+			log.error("Cannot move file back to input area for retry. file={}", stagedFile, exception);
 		}
 	}
 
@@ -275,6 +298,31 @@ public class DataIngestionAutoImportScheduler {
 			Files.createDirectories(path);
 		} catch (Exception exception) {
 			throw new IllegalStateException("Cannot initialize auto-ingestion directories: " + path, exception);
+		}
+	}
+
+    // Khôi phục các file còn sót lại trong thư mục processing (do app bị crash/restart giữa chừng) trở lại thư mục input
+    // để được xử lý lại, tránh file bị kẹt vĩnh viễn trong thư mục processing.
+	private void recoverStaleProcessingFiles() {
+		Path processingPath = resolveProcessingDir();
+		if (processingPath == null || !Files.isDirectory(processingPath)) {
+			return;
+		}
+		try (var stream = Files.walk(processingPath)) {
+			stream.filter(Files::isRegularFile)
+					.forEach(file -> {
+						Path relative = processingPath.relativize(file);
+						try {
+							Path target = resolveInputDir().resolve(relative).normalize();
+							ensureDirectoryExists(target.getParent());
+							moveFile(file, target);
+							log.warn("Recovered stale processing file back to input: {}", file);
+						} catch (Exception exception) {
+							log.error("Cannot recover stale processing file. file={}", file, exception);
+						}
+					});
+		} catch (Exception exception) {
+			log.error("Cannot scan processing directory for stale files. dir={}", processingPath, exception);
 		}
 	}
 

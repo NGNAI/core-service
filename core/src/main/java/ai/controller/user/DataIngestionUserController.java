@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -116,7 +117,7 @@ public class DataIngestionUserController {
 
         @Operation(summary = "Download data ingestion file", description = "Download file bytes from MinIO by data ingestion id")
         @GetMapping("/{dataIngestionId}/download")
-        ResponseEntity<byte[]> download(
+        ResponseEntity<InputStreamResource> download(
                 @Parameter(description = "Data ingestion ID", example = "1e8f9c7d-4b2a-4c3b-8d9e-1f2a3b4c5d6e") @PathVariable UUID dataIngestionId
         ) {
                 DataIngestionEntity dataIngestion = dataIngestionService.getEntityById(dataIngestionId);
@@ -135,7 +136,8 @@ public class DataIngestionUserController {
 
                 return ResponseEntity.ok()
                                 .headers(headers)
-                                .body(fileData.bytes());
+                                .contentLength(fileData.size())
+                                .body(new InputStreamResource(fileData.inputStream()));
         }
 
         @Operation(summary = "Get data ingestion download URL with file", description = "Get MinIO presigned URL for data ingestion file download")

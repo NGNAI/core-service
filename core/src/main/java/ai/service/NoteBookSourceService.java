@@ -1,6 +1,7 @@
 package ai.service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,10 +48,12 @@ import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
+@Slf4j
 public class NoteBookSourceService {
     static final String NOTEBOOK_BUCKET = "notebookllm";
     static final int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
@@ -290,8 +293,9 @@ public class NoteBookSourceService {
         NoteBookSourceEntity source = getSourceEntity(noteBookId, sourceId);
         validateDownloadableSource(source);
 
-        MinioService.MinioObjectData objectData = minioService.download(source.getFilePath(), NOTEBOOK_BUCKET);
-        return new NoteBookSourceDownloadData(resolveFileName(source), objectData.getContentType(), objectData.getBytes());
+        // Stream trực tiếp từ MinIO để tránh load toàn bộ file vào RAM khi tải file lớn
+        MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), NOTEBOOK_BUCKET);
+        return new NoteBookSourceDownloadData(resolveFileName(source), objectStream.getContentType(), objectStream.getInputStream(), objectStream.getSize());
     }
 
     /**
@@ -328,8 +332,9 @@ public class NoteBookSourceService {
      * Đồng bộ trạng thái vector của các source notebook đang chờ xử lý hoặc đang xử lý trên ingestion service. Phương thức này thường được gọi định kỳ bởi scheduler để đảm bảo trạng thái vector của các source notebook luôn được cập nhật kịp thời và chính xác, đặc biệt là những source có jobId đã được gửi lên ingestion service nhưng chưa có callback về hoặc có callback về nhưng trạng thái vẫn là processing.
      */
     public void syncPendingVectorStatuses() {
-        System.out.println("Start syncing notebook source vector statuses...");
-        noteBookSourceRepository.findSourcesForIngestionMaintenance().forEach(source -> {
+        log.info("Start syncing notebook source vector statuses...");
+        int maxDispatchRetries = resolveMaxDispatchRetries();
+        noteBookSourceRepository.findSourcesForIngestionMaintenance(maxDispatchRetries).forEach(source -> {
             try {
                 if (!DataIngestionDeleteStatus.ACTIVE.equals(resolveDeleteStatus(source))) {
                     return;
@@ -343,29 +348,67 @@ public class NoteBookSourceService {
                 IngestionStatusResponseDto statusResponse = ingestionService.getJobStatus(source.getJobId());
                 updateStatusAndBuildResponse(source, statusResponse, true);
             } catch (Exception exception) {
-                System.err.println("Error syncing notebook source with ID: " + source.getId());
-                exception.printStackTrace();
+                log.error("Error syncing notebook source with ID: {}", source.getId(), exception);
             }
         });
-        System.out.println("Finished syncing notebook source vector statuses.");
+        log.info("Finished syncing notebook source vector statuses.");
     }
 
     /**
      * Xử lý hàng đợi xóa các source notebook. Phương thức này thường được gọi định kỳ bởi scheduler để thực hiện xóa các source notebook đã được đánh dấu là PENDING_DELETE nhưng chưa được xóa ngay do có thể đang chờ xử lý trên ingestion service hoặc đang trong quá trình xóa mà gặp lỗi cần retry. Việc xử lý hàng đợi xóa định kỳ giúp đảm bảo các source notebook không còn cần thiết sẽ được xóa sạch sẽ khỏi hệ thống, đồng thời giải phóng tài nguyên lưu trữ và tránh nhầm lẫn cho người dùng khi nhìn thấy các source đã bị xóa nhưng vẫn còn hiển thị trong giao diện.
      */
     public void processPendingDeleteQueue() {
-        System.out.println("Start processing pending notebook source deletions...");
+        log.info("Start processing pending notebook source deletions...");
+        int maxDeleteRetries = resolveMaxDeleteRetries();
         noteBookSourceRepository.findByDeleteStatusIn(List.of(
                 DataIngestionDeleteStatus.PENDING_DELETE,
                 DataIngestionDeleteStatus.DELETE_FAILED)).forEach(source -> {
             try {
+                if (shouldSkipDelete(source, maxDeleteRetries)) {
+                    return;
+                }
                 executeDelete(source);
             } catch (Exception exception) {
-                System.err.println("Error processing delete for notebook source with ID: " + source.getId());
-                exception.printStackTrace();
+                log.error("Error processing delete for notebook source with ID: {}", source.getId(), exception);
             }
         });
-        System.out.println("Finished processing pending notebook source deletions.");
+        log.info("Finished processing pending notebook source deletions.");
+    }
+
+    /**
+     * Giới hạn số lần retry xóa tối đa trong delete queue (tránh retry vô hạn khi lỗi vĩnh viễn).
+     */
+    private int resolveMaxDeleteRetries() {
+        if (appProperties.getMaintenance() == null
+                || appProperties.getMaintenance().getMaxDeleteRetries() == null
+                || appProperties.getMaintenance().getMaxDeleteRetries() <= 0) {
+            return 5;
+        }
+        return appProperties.getMaintenance().getMaxDeleteRetries();
+    }
+
+    /**
+     * Giới hạn số lần retry tối đa cho việc re-dispatch source lên ingestion service (tránh retry vô hạn).
+     */
+    private int resolveMaxDispatchRetries() {
+        if (appProperties.getMaintenance() == null
+                || appProperties.getMaintenance().getMaxDispatchRetries() == null
+                || appProperties.getMaintenance().getMaxDispatchRetries() <= 0) {
+            return 5;
+        }
+        return appProperties.getMaintenance().getMaxDispatchRetries();
+    }
+
+    /**
+     * Bỏ qua source đã vượt quá số lần retry xóa tối đa, tránh retry vô hạn.
+     */
+    private boolean shouldSkipDelete(NoteBookSourceEntity source, int maxDeleteRetries) {
+        int retried = source.getDeleteRetryCount() == null ? 0 : source.getDeleteRetryCount();
+        if (retried >= maxDeleteRetries) {
+            log.warn("Skip notebook source delete: exceeded max retries ({}). id={}", maxDeleteRetries, source.getId());
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -383,8 +426,9 @@ public class NoteBookSourceService {
             throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_DELETE_IN_PROGRESS);
         }
 
+        log.debug("Processing notebook source: {} - {} - {}", source.getId(), source.getDisplayName(), source.getFilePath());
+
         try {
-            byte[] payloadBytes = resolvePayloadBytes(source);
             String fileName = resolvePayloadFileName(source);
             String callbackUrl = resolveCallbackUrl();
 
@@ -395,20 +439,43 @@ public class NoteBookSourceService {
                     : source.getNoteBook().getId().toString();
             String unitName = resolveUnitName(source);
 
-            IngestionUploadResponseDto ingestionResponse = ingestionService.uploadNoteBook(
-                    payloadBytes,
-                    fileName,
-                    source.getId().toString(),
-                    userId,
-                    userName,
-                    unitId,
-                    unitName,
-                    DataScope.PERSONAL,
-                    source.getNoteBook().getId().toString(),
-                    callbackUrl);
+            IngestionUploadResponseDto ingestionResponse;
+            if (source.getFilePath() != null && !source.getFilePath().isBlank()) {
+                // Stream trực tiếp từ MinIO lên ingestion service để tránh load toàn bộ file vào RAM với file lớn
+                try (MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), NOTEBOOK_BUCKET)) {
+                    ingestionResponse = ingestionService.uploadNoteBook(
+                            objectStream.getInputStream(),
+                            objectStream.getSize(),
+                            fileName,
+                            source.getId().toString(),
+                            userId,
+                            userName,
+                            unitId,
+                            unitName,
+                            DataScope.PERSONAL,
+                            source.getNoteBook().getId().toString(),
+                            callbackUrl);
+                }
+            } else {
+                byte[] payloadBytes = source.getRawContent() == null
+                        ? new byte[0]
+                        : source.getRawContent().getBytes(StandardCharsets.UTF_8);
+                ingestionResponse = ingestionService.uploadNoteBook(
+                        payloadBytes,
+                        fileName,
+                        source.getId().toString(),
+                        userId,
+                        userName,
+                        unitId,
+                        unitName,
+                        DataScope.PERSONAL,
+                        source.getNoteBook().getId().toString(),
+                        callbackUrl);
+            }
 
             if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
                 source.setVectorStatus(NoteBookSourceEntity.VectorStatus.FAILED);
+                source.setDispatchRetryCount((source.getDispatchRetryCount() == null ? 0 : source.getDispatchRetryCount()) + 1);
                 source = noteBookSourceRepository.save(source);
                 publishStatusEvent(source, NoteBookSourceEntity.VectorStatus.FAILED);
                 return noteBookSourceMapper.entityToResponseDto(source);
@@ -416,11 +483,13 @@ public class NoteBookSourceService {
 
             source.setJobId(ingestionResponse.getJobId());
             source.setVectorStatus(NoteBookSourceEntity.VectorStatus.CREATED);
+            source.setDispatchRetryCount(0);
             source = noteBookSourceRepository.save(source);
             publishStatusEvent(source, NoteBookSourceEntity.VectorStatus.CREATED);
             return noteBookSourceMapper.entityToResponseDto(source);
         } catch (Exception exception) {
             source.setVectorStatus(NoteBookSourceEntity.VectorStatus.FAILED);
+            source.setDispatchRetryCount((source.getDispatchRetryCount() == null ? 0 : source.getDispatchRetryCount()) + 1);
             source = noteBookSourceRepository.save(source);
             publishStatusEvent(source, NoteBookSourceEntity.VectorStatus.FAILED);
             return noteBookSourceMapper.entityToResponseDto(source);
@@ -502,8 +571,7 @@ public class NoteBookSourceService {
         try {
             executeDelete(source);
         } catch (Exception exception) {
-            System.err.println("Immediate delete failed for notebook source with ID: " + source.getId());
-            exception.printStackTrace();
+            log.error("Immediate delete failed for notebook source with ID: {}", source.getId(), exception);
         }
 
         return noteBookSourceMapper.entityToResponseDto(source);
@@ -531,6 +599,7 @@ public class NoteBookSourceService {
         } catch (Exception exception) {
             noteBookSourceRepository.findById(source.getId()).ifPresent(entity -> {
                 entity.setDeleteStatus(DataIngestionDeleteStatus.DELETE_FAILED);
+                entity.setDeleteRetryCount((entity.getDeleteRetryCount() == null ? 0 : entity.getDeleteRetryCount()) + 1);
                 NoteBookSourceEntity savedEntity = noteBookSourceRepository.save(entity);
                 publishDeleteEvent(savedEntity, SystemEventType.NOTEBOOK_SOURCE_DELETE_FAILED, noteBookSourceMapper.entityToResponseDto(savedEntity));
             });
@@ -550,6 +619,7 @@ public class NoteBookSourceService {
             IngestionStatusResponseDto ingestionStatusResponse,
             boolean emitEvent) {
         boolean shouldSave = false;
+        boolean statusChanged = false;
         NoteBookSourceEntity.VectorStatus resolvedStatus = resolveVectorStatus(
                 ingestionStatusResponse == null ? null : ingestionStatusResponse.getStatus(),
                 source.getVectorStatus());
@@ -557,6 +627,7 @@ public class NoteBookSourceService {
         if (source.getVectorStatus() == null || !resolvedStatus.equals(source.getVectorStatus())) {
             source.setVectorStatus(resolvedStatus);
             shouldSave = true;
+            statusChanged = true;
 
             if (ingestionStatusResponse != null
                     && ingestionStatusResponse.getMeta() != null
@@ -579,7 +650,7 @@ public class NoteBookSourceService {
             source = noteBookSourceRepository.save(source);
         }
 
-        if (emitEvent) {
+        if (emitEvent && statusChanged) {
             publishStatusEvent(source, resolvedStatus);
         }
 
@@ -590,28 +661,6 @@ public class NoteBookSourceService {
                 .vectorStatus(resolvedStatus.name())
                 .message(ingestionStatusResponse == null ? null : ingestionStatusResponse.getMessage())
                 .build();
-    }
-
-    /**
-     * Giải mã payload của source notebook thành mảng byte để gửi lên ingestion service. Đối với source có kiểu FILE, hệ thống sẽ tải file từ MinIO dựa trên filePath đã lưu trong database, sau đó đọc nội dung file và trả về dưới dạng mảng byte. Đối với source có kiểu TEXT hoặc NOTE, hệ thống sẽ lấy rawContent đã lưu trong database, chuyển đổi sang mảng byte bằng encoding UTF-8 và trả về. Nếu source không có payload hợp lệ (ví dụ: thiếu filePath đối với FILE hoặc thiếu rawContent đối với TEXT/NOTE), hệ thống sẽ ném ra ngoại lệ để thông báo lỗi.
-     * @param source
-     * @return
-     */
-    private byte[] resolvePayloadBytes(NoteBookSourceEntity source) {
-        if (source.getSourceType() == null) {
-            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_NOT_EXISTS);
-        }
-
-        if (source.getFilePath() != null && !source.getFilePath().isBlank()) {
-            MinioService.MinioObjectData objectData = minioService.download(source.getFilePath(), NOTEBOOK_BUCKET);
-            return objectData.getBytes();
-        }
-
-        if (source.getRawContent() == null || source.getRawContent().isBlank()) {
-            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_NOT_EXISTS);
-        }
-
-        return source.getRawContent().getBytes(StandardCharsets.UTF_8);
     }
 
     /**
@@ -926,8 +975,7 @@ public class NoteBookSourceService {
             IngestionSummaryResponseDto summaryResponse = ingestionService.getIngestionSummary(sourceId.toString());
             return normalizeText(summaryResponse == null ? null : summaryResponse.getSummary());
         } catch (Exception exception) {
-            System.err.println("Failed to fetch ingestion summary for notebook source ID: " + sourceId);
-            exception.printStackTrace();
+            log.error("Failed to fetch ingestion summary for notebook source ID: {}", sourceId, exception);
             return null;
         }
     }
@@ -961,14 +1009,17 @@ public class NoteBookSourceService {
                     StandardCharsets.UTF_8,
                     StandardOpenOption.TRUNCATE_EXISTING);
 
-            byte[] bytes = Files.readAllBytes(tempFilePath);
-            return minioService.upload(
-                    bytes,
-                    fileName,
-                    MediaType.TEXT_PLAIN_VALUE,
-                    userId.toString(),
-                    noteBookId.toString(),
-                    NOTEBOOK_BUCKET);
+            long size = Files.size(tempFilePath);
+            try (InputStream stream = Files.newInputStream(tempFilePath)) {
+                return minioService.upload(
+                        stream,
+                        size,
+                        fileName,
+                        MediaType.TEXT_PLAIN_VALUE,
+                        userId.toString(),
+                        noteBookId.toString(),
+                        NOTEBOOK_BUCKET);
+            }
         } catch (IOException exception) {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);
         } finally {

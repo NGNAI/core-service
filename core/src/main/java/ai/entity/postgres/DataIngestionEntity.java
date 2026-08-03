@@ -112,6 +112,11 @@ public class DataIngestionEntity {
     @Column(name = "delete_status", length = 20, nullable = false)
     DataIngestionDeleteStatus deleteStatus = DataIngestionDeleteStatus.ACTIVE;
 
+    // Số lần thử lại xóa thất bại liên tiếp, dùng để giới hạn retry trong scheduler tránh retry vô hạn
+    @Builder.Default
+    @Column(name = "retry_count")
+    Integer retryCount = 0;
+
     @Builder.Default
     @Embedded
     AuditEmbed audit = new AuditEmbed();

@@ -3,6 +3,7 @@ package ai.controller.user;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.util.Pair;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -130,7 +131,7 @@ public class TopicUserController {
     @Hidden
     @Operation(summary = "Download topic source", description = "Download a source file attached to a topic")
     @GetMapping("/{topicId}/sources/{sourceId}/download")
-    ResponseEntity<byte[]> downloadSource(@PathVariable UUID topicId, @PathVariable UUID sourceId) {
+    ResponseEntity<InputStreamResource> downloadSource(@PathVariable UUID topicId, @PathVariable UUID sourceId) {
         TopicSourceDownloadData fileData = topicSourceService.downloadSource(topicId, sourceId);
 
         HttpHeaders headers = new HttpHeaders();
@@ -142,7 +143,8 @@ public class TopicUserController {
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body(fileData.bytes());
+                .contentLength(fileData.size())
+                .body(new InputStreamResource(fileData.inputStream()));
     }
 
         @Hidden

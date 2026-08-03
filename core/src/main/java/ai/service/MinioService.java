@@ -1,6 +1,7 @@
 package ai.service;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.Locale;
@@ -20,6 +21,7 @@ import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import io.minio.StatObjectArgs;
+import io.minio.StatObjectResponse;
 import io.minio.http.Method;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -89,6 +91,32 @@ public class MinioService {
     }
 
     /**
+     * Tải file lên Minio trực tiếp từ InputStream (streaming), tránh load toàn bộ file vào RAM với file lớn.
+     */
+    public String upload(InputStream inputStream, long size, String fileName, String contentType, String username, String unit, String bucketName) {
+        try {
+            ensureBucket(bucketName);
+
+            String objectPath = buildObjectPath(username, unit, fileName);
+            try (InputStream stream = inputStream) {
+                minioClient.putObject(
+                        PutObjectArgs.builder()
+                                .bucket(bucketName)
+                                .object(objectPath)
+                                .stream(stream, size, -1)
+                                .contentType(normalizeContentType(contentType))
+                                .build()
+                );
+            }
+
+            return objectPath;
+        } catch (Exception exception) {
+            log.error("Failed to upload stream to Minio: {}/{}", bucketName, username, exception);
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);
+        }
+    }
+
+    /**
      * Tải file từ Minio về dưới dạng byte array.
      */
     public MinioObjectData download(String objectPath, String bucketName) {
@@ -119,6 +147,32 @@ public class MinioService {
             }
         } catch (Exception exception) {
             log.error("Failed to download object from Minio: {}/{}", bucketName, objectPath, exception);
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_DOWNLOAD_FAILED);
+        }
+    }
+
+    /**
+     * Tải object từ Minio dưới dạng InputStream (streaming), tránh load toàn bộ file vào RAM với file lớn.
+     * Caller phải đóng stream sau khi sử dụng (MinioObjectStream implements AutoCloseable).
+     */
+    public MinioObjectStream getObjectStream(String objectPath, String bucketName) {
+        try {
+            StatObjectResponse stat = minioClient.statObject(
+                    StatObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectPath)
+                            .build());
+            long size = stat.size();
+            String contentType = normalizeContentType(stat.contentType());
+
+            InputStream inputStream = minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectPath)
+                            .build());
+            return new MinioObjectStream(inputStream, contentType, size);
+        } catch (Exception exception) {
+            log.error("Failed to open object stream from Minio: {}/{}", bucketName, objectPath, exception);
             throw new AppException(ApiResponseStatus.DATA_INGESTION_DOWNLOAD_FAILED);
         }
     }
@@ -212,5 +266,27 @@ public class MinioService {
     public static class MinioObjectData {
         byte[] bytes;
         String contentType;
+    }
+
+    /**
+     * Dữ liệu object Minio dưới dạng stream (dùng cho việc xử lý/tải file lớn mà không load toàn bộ vào RAM).
+     */
+    @Data
+    @AllArgsConstructor
+    public static class MinioObjectStream implements AutoCloseable {
+        InputStream inputStream;
+        String contentType;
+        long size;
+
+        @Override
+        public void close() {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException ignored) {
+                    // Bỏ qua lỗi khi đóng stream.
+                }
+            }
+        }
     }
 }
