@@ -64,7 +64,7 @@ public class LdapControllerAdmin {
 
     @Operation(summary = "Import user LDAP vào hệ thống", description = "Import một loạt user LDAP vào organization. Mỗi user được xử lý độc lập (partial success). Organization có thể để null thì sẽ không được gán và Role có thể để null → fallback về giá trị mặc định nếu có gán organization.")
     @PostMapping("/users/import")
-    @PreAuthorize("@perm.canAccess(#request.organizationId, 'ORG', 'ASSIGN', 'USER')")
+    @PreAuthorize("@perm.canAccess(null, 'USER', 'CREATE', null)")
     ResponseEntity<ApiResponseModel<LdapImportResponseDto>> importLdapUsers(@Valid @RequestBody LdapImportRequestDto request) {
         return ResponseEntity.ok(
                 ApiResponseModel.<LdapImportResponseDto>builder()
