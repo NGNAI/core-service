@@ -153,8 +153,9 @@ public class TopicSourceService {
         TopicSourceEntity source = getSourceEntity(topicId, sourceId);
         validateDownloadableSource(source);
 
-        MinioService.MinioObjectData objectData = minioService.download(source.getFilePath(), TOPIC_BUCKET);
-        return new TopicSourceDownloadData(resolveFileName(source), objectData.getContentType(), objectData.getBytes());
+        // Stream trực tiếp từ MinIO để tránh load toàn bộ file vào RAM khi tải file lớn
+        MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), TOPIC_BUCKET);
+        return new TopicSourceDownloadData(resolveFileName(source), objectStream.getContentType(), objectStream.getInputStream(), objectStream.getSize());
     }
 
     public TopicSourcePresignedUrlResponseDto getSourceDownloadUrl(UUID topicId, UUID sourceId, Integer expiresInSeconds) {
@@ -248,17 +249,22 @@ public class TopicSourceService {
         source.setVectorStatus(TopicSourceEntity.VectorStatus.CREATED);
         source = topicSourceRepository.save(source);
 
-        MinioService.MinioObjectData objectData = minioService.download(source.getFilePath(), TOPIC_BUCKET);
-        IngestionUploadResponseDto ingestionResponse = ingestionService.uploadChat(
-                objectData.getBytes(),
-                resolveFileName(source),
-                source.getId().toString(),
-                user.getId().toString(),
-                user.getUserName(),
-                organization.getId().toString(),
-                organization.getName(),
-                DataScope.PERSONAL,
-                topicId.toString());
+        IngestionUploadResponseDto ingestionResponse;
+        // Stream trực tiếp từ MinIO lên ingestion service để tránh load toàn bộ file vào RAM
+        try (MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), TOPIC_BUCKET)) {
+            ingestionResponse = ingestionService.uploadChat(
+                    objectStream.getInputStream(),
+                    objectStream.getSize(),
+                    resolveFileName(source),
+                    source.getId().toString(),
+                    user.getId().toString(),
+                    user.getUserName(),
+                    organization.getId().toString(),
+                    organization.getName(),
+                    DataScope.PERSONAL,
+                    topicId.toString(),
+                    null);
+        }
 
         if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
             source.setVectorStatus(TopicSourceEntity.VectorStatus.FAILED);

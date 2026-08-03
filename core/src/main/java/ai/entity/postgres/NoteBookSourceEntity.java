@@ -98,6 +98,16 @@ public class NoteBookSourceEntity {
     @Column(name = "delete_status", length = 20, nullable = false)
     DataIngestionDeleteStatus deleteStatus = DataIngestionDeleteStatus.ACTIVE;
 
+    // Số lần thử gửi lại (re-dispatch) source lên ingestion service thất bại liên tiếp, dùng để giới hạn retry trong scheduler
+    @Builder.Default
+    @Column(name = "dispatch_retry_count")
+    Integer dispatchRetryCount = 0;
+
+    // Số lần thử xóa thất bại liên tiếp, dùng để giới hạn retry trong scheduler
+    @Builder.Default
+    @Column(name = "delete_retry_count")
+    Integer deleteRetryCount = 0;
+
     @Builder.Default
     @Embedded
     AuditEmbed audit = new AuditEmbed();

@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -187,7 +188,7 @@ public class NoteBookUserController {
     @Hidden
     @Operation(summary = "Download notebook source", description = "Tải file nguồn của notebook khi source là FILE")
     @GetMapping("/{noteBookId}/sources/{sourceId}/download")
-    ResponseEntity<byte[]> downloadSource(@PathVariable UUID noteBookId, @PathVariable UUID sourceId) {
+    ResponseEntity<InputStreamResource> downloadSource(@PathVariable UUID noteBookId, @PathVariable UUID sourceId) {
         NoteBookSourceDownloadData fileData = noteBookSourceService.downloadSource(noteBookId, sourceId);
 
         HttpHeaders headers = new HttpHeaders();
@@ -199,7 +200,8 @@ public class NoteBookUserController {
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body(fileData.bytes());
+                .contentLength(fileData.size())
+                .body(new InputStreamResource(fileData.inputStream()));
     }
 
     @Hidden

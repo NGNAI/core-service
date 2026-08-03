@@ -1,5 +1,6 @@
 package ai.dto.own.response;
 
-public record DataIngestionDownloadData(String fileName, String contentType, byte[] bytes) {
-    
+import java.io.InputStream;
+
+public record DataIngestionDownloadData(String fileName, String contentType, InputStream inputStream, long size) {
 }

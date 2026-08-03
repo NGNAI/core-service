@@ -1,5 +1,7 @@
 package ai.service;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -7,8 +9,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -47,7 +50,9 @@ import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
@@ -66,44 +71,110 @@ public class DataIngestionService {
     SystemEventSseService systemEventSseService;
     SystemSettingService systemSettingService;
     AppProperties appProperties;
+    CacheManager cacheManager;
 
     /**
      * Định nghĩa phương thức để đồng bộ trạng thái ingestion mới nhất cho tất cả data ingestion đang ở trạng thái chưa hoàn thành (không phải COMPLETED hay FAILED), phương thức này sẽ được gọi định kỳ bởi scheduler để đảm bảo trạng thái ingestion luôn được cập nhật mới nhất, tránh trường hợp dữ liệu bị treo ở trạng thái intermediate mãi mãi do lỗi không nhận được callback từ ingestion service hoặc lỗi khi gọi API để lấy trạng thái ingestion. Các trạng thái được đồng bộ gồm: CREATED, EXTRACTING, CHUNKING, EMBEDDING, STORING
      */
     public void syncPendingIngestionStatuses() {
-        System.out.println("Start syncing ingestion statuses for data ingestion items with non-final statuses...");
+        log.info("Start syncing ingestion statuses for data ingestion items with non-final statuses...");
         // Lấy tất cả data ingestion có trạng thái ingestion không phải COMPLETED hay FAILED để đồng bộ trạng thái mới nhất từ ingestion service
         dataIngestionRepository.findByIngestionStatusNotFinal()
                 .forEach(dataIngestion -> {
                     try {
-                        pollIngestionJobStatus(dataIngestion.getId());
+                        syncSingleIngestionStatus(dataIngestion);
                     } catch (Exception exception) {
                         // Log lỗi và tiếp tục đồng bộ các item còn lại để không chặn toàn bộ tiến trình
-                        System.err.println("Error syncing ingestion status for data ingestion with ID: " + dataIngestion.getId());
-                        exception.printStackTrace();
+                        log.error("Error syncing ingestion status for data ingestion with ID: {}", dataIngestion.getId(), exception);
                     }
                 });
-        System.out.println("Finished syncing ingestion statuses for data ingestion items with non-final statuses.");
+        log.info("Finished syncing ingestion statuses for data ingestion items with non-final statuses.");
+    }
+
+    /**
+     * Đồng bộ trạng thái mới nhất cho một data ingestion trong luồng scheduler.
+     * Không gọi lại pollIngestionJobStatus (phương thức công khai) vì self-invocation sẽ bỏ qua proxy Spring
+     * (không kích hoạt @Transactional/@CacheEvict), khiến cache chi tiết data ingestion không được làm mới.
+     * Vì vậy luồng này chủ động cập nhật trạng thái và evict cache qua CacheManager.
+     * Nếu data ingestion ở trạng thái non-final nhưng thiếu jobId (vd quá trình bị crash giữa chừng),
+     * sẽ đánh dấu FAILED để tránh kẹt vĩnh viễn ở trạng thái trung gian.
+     * @param dataIngestion
+     */
+    private void syncSingleIngestionStatus(DataIngestionEntity dataIngestion) {
+        if (dataIngestion.getJobId() == null) {
+            log.warn("Data ingestion has non-final status but no jobId, marking FAILED. id={}", dataIngestion.getId());
+            if (!IngestionStatus.FAILED.equals(dataIngestion.getIngestionStatus())) {
+                dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
+                dataIngestionRepository.save(dataIngestion);
+            }
+            evictDataIngestionDetailsCache(dataIngestion.getId());
+            return;
+        }
+
+        IngestionStatusResponseDto statusResponse = ingestionService.getJobStatus(dataIngestion.getJobId());
+        updateStatusAndBuildResponse(dataIngestion, statusResponse, true);
+        evictDataIngestionDetailsCache(dataIngestion.getId());
+    }
+
+    /**
+     * Chủ động evict cache chi tiết data ingestion sau khi scheduler cập nhật trạng thái.
+     * @param dataIngestionId
+     */
+    private void evictDataIngestionDetailsCache(UUID dataIngestionId) {
+        if (dataIngestionId == null || cacheManager == null) {
+            return;
+        }
+        Cache cache = cacheManager.getCache(CacheName.DATA_INGESTION_DTO_DETAILS);
+        if (cache != null) {
+            cache.evict(dataIngestionId);
+        }
     }
 
     /**
      * Định nghĩa phương thức để xử lý hàng đợi xóa các data ingestion đang ở trạng thái pending delete, phương thức này sẽ được gọi định kỳ bởi scheduler để đảm bảo các data ingestion cần xóa được xử lý kịp thời, tránh trường hợp dữ liệu bị treo ở trạng thái pending delete mãi mãi do lỗi khi xóa trên MinIO hoặc lỗi khi xóa trong database. Phương thức này sẽ tìm tất cả data ingestion có trạng thái delete là PENDING_DELETE, sau đó thực hiện xóa file trên MinIO nếu có và xóa bản ghi trong database, nếu có lỗi xảy ra trong quá trình xử lý một item nào đó thì sẽ log lỗi và tiếp tục xử lý các item còn lại để không chặn toàn bộ tiến trình
      */
     public void processPendingDeleteQueue() {
-        System.out.println("Start processing pending data ingestion deletions...");
+        log.info("Start processing pending data ingestion deletions...");
+        int maxDeleteRetries = resolveMaxDeleteRetries();
         dataIngestionRepository.findByDeleteStatusIn(List.of(
                         DataIngestionDeleteStatus.PENDING_DELETE,
                         DataIngestionDeleteStatus.DELETE_FAILED))
                 .forEach(dataIngestion -> {
                     try {
+                        if (shouldSkipDelete(dataIngestion, maxDeleteRetries)) {
+                            return;
+                        }
                         executeDelete(dataIngestion);
                     } catch (Exception exception) {
                         // Log lỗi và tiếp tục xử lý các item còn lại
-                        System.err.println("Error processing delete for data ingestion with ID: " + dataIngestion.getId());
-                        exception.printStackTrace();
+                        log.error("Error processing delete for data ingestion with ID: {}", dataIngestion.getId(), exception);
                     }
                 });
-        System.out.println("Finished processing pending data ingestion deletions.");
+        log.info("Finished processing pending data ingestion deletions.");
+    }
+
+    /**
+     * Giới hạn số lần retry xóa tối đa trong delete queue (tránh retry vô hạn khi lỗi vĩnh viễn).
+     */
+    private int resolveMaxDeleteRetries() {
+        if (appProperties.getMaintenance() == null
+                || appProperties.getMaintenance().getMaxDeleteRetries() == null
+                || appProperties.getMaintenance().getMaxDeleteRetries() <= 0) {
+            return 5;
+        }
+        return appProperties.getMaintenance().getMaxDeleteRetries();
+    }
+
+    /**
+     * Bỏ qua item đã vượt quá số lần retry tối đa, tránh retry vô hạn.
+     */
+    private boolean shouldSkipDelete(DataIngestionEntity dataIngestion, int maxDeleteRetries) {
+        int retried = dataIngestion.getRetryCount() == null ? 0 : dataIngestion.getRetryCount();
+        if (retried >= maxDeleteRetries) {
+            log.warn("Skip data ingestion delete: exceeded max retries ({}). id={}", maxDeleteRetries, dataIngestion.getId());
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -270,21 +341,26 @@ public class DataIngestionService {
         String fileName = stagedFile.getFileName().toString();
         String contentType;
         long fileSize;
-        byte[] fileBytes;
 
         try {
             contentType = Files.probeContentType(stagedFile);
             if (contentType == null || contentType.isBlank()) {
                 contentType = "application/octet-stream";
             }
-            fileBytes = Files.readAllBytes(stagedFile);
-            fileSize = fileBytes.length;
+            fileSize = Files.size(stagedFile);
         } catch (Exception exception) {
-            exception.printStackTrace();
+            log.error("Cannot probe content type or size of file. file={}", stagedFile, exception);
             throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);
         }
 
-        String minioPath = minioService.upload(fileBytes, fileName, contentType, owner.getUserName(), organization.getName(), fromSource.name().toLowerCase());
+        // Upload lên MinIO trực tiếp từ InputStream (streaming) để tránh load toàn bộ file vào RAM với file lớn
+        String minioPath;
+        try (InputStream fileStream = Files.newInputStream(stagedFile)) {
+            minioPath = minioService.upload(fileStream, fileSize, fileName, contentType, owner.getUserName(), organization.getName(), fromSource.name().toLowerCase());
+        } catch (IOException exception) {
+            log.error("Cannot stream file to Minio. file={}", stagedFile, exception);
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);
+        }
 
         DataIngestionEntity dataIngestion = new DataIngestionEntity();
         dataIngestion.setName(fileName);
@@ -304,8 +380,9 @@ public class DataIngestionService {
 
         try {
             String callbackUrl = resolveCallbackUrl(null);
+            // Đẩy trực tiếp từ file trên disk (FileSystemResource) để tránh load toàn bộ file vào RAM
             IngestionUploadResponseDto ingestionResponse = ingestionService.uploadRag(
-                    fileBytes,
+                    stagedFile.toFile(),
                     fileName,
                     dataIngestion.getId().toString(),
                     owner.getId().toString(),
@@ -326,7 +403,7 @@ public class DataIngestionService {
             dataIngestion = dataIngestionRepository.save(dataIngestion);
             return dataIngestionMapper.entityToResponseDto(dataIngestion);
         } catch (AppException exception) {
-            exception.printStackTrace();
+            log.error("Ingestion push failed for data ingestion with ID: {}", dataIngestion.getId(), exception);
             dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
             dataIngestion = dataIngestionRepository.save(dataIngestion);
             return dataIngestionMapper.entityToResponseDto(dataIngestion);
@@ -334,11 +411,13 @@ public class DataIngestionService {
     }
 
     /**
-     * Định nghĩa phương thức để lấy chi tiết data ingestion theo ID, phương thức này sẽ được gọi khi người dùng xem chi tiết một data ingestion cụ thể, phương thức sẽ thực hiện các bước sau: 1) kiểm tra cache trước để lấy thông tin data ingestion nếu đã từng truy cập trước đó, tránh phải truy vấn database nhiều lần cho cùng một data ingestion, 2) nếu không có trong cache thì truy vấn database để lấy thông tin data ingestion, nếu không tồn tại thì trả về lỗi, 3) ánh xạ entity sang response DTO và trả về cho client, đồng thời lưu vào cache để lần sau truy cập nhanh hơn. Cache sẽ được tự động làm mới khi có cập nhật liên quan đến data ingestion này (ví dụ: đổi tên thư mục, di chuyển thư mục, xóa data ingestion)
+     * Định nghĩa phương thức để lấy entity data ingestion theo ID. Phương thức này luôn truy vấn database để trả về entity mới nhất,
+     * KHÔNG cache kết quả vì entity JPA (DataIngestionEntity) không implement Serializable và chứa quan hệ lazy
+     * (owner, organization, parent) — cache entity sẽ gây lỗi "DefaultSerializer requires a Serializable payload" khi serialize sang Redis,
+     * đồng thời có thể trả về dữ liệu cũ/detached. Nếu cần cache cho endpoint chi tiết, hãy cache DTO (DataIngestionResponseDto) thay vì entity.
      * @param dataIngestionId
      * @return
      */
-    @Cacheable(value = CacheName.DATA_INGESTION_DTO_DETAILS, key = "#dataIngestionId", unless = "#result == null", condition = "#dataIngestionId != null")
     @Transactional(readOnly = true)
     public DataIngestionEntity getEntityById(UUID dataIngestionId) {
         return dataIngestionRepository.findById(dataIngestionId)
@@ -452,13 +531,17 @@ public class DataIngestionService {
 
         validateDownloadableDataIngestion(dataIngestion);
 
-            MinioService.MinioObjectData objectData = minioService.download(dataIngestion.getMinioPath(), dataIngestion.getFromSource().name().toLowerCase());
+        // Stream trực tiếp từ MinIO để tránh load toàn bộ file vào RAM khi tải file lớn
+        MinioService.MinioObjectStream objectStream = minioService.getObjectStream(
+                dataIngestion.getMinioPath(),
+                dataIngestion.getFromSource().name().toLowerCase());
         dataIngestionRepository.save(dataIngestion);
 
         return new DataIngestionDownloadData(
             dataIngestion.getName(),
-                objectData.getContentType(),
-                objectData.getBytes());
+                objectStream.getContentType(),
+                objectStream.getInputStream(),
+                objectStream.getSize());
     }
 
     /**
@@ -601,18 +684,24 @@ public class DataIngestionService {
         OrganizationEntity organization = dataIngestion.getOrganization();
 
         try {
-            MinioService.MinioObjectData objectData = minioService.download(dataIngestion.getMinioPath(), dataIngestion.getFromSource().name().toLowerCase());
             String callbackUrl = resolveCallbackUrl(null);
-            IngestionUploadResponseDto ingestionResponse = ingestionService.uploadRag(
-                    objectData.getBytes(),
-                    dataIngestion.getName(),
-                    dataIngestion.getId().toString(),
-                    owner.getId().toString(),
-                    owner.getUserName(),
-                    organization.getId().toString(),
-                    organization.getName(),
-                dataIngestion.getAccessLevel(),
-                callbackUrl);
+            IngestionUploadResponseDto ingestionResponse;
+            // Stream trực tiếp từ MinIO lên ingestion service để tránh load toàn bộ file vào RAM
+            try (MinioService.MinioObjectStream objectStream = minioService.getObjectStream(
+                    dataIngestion.getMinioPath(),
+                    dataIngestion.getFromSource().name().toLowerCase())) {
+                ingestionResponse = ingestionService.uploadRag(
+                        objectStream.getInputStream(),
+                        objectStream.getSize(),
+                        dataIngestion.getName(),
+                        dataIngestion.getId().toString(),
+                        owner.getId().toString(),
+                        owner.getUserName(),
+                        organization.getId().toString(),
+                        organization.getName(),
+                        dataIngestion.getAccessLevel(),
+                        callbackUrl);
+            }
             System.out.println("Ingestion response after retrying ingestion for data ingestion with ID " + dataIngestionId + ": " + ingestionResponse);
 
              // Nếu response từ ingestion service không hợp lệ thì đánh dấu dữ liệu này là failed để tránh bị treo ở trạng thái pending mãi mãi
@@ -714,8 +803,7 @@ public class DataIngestionService {
         try {
             executeDelete(dataIngestion);
         } catch (Exception exception) {
-            System.err.println("Immediate delete failed for data ingestion with ID: " + dataIngestion.getId());
-            exception.printStackTrace();
+            log.error("Immediate delete failed for data ingestion with ID: {}", dataIngestion.getId(), exception);
         }
 
         return dataIngestionMapper.entityToResponseDto(dataIngestion);
@@ -756,6 +844,7 @@ public class DataIngestionService {
         } catch (Exception exception) {
             dataIngestionRepository.findById(dataIngestion.getId()).ifPresent(entity -> {
                 entity.setDeleteStatus(DataIngestionDeleteStatus.DELETE_FAILED);
+                entity.setRetryCount((entity.getRetryCount() == null ? 0 : entity.getRetryCount()) + 1);
                 DataIngestionEntity savedEntity = dataIngestionRepository.save(entity);
                 publishDeleteEvent(savedEntity, SystemEventType.DATA_INGESTION_DELETE_FAILED, dataIngestionMapper.entityToResponseDto(savedEntity));
             });
@@ -809,7 +898,9 @@ public class DataIngestionService {
             IngestionStatusResponseDto ingestionStatusResponse,
             boolean emitEvent) {
         IngestionStatus resolvedStatus = resolveStatus(ingestionStatusResponse.getStatus(), dataIngestion.getIngestionStatus());
-        if (dataIngestion.getIngestionStatus() == null || !resolvedStatus.equals(dataIngestion.getIngestionStatus())) {
+        boolean statusChanged = dataIngestion.getIngestionStatus() == null
+                || !resolvedStatus.equals(dataIngestion.getIngestionStatus());
+        if (statusChanged) {
             dataIngestion.setIngestionStatus(resolvedStatus);
             dataIngestion = dataIngestionRepository.save(dataIngestion);
         }
@@ -821,8 +912,8 @@ public class DataIngestionService {
                 .message(ingestionStatusResponse.getMessage())
                 .build();
 
-        // Chỉ publish event khi trạng thái ingestion có sự thay đổi và đã có owner và organization để đảm bảo rằng event được publish có đầy đủ thông tin cần thiết và tránh trường hợp publish event không cần thiết khi trạng thái ingestion không thay đổi hoặc thiếu thông tin về owner và organization
-        if (emitEvent && dataIngestion.getOwner() != null && dataIngestion.getOrganization() != null) {
+        // Chỉ publish event khi trạng thái ingestion thực sự có sự thay đổi và đã có owner và organization để đảm bảo rằng event được publish có đầy đủ thông tin cần thiết và tránh trường hợp publish event không cần thiết khi trạng thái ingestion không thay đổi hoặc thiếu thông tin về owner và organization
+        if (emitEvent && statusChanged && dataIngestion.getOwner() != null && dataIngestion.getOrganization() != null) {
             systemEventSseService.publish(
                 dataIngestion.getOrganization().getId(),
                 dataIngestion.getOwner().getId(),

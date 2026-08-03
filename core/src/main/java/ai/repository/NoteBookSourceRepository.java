@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -34,7 +35,8 @@ public interface NoteBookSourceRepository extends JpaRepository<NoteBookSourceEn
                 SELECT ns FROM NoteBookSourceEntity ns
                 WHERE ns.deleteStatus = ai.enums.DataIngestionDeleteStatus.ACTIVE
                     AND (
-                        (ns.jobId IS NULL AND ns.vectorStatus IN (ai.entity.postgres.NoteBookSourceEntity.VectorStatus.CREATED, ai.entity.postgres.NoteBookSourceEntity.VectorStatus.FAILED))
+                        (ns.jobId IS NULL AND ns.vectorStatus IN (ai.entity.postgres.NoteBookSourceEntity.VectorStatus.CREATED, ai.entity.postgres.NoteBookSourceEntity.VectorStatus.FAILED)
+                            AND (ns.dispatchRetryCount IS NULL OR ns.dispatchRetryCount < :maxRetry))
                         OR
                         (ns.jobId IS NOT NULL AND ns.vectorStatus IN (
                             ai.entity.postgres.NoteBookSourceEntity.VectorStatus.CREATED,
@@ -45,7 +47,7 @@ public interface NoteBookSourceRepository extends JpaRepository<NoteBookSourceEn
                         ))
                     )
         """)
-        List<NoteBookSourceEntity> findSourcesForIngestionMaintenance();
+        List<NoteBookSourceEntity> findSourcesForIngestionMaintenance(@Param("maxRetry") int maxRetry);
 
     @Query("SELECT COUNT(ns) FROM NoteBookSourceEntity ns WHERE ns.noteBook.id = :noteBookId")
     long countByNoteBookId(UUID noteBookId);

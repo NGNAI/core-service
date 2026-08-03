@@ -1,10 +1,14 @@
 package ai.service;
 
+import java.io.File;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -137,6 +141,114 @@ public class IngestionService {
         }
     }
 
+    /**
+     * Overload method để đẩy file từ InputStream (streaming) lên ingestion service, tránh load toàn bộ file vào RAM với file lớn.
+     * @param inputStream
+     * @param size
+     * @param fileName
+     * @param fileId
+     * @param userId
+     * @param username
+     * @param unitId
+     * @param unitName
+     * @param visibility
+     * @param callbackUrl
+     * @return
+     */
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload RAG file: {0}")
+    public IngestionUploadResponseDto uploadRag(InputStream inputStream, long size, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String callbackUrl) {
+        InputStreamResource fileResource = newInputStreamResource(inputStream, size, fileName);
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", fileResource);
+        body.add("file_id", fileId);
+        body.add("user_id", userId);
+        body.add("user_name", username);
+        body.add("unit_id", unitId);
+        body.add("unit_name", unitName);
+        body.add("visibility", visibility.name());
+        if (callbackUrl != null && !callbackUrl.trim().isEmpty()) {
+            body.add("callback_url", callbackUrl.trim());
+        }
+
+        try {
+            return ingestionRestClient.post()
+                    .uri(INGESTION_UPLOAD_RAG_PATH)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .body(IngestionUploadResponseDto.class);
+        } catch (RestClientException exception) {
+            exception.printStackTrace();
+            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    /**
+     * Tạo InputStreamResource có hỗ trợ contentLength để Spring multipart stream file mà không cần buffer toàn bộ vào RAM.
+     */
+    private InputStreamResource newInputStreamResource(InputStream inputStream, long size, String fileName) {
+        return new InputStreamResource(inputStream) {
+            @Override
+            public long contentLength() {
+                return size;
+            }
+
+            @Override
+            public String getFilename() {
+                return fileName;
+            }
+        };
+    }
+
+    /**
+     * Overload method để đẩy file trực tiếp từ disk (FileSystemResource) lên ingestion service,
+     * tránh load toàn bộ file vào RAM với file lớn.
+     * @param file
+     * @param fileName
+     * @param fileId
+     * @param userId
+     * @param username
+     * @param unitId
+     * @param unitName
+     * @param visibility
+     * @param callbackUrl
+     * @return
+     */
+    @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload RAG file: {0}")
+    public IngestionUploadResponseDto uploadRag(File file, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String callbackUrl) {
+        FileSystemResource fileResource = new FileSystemResource(file) {
+            @Override
+            public String getFilename() {
+                return fileName;
+            }
+        };
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", fileResource);
+        body.add("file_id", fileId);
+        body.add("user_id", userId);
+        body.add("user_name", username);
+        body.add("unit_id", unitId);
+        body.add("unit_name", unitName);
+        body.add("visibility", visibility.name());
+        if (callbackUrl != null && !callbackUrl.trim().isEmpty()) {
+            body.add("callback_url", callbackUrl.trim());
+        }
+
+        try {
+            return ingestionRestClient.post()
+                    .uri(INGESTION_UPLOAD_RAG_PATH)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .body(IngestionUploadResponseDto.class);
+        } catch (RestClientException exception) {
+            exception.printStackTrace();
+            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        }
+    }
+
 
     @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload chat file: {0}")
     public IngestionUploadResponseDto uploadChat(MultipartFile file, String fileId, String userId, String username, String uniId, String unitName, DataScope visibility, String topicId) {
@@ -172,6 +284,34 @@ public class IngestionService {
     }
 
     @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload chat file: {0}")
+    public IngestionUploadResponseDto uploadChat(InputStream inputStream, long size, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String topicId, String callbackUrl) {
+        InputStreamResource fileResource = newInputStreamResource(inputStream, size, fileName);
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", fileResource);
+        body.add("file_id", fileId);
+        body.add("user_id", userId);
+        body.add("user_name", username);
+        body.add("unit_name", unitName);
+        body.add("visibility", visibility.name());
+        body.add("topic_id", topicId);
+        if (callbackUrl != null && !callbackUrl.trim().isEmpty()) {
+            body.add("callback_url", callbackUrl.trim());
+        }
+
+        try {
+            return ingestionRestClient.post()
+                    .uri(INGESTION_UPLOAD_CHAT_PATH)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .body(IngestionUploadResponseDto.class);
+        } catch (RestClientException exception) {
+            exception.printStackTrace();
+            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        }
+    }
+
     public IngestionUploadResponseDto uploadChat(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String topicId) {
         return uploadChat(fileBytes, fileName, fileId, userId, username, unitId, unitName, visibility, topicId, null);
     }
@@ -245,6 +385,35 @@ public class IngestionService {
     }
 
     @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Upload notebook file: {0}")
+    public IngestionUploadResponseDto uploadNoteBook(InputStream inputStream, long size, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String notebookId, String callbackUrl) {
+        InputStreamResource fileResource = newInputStreamResource(inputStream, size, fileName);
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", fileResource);
+        body.add("file_id", fileId);
+        body.add("user_id", userId);
+        body.add("user_name", username);
+        body.add("unit_id", unitId);
+        body.add("unit_name", unitName);
+        body.add("visibility", visibility.name());
+        body.add("notebook_id", notebookId);
+        if (callbackUrl != null && !callbackUrl.trim().isEmpty()) {
+            body.add("callback_url", callbackUrl.trim());
+        }
+
+        try {
+            return ingestionRestClient.post()
+                    .uri(INGESTION_UPLOAD_NOTEBOOK_PATH)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .body(IngestionUploadResponseDto.class);
+        } catch (RestClientException exception) {
+            exception.printStackTrace();
+            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        }
+    }
+
     public IngestionUploadResponseDto uploadNoteBook(byte[] fileBytes, String fileName, String fileId, String userId, String username, String unitId, String unitName, DataScope visibility, String notebookId) {
         return uploadNoteBook(fileBytes, fileName, fileId, userId, username, unitId, unitName, visibility, notebookId, null);
     }

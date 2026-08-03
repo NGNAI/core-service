@@ -23,6 +23,7 @@ public class AppProperties {
     Minio minio;
     Integration integration;
     AutoIngestion autoIngestion;
+    Maintenance maintenance;
     Ldap ldap;
     Security security;
     Share share;
@@ -126,6 +127,22 @@ public class AppProperties {
         DataScope accessLevel;
         DataSource fromSource;
         boolean deleteLocalAfterSuccess;
+    }
+
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Maintenance {
+        /**
+         * Số lần retry tối đa cho việc xóa trong delete queue (data ingestion + notebook source).
+         * Để trống hoặc <= 0 thì dùng mặc định 5.
+         */
+        Integer maxDeleteRetries;
+
+        /**
+         * Số lần retry tối đa cho việc re-dispatch source notebook lên ingestion service.
+         * Để trống hoặc <= 0 thì dùng mặc định 5.
+         */
+        Integer maxDispatchRetries;
     }
 
     /**
