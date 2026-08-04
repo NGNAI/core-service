@@ -27,4 +27,7 @@ public class DataIngestionResponseDto extends AuditResponseDto {
     UUID jobId;
     String ingestionStatus;
     String deleteStatus;
+    // Thông báo lỗi từ ingestion service (RAG) khi lần ingest gần nhất thất bại,
+    // lưu nguyên body response dạng string để tiện tra cứu nguyên nhân khi debug
+    String ingestionError;
 }
