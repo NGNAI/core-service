@@ -537,8 +537,9 @@ public class RagService {
 
                     // Update assistant message with generated content
                     if (!status.isEmpty() && status.toString().equalsIgnoreCase("completed")) {
-                        questionForUser.setLength(0);
-                        questionForUser.append("Đã hoàn thành");
+                        if(questionForUser.isEmpty()) {
+                            questionForUser.append("Đã hoàn thành");
+                        }
                     }
 
                     if (thoughts.isEmpty()) {
@@ -658,8 +659,9 @@ public class RagService {
                 .doOnComplete(() -> {
                     // Update assistant message with generated content
                     if (!status.isEmpty() && status.toString().equalsIgnoreCase("completed")) {
-                        questionForUser.setLength(0);
-                        questionForUser.append("Đã hoàn thành");
+                        if(questionForUser.isEmpty()) {
+                            questionForUser.append("Đã hoàn thành");
+                        }
                     }
 
                     if (thoughts.isEmpty()) {

@@ -646,6 +646,7 @@ public class DataIngestionService {
             if(filterDto.getOwnerId() != null){
                 predicates.add(criteriaBuilder.equal(root.get("owner").get("id"), filterDto.getOwnerId()));
             }
+          
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         });
 
