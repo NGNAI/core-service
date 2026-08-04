@@ -43,6 +43,7 @@ import ai.enums.IngestionStatus;
 import ai.enums.SystemEventSource;
 import ai.enums.SystemEventType;
 import ai.exception.AppException;
+import ai.exception.IngestionServiceException;
 import ai.mapper.DataIngestionMapper;
 import ai.repository.DataIngestionRepository;
 import ai.util.JwtUtil;
@@ -249,6 +250,7 @@ public class DataIngestionService {
             // thời trả về lỗi cho client để client có thể hiển thị thông báo lỗi chính xác
             if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
                 dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
+                dataIngestion.setIngestionError("Ingestion service returned null or invalid response");
                 dataIngestionRepository.save(dataIngestion);
 
                 return dataIngestionMapper.entityToResponseDto(dataIngestion);
@@ -265,6 +267,7 @@ public class DataIngestionService {
         } catch (AppException exception) {
             exception.printStackTrace();
             dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
+            dataIngestion.setIngestionError(resolveIngestionError(exception));
             dataIngestionRepository.save(dataIngestion);
             return dataIngestionMapper.entityToResponseDto(dataIngestion);
         }
@@ -394,6 +397,7 @@ public class DataIngestionService {
 
             if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
                 dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
+                dataIngestion.setIngestionError("Ingestion service returned null or invalid response");
                 dataIngestion = dataIngestionRepository.save(dataIngestion);
                 return dataIngestionMapper.entityToResponseDto(dataIngestion);
             }
@@ -405,6 +409,7 @@ public class DataIngestionService {
         } catch (AppException exception) {
             log.error("Ingestion push failed for data ingestion with ID: {}", dataIngestion.getId(), exception);
             dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
+            dataIngestion.setIngestionError(resolveIngestionError(exception));
             dataIngestion = dataIngestionRepository.save(dataIngestion);
             return dataIngestionMapper.entityToResponseDto(dataIngestion);
         }
@@ -708,18 +713,21 @@ public class DataIngestionService {
 
             if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
                 dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
+                dataIngestion.setIngestionError("Ingestion service returned null or invalid response");
                 dataIngestionRepository.save(dataIngestion);
                 throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
             }
 
             dataIngestion.setJobId(ingestionResponse.getJobId());
             dataIngestion.setIngestionStatus(IngestionStatus.CREATED);
+            dataIngestion.setIngestionError(null);
             dataIngestionRepository.save(dataIngestion);
 
             return dataIngestionMapper.entityToResponseDto(dataIngestion);
         } catch (AppException exception) {
             exception.printStackTrace();
             dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
+            dataIngestion.setIngestionError(resolveIngestionError(exception));
             dataIngestionRepository.save(dataIngestion);
             throw exception;
         }
@@ -987,6 +995,24 @@ public class DataIngestionService {
         }
 
         return appProperties.getIntegration().getDataIngestionCallback().getUrl().trim();
+    }
+
+    /**
+     * Trích xuất nội dung lỗi từ ngoại lệ khi gọi ingestion service (RAG).
+     * Nếu là IngestionServiceException thì lấy errorBody (body response gốc từ RAG),
+     * ngược lại lấy message của ngoại lệ. Dùng để lưu vào trường ingestionError
+     * của data ingestion nhằm hỗ trợ debug nguyên nhân lỗi.
+     * @param exception
+     * @return
+     */
+    private String resolveIngestionError(Exception exception) {
+        if (exception instanceof IngestionServiceException ingestionServiceException) {
+            if (ingestionServiceException.getErrorBody() != null && !ingestionServiceException.getErrorBody().isBlank()) {
+                return ingestionServiceException.getErrorBody();
+            }
+        }
+        String message = exception.getMessage();
+        return message == null || message.isBlank() ? null : message;
     }
 
     /**

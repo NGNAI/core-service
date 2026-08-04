@@ -117,6 +117,12 @@ public class DataIngestionEntity {
     @Column(name = "retry_count")
     Integer retryCount = 0;
 
+    // Thông báo lỗi từ ingestion service (RAG) khi lần ingest gần nhất thất bại,
+    // lưu nguyên body response dạng string (vd: {"detail": "File too large ..."})
+    // để tiện tra cứu nguyên nhân lỗi khi debug mà không cần xem log
+    @Column(name = "ingestion_error", columnDefinition = "TEXT")
+    String ingestionError;
+
     @Builder.Default
     @Embedded
     AuditEmbed audit = new AuditEmbed();

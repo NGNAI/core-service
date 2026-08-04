@@ -175,12 +175,14 @@ public class DataIngestionAutoImportScheduler {
 					accessLevel,
 					fromSource);
 
+			// Nếu ingest thất bại, thì move file sang thư mục failed để tránh bị xử lý lại, đồng thời ghi log lỗi. Nếu move không thành công thì ghi log lỗi và giữ nguyên file trong thư mục processing để có thể thử lại ở lần quét tiếp theo
 			if (response.getIngestionStatus().equals(IngestionStatus.FAILED.name())) {
 				log.error("Auto-ingestion failed when pushing to ingestion service. file={}", originalFile);
 				moveToFailed(stagedFile, relativePath);
 				return;
 			}
 
+			// Nếu ingest thành công và cấu hình cho phép xóa file, thì xóa file đã ingest khỏi thư mục xử lý tạm thời
 			if (appProperties.getAutoIngestion().isDeleteLocalAfterSuccess()) {
 				Files.deleteIfExists(stagedFile);
 			}

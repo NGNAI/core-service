@@ -15,6 +15,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.multipart.MultipartFile;
 
 import ai.annotation.Audited;
@@ -27,6 +28,7 @@ import ai.enums.AuditAction;
 import ai.enums.AuditResource;
 import ai.enums.DataScope;
 import ai.exception.AppException;
+import ai.exception.IngestionServiceException;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 
@@ -84,9 +86,12 @@ public class IngestionService {
                     .body(body)
                     .retrieve()
                     .body(IngestionUploadResponseDto.class);
+        } catch (RestClientResponseException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getResponseBodyAsString());
         } catch (RestClientException exception) {
             exception.printStackTrace();
-            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
     }
 
@@ -135,9 +140,12 @@ public class IngestionService {
                     .body(body)
                     .retrieve()
                     .body(IngestionUploadResponseDto.class);
+        } catch (RestClientResponseException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getResponseBodyAsString());
         } catch (RestClientException exception) {
             exception.printStackTrace();
-            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
     }
 
@@ -178,9 +186,12 @@ public class IngestionService {
                     .body(body)
                     .retrieve()
                     .body(IngestionUploadResponseDto.class);
+        } catch (RestClientResponseException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getResponseBodyAsString());
         } catch (RestClientException exception) {
             exception.printStackTrace();
-            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
     }
 
@@ -243,9 +254,12 @@ public class IngestionService {
                     .body(body)
                     .retrieve()
                     .body(IngestionUploadResponseDto.class);
+        } catch (RestClientResponseException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getResponseBodyAsString());
         } catch (RestClientException exception) {
             exception.printStackTrace();
-            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
     }
 
