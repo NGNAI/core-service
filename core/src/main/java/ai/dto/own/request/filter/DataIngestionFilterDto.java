@@ -1,5 +1,6 @@
 package ai.dto.own.request.filter;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -15,6 +16,7 @@ import ai.entity.postgres.DataIngestionEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.DataScope;
 import ai.enums.DataSource;
+import ai.enums.IngestionStatus;
 import ai.exception.AppException;
 import ai.specification.DataIngestionEntitySpecification;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -69,6 +71,18 @@ public class DataIngestionFilterDto extends PageableFilterDto {
     @Schema(description = "List of data sources to filter data ingestion (supports multiple values)")
     List<DataSource> formSources;
 
+    @Schema(description = "Ingestion status to filter data ingestion", exampleClasses = IngestionStatus.class)
+    IngestionStatus ingestionStatus;
+
+    @Schema(description = "Keyword to search by file name or file type (content type), case-insensitive", example = "report")
+    String keyword;
+
+    @Schema(description = "Created from (inclusive), ISO-8601 instant", example = "2026-01-01T00:00:00Z")
+    Instant createdFrom;
+
+    @Schema(description = "Created to (inclusive), ISO-8601 instant", example = "2026-12-31T23:59:59Z")
+    Instant createdTo;
+
     public DataIngestionFilterDto() {
         super();
         setSortBy("name"); // Default sort by name
@@ -82,8 +96,17 @@ public class DataIngestionFilterDto extends PageableFilterDto {
             Predicate fromSourcePredicate = (formSources != null && !formSources.isEmpty())
                     ? DataIngestionEntitySpecification.buildFromSources(root, criteriaBuilder, formSources)
                     : DataIngestionEntitySpecification.buildFromSource(root, criteriaBuilder, fromSource);
+            Predicate keywordPredicate = DataIngestionEntitySpecification.buildKeyword(root, criteriaBuilder, keyword);
+            Predicate createdBetweenPredicate = DataIngestionEntitySpecification.buildCreatedBetween(root, criteriaBuilder, createdFrom, createdTo);
+            Predicate ingestionStatusPredicate = DataIngestionEntitySpecification.buildIngestionStatus(root, criteriaBuilder, ingestionStatus);
 
-            return criteriaBuilder.and(parentPredicate, accessLevelPredicate, fromSourcePredicate);
+            return criteriaBuilder.and(
+                    parentPredicate,
+                    accessLevelPredicate,
+                    fromSourcePredicate,
+                    keywordPredicate,
+                    createdBetweenPredicate,
+                    ingestionStatusPredicate);
         };
     }
 
