@@ -28,11 +28,11 @@ public class RagApiService {
     }
 
     public Flux<String> draftCreate(RagDraftCreateRequestDto requestDto) throws JsonProcessingException {
-        return apiCore.post("/v2/draft/create", requestDto);
+        return apiCore.post("/draft/create", requestDto);
     }
 
     public Flux<String> draftRevise(RagDraftReviseRequestDto requestDto) throws JsonProcessingException {
-        return apiCore.post("/v2/draft/revise", requestDto);
+        return apiCore.post("/draft/revise", requestDto);
     }
 
     public String general(RagCompletionRequestDto requestDto) throws JsonProcessingException {
