@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -34,6 +35,7 @@ import ai.dto.own.response.TopicSourceResponseDto;
 import ai.entity.postgres.DraftEntity;
 import ai.entity.postgres.NoteBookEntity;
 import ai.entity.postgres.TopicEntity;
+import ai.enums.DataScope;
 import ai.enums.MessageParentType;
 import ai.enums.MessageType;
 import ai.enums.SystemEventSource;
@@ -803,9 +805,15 @@ public class RagService {
                 + "### Note Content: " + input + ""
                 + "### Generated Title: ";
 
+        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
+        metadata.setUserId(JwtUtil.getUserId());
+        metadata.setOrganizationId(JwtUtil.getOrgId());
+        metadata.setScopes(Set.of(DataScope.PERSONAL.getValue()));
+
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
                 .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
                 .stream(false))
+                .metadata(metadata)
                 .build();
 
         return generateString(ragCompletionRequestDto);
@@ -829,9 +837,15 @@ public class RagService {
                 + "### User Input: " + input + ""
                 + "### Generated Title: ";
 
+        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
+        metadata.setUserId(JwtUtil.getUserId());
+        metadata.setOrganizationId(JwtUtil.getOrgId());
+        metadata.setScopes(Set.of(DataScope.PERSONAL.getValue()));
+        
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
                 .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
                 .stream(false))
+                .metadata(metadata)
                 .build();
 
         return generateString(ragCompletionRequestDto);
@@ -856,9 +870,15 @@ public class RagService {
 
         prompt.append("\nUpdated summary:");
 
+        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
+        metadata.setUserId(JwtUtil.getUserId());
+        metadata.setOrganizationId(JwtUtil.getOrgId());
+        metadata.setScopes(Set.of(DataScope.PERSONAL.getValue()));
+
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
                 .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt.toString())))
                 .stream(false))
+                .metadata(metadata)
                 .build();
 
         return generateString(ragCompletionRequestDto);
@@ -883,9 +903,15 @@ public class RagService {
 
         prompt.append("\nUpdated summary:");
 
+        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
+        metadata.setUserId(JwtUtil.getUserId());
+        metadata.setOrganizationId(JwtUtil.getOrgId());
+        metadata.setScopes(Set.of(DataScope.PERSONAL.getValue()));
+        
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
                 .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt.toString())))
                 .stream(false))
+                .metadata(metadata)
                 .build();
 
         return generateString(ragCompletionRequestDto);
