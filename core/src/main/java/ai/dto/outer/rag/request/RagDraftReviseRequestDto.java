@@ -1,5 +1,6 @@
 package ai.dto.outer.rag.request;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AccessLevel;
@@ -7,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
