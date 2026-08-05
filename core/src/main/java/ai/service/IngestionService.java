@@ -18,6 +18,9 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import ai.annotation.Audited;
 import ai.dto.outer.ingestion.response.IngestionDeleteResponseDto;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
@@ -31,9 +34,11 @@ import ai.exception.AppException;
 import ai.exception.IngestionServiceException;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
+@Slf4j
 public class IngestionService {
     private static final String INGESTION_UPLOAD_RAG_PATH = "/upload_rag";
     private static final String INGESTION_UPLOAD_CHAT_PATH = "/upload_chat";
@@ -45,9 +50,11 @@ public class IngestionService {
     private static final String INGESTION_SUMMARY_FILE_NOTEBOOK_PATH = "/summarize";
 
     RestClient ingestionRestClient;
+    ObjectMapper objectMapper;
 
-    public IngestionService(@Qualifier("ingestionRestClient") RestClient ingestionRestClient) {
+    public IngestionService(@Qualifier("ingestionRestClient") RestClient ingestionRestClient, ObjectMapper objectMapper) {
         this.ingestionRestClient = ingestionRestClient;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -80,6 +87,9 @@ public class IngestionService {
         }
 
         try {
+            String jsonBody = objectMapper.writeValueAsString(body);
+            log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_RAG_PATH, prettyPrint(jsonBody));
+
             return ingestionRestClient.post()
                     .uri(INGESTION_UPLOAD_RAG_PATH)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -90,6 +100,9 @@ public class IngestionService {
             exception.printStackTrace();
             throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getResponseBodyAsString());
         } catch (RestClientException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
+        } catch (JsonProcessingException exception) {
             exception.printStackTrace();
             throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
@@ -134,6 +147,9 @@ public class IngestionService {
         }
 
         try {
+            String jsonBody = objectMapper.writeValueAsString(body);
+            log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_RAG_PATH, prettyPrint(jsonBody));
+
             return ingestionRestClient.post()
                     .uri(INGESTION_UPLOAD_RAG_PATH)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -146,6 +162,9 @@ public class IngestionService {
         } catch (RestClientException exception) {
             exception.printStackTrace();
             throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
+        } catch (JsonProcessingException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage()); 
         }
     }
 
@@ -180,6 +199,9 @@ public class IngestionService {
         }
 
         try {
+            String jsonBody = objectMapper.writeValueAsString(body);
+            log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_RAG_PATH, prettyPrint(jsonBody));
+
             return ingestionRestClient.post()
                     .uri(INGESTION_UPLOAD_RAG_PATH)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -190,6 +212,9 @@ public class IngestionService {
             exception.printStackTrace();
             throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getResponseBodyAsString());
         } catch (RestClientException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
+        } catch (JsonProcessingException exception) {
             exception.printStackTrace();
             throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
@@ -248,6 +273,9 @@ public class IngestionService {
         }
 
         try {
+            String jsonBody = objectMapper.writeValueAsString(body);
+            log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_RAG_PATH, prettyPrint(jsonBody));
+
             return ingestionRestClient.post()
                     .uri(INGESTION_UPLOAD_RAG_PATH)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -258,6 +286,9 @@ public class IngestionService {
             exception.printStackTrace();
             throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getResponseBodyAsString());
         } catch (RestClientException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
+        } catch (JsonProcessingException exception) {
             exception.printStackTrace();
             throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
@@ -285,6 +316,9 @@ public class IngestionService {
         }
 
         try {
+            String jsonBody = objectMapper.writeValueAsString(body);
+            log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_CHAT_PATH, prettyPrint(jsonBody));
+
             return ingestionRestClient.post()
                     .uri(INGESTION_UPLOAD_CHAT_PATH)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -294,6 +328,9 @@ public class IngestionService {
         } catch (RestClientException exception) {
             exception.printStackTrace();
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        } catch (JsonProcessingException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
     }
 
@@ -306,6 +343,7 @@ public class IngestionService {
         body.add("file_id", fileId);
         body.add("user_id", userId);
         body.add("user_name", username);
+        body.add("unit_id", unitId);
         body.add("unit_name", unitName);
         body.add("visibility", visibility.name());
         body.add("topic_id", topicId);
@@ -314,6 +352,9 @@ public class IngestionService {
         }
 
         try {
+            String jsonBody = objectMapper.writeValueAsString(body);
+            log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_CHAT_PATH, prettyPrint(jsonBody));
+
             return ingestionRestClient.post()
                     .uri(INGESTION_UPLOAD_CHAT_PATH)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -323,6 +364,9 @@ public class IngestionService {
         } catch (RestClientException exception) {
             exception.printStackTrace();
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        } catch (JsonProcessingException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
     }
 
@@ -353,6 +397,9 @@ public class IngestionService {
         }
 
         try {
+            String jsonBody = objectMapper.writeValueAsString(body);
+            log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_CHAT_PATH, prettyPrint(jsonBody));
+
             return ingestionRestClient.post()
                     .uri(INGESTION_UPLOAD_CHAT_PATH)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -362,6 +409,9 @@ public class IngestionService {
         } catch (RestClientException exception) {
             exception.printStackTrace();
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        } catch (JsonProcessingException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
     }  
 
@@ -386,6 +436,9 @@ public class IngestionService {
         }
 
         try {
+            String jsonBody = objectMapper.writeValueAsString(body);
+            log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_NOTEBOOK_PATH, prettyPrint(jsonBody));
+
             return ingestionRestClient.post()
                     .uri(INGESTION_UPLOAD_NOTEBOOK_PATH)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -395,6 +448,9 @@ public class IngestionService {
         } catch (RestClientException exception) {
             exception.printStackTrace();
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        } catch (JsonProcessingException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
     }
 
@@ -416,6 +472,9 @@ public class IngestionService {
         }
 
         try {
+            String jsonBody = objectMapper.writeValueAsString(body);
+            log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_NOTEBOOK_PATH, prettyPrint(jsonBody));
+
             return ingestionRestClient.post()
                     .uri(INGESTION_UPLOAD_NOTEBOOK_PATH)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -425,6 +484,9 @@ public class IngestionService {
         } catch (RestClientException exception) {
             exception.printStackTrace();
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        } catch (JsonProcessingException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
     }
 
@@ -455,6 +517,9 @@ public class IngestionService {
         }
 
         try {
+            String jsonBody = objectMapper.writeValueAsString(body);
+            log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_NOTEBOOK_PATH, prettyPrint(jsonBody));
+
             return ingestionRestClient.post()
                     .uri(INGESTION_UPLOAD_NOTEBOOK_PATH)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -464,6 +529,9 @@ public class IngestionService {
         } catch (RestClientException exception) {
             exception.printStackTrace();
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        } catch (JsonProcessingException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
     }
 
@@ -480,6 +548,8 @@ public class IngestionService {
     @Audited(action = AuditAction.READ, resource = AuditResource.DATA_INGESTION, description = "Get ingestion job status: {0}")
     public IngestionStatusResponseDto getJobStatus(UUID jobId) {
         try {
+            log.info("INGESTION GET {} request for jobId: {}", INGESTION_STATUS_PATH, jobId);
+
             return ingestionRestClient.get()
                     .uri(INGESTION_STATUS_PATH + "/{jobId}", jobId)
                     .retrieve()
@@ -498,11 +568,14 @@ public class IngestionService {
     @Audited(action = AuditAction.DELETE, resource = AuditResource.DATA_INGESTION, description = "Delete RAG file: {0}")
     public IngestionDeleteResponseDto deleteFileRag(String fileId) {
         try {
+            log.info("INGESTION DELETE {} request for fileId: {}", INGESTION_DELETE_FILE_RAG_PATH, fileId);
+
             return ingestionRestClient.delete()
                     .uri(INGESTION_DELETE_FILE_RAG_PATH + "/{fileId}", fileId)
                     .retrieve()
                     .body(IngestionDeleteResponseDto.class);
         } catch (RestClientException exception) {
+            exception.printStackTrace();
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
         }
     }
@@ -515,11 +588,14 @@ public class IngestionService {
     @Audited(action = AuditAction.DELETE, resource = AuditResource.DATA_INGESTION, description = "Delete chat file: {0}")
     public IngestionDeleteResponseDto deleteFileChat(String fileId) {
         try {
+            log.info("INGESTION DELETE {} request for fileId: {}", INGESTION_DELETE_FILE_CHAT_PATH, fileId);
+
             return ingestionRestClient.delete()
                     .uri(INGESTION_DELETE_FILE_CHAT_PATH + "/{fileId}", fileId)
                     .retrieve()
                     .body(IngestionDeleteResponseDto.class);
         } catch (RestClientException exception) {
+            exception.printStackTrace();
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
         }
     }
@@ -532,6 +608,8 @@ public class IngestionService {
     @Audited(action = AuditAction.DELETE, resource = AuditResource.DATA_INGESTION, description = "Delete notebook file: {0}")
     public IngestionDeleteResponseDto deleteFileNotebook(String fileId) {
         try {
+            log.info("INGESTION DELETE {} request for fileId: {}", INGESTION_DELETE_FILE_NOTEBOOK_PATH, fileId);
+            
             return ingestionRestClient.delete()
                     .uri(INGESTION_DELETE_FILE_NOTEBOOK_PATH + "/{fileId}", fileId)
                     .retrieve()
@@ -554,6 +632,9 @@ public class IngestionService {
                 "collection_type", "notebook"
             );
 
+            String bodyJson = objectMapper.writeValueAsString(body);
+            log.info("INGESTION POST {} request body:\n{}", INGESTION_SUMMARY_FILE_NOTEBOOK_PATH, prettyPrint(bodyJson));
+
             return ingestionRestClient.post()
                     .uri(INGESTION_SUMMARY_FILE_NOTEBOOK_PATH)
                     .contentType(MediaType.APPLICATION_JSON)
@@ -563,6 +644,18 @@ public class IngestionService {
         } catch (RestClientException exception) {
             exception.printStackTrace();
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+        } catch (JsonProcessingException exception) {
+            exception.printStackTrace();
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
+        }
+    }
+
+    private String prettyPrint(String json) {
+        try {
+            return objectMapper.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(objectMapper.readTree(json));
+        } catch (JsonProcessingException e) {
+            return json;
         }
     }
 }
