@@ -368,6 +368,7 @@ public class RagService {
         metadata.setFileIds(requestDto.getSourceIds());
         metadata.setSummaries(buildSummaryMetadata(noteBookEntity));
         metadata.setUserInstruction(noteBookEntity.getInstruction());
+        metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
 
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
                 .messages(historyConversations)
@@ -808,7 +809,7 @@ public class RagService {
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
         metadata.setUserId(JwtUtil.getUserId());
         metadata.setOrganizationId(JwtUtil.getOrgId());
-        metadata.setScopes(Set.of(DataScope.PERSONAL.getValue()));
+        metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
 
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
                 .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
@@ -840,7 +841,7 @@ public class RagService {
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
         metadata.setUserId(JwtUtil.getUserId());
         metadata.setOrganizationId(JwtUtil.getOrgId());
-        metadata.setScopes(Set.of(DataScope.PERSONAL.getValue()));
+        metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
         
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
                 .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
@@ -873,7 +874,7 @@ public class RagService {
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
         metadata.setUserId(JwtUtil.getUserId());
         metadata.setOrganizationId(JwtUtil.getOrgId());
-        metadata.setScopes(Set.of(DataScope.PERSONAL.getValue()));
+        metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
 
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
                 .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt.toString())))
@@ -906,8 +907,8 @@ public class RagService {
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
         metadata.setUserId(JwtUtil.getUserId());
         metadata.setOrganizationId(JwtUtil.getOrgId());
-        metadata.setScopes(Set.of(DataScope.PERSONAL.getValue()));
-        
+        metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
+
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
                 .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt.toString())))
                 .stream(false))
