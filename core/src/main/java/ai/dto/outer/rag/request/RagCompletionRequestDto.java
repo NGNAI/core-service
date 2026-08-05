@@ -62,7 +62,7 @@ public class RagCompletionRequestDto {
         Set<String> scopes;
         
         @JsonProperty("file_ids")
-        Set<String> fileIds;
+        Set<String> fileIds=Set.of();
         
         @JsonProperty("summaries")
         String summaries;

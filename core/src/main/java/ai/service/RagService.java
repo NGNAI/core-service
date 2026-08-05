@@ -807,8 +807,8 @@ public class RagService {
                 + "### Generated Title: ";
 
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
-        metadata.setUserId(JwtUtil.getUserId());
-        metadata.setOrganizationId(JwtUtil.getOrgId());
+        metadata.setUserId(UUID.randomUUID());
+        metadata.setOrganizationId(UUID.randomUUID());
         metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
 
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
@@ -839,8 +839,8 @@ public class RagService {
                 + "### Generated Title: ";
 
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
-        metadata.setUserId(JwtUtil.getUserId());
-        metadata.setOrganizationId(JwtUtil.getOrgId());
+        metadata.setUserId(UUID.randomUUID());
+        metadata.setOrganizationId(UUID.randomUUID());
         metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
         
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
@@ -872,8 +872,8 @@ public class RagService {
         prompt.append("\nUpdated summary:");
 
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
-        metadata.setUserId(JwtUtil.getUserId());
-        metadata.setOrganizationId(JwtUtil.getOrgId());
+        metadata.setUserId(UUID.randomUUID());
+        metadata.setOrganizationId(UUID.randomUUID());
         metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
 
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
@@ -905,8 +905,8 @@ public class RagService {
         prompt.append("\nUpdated summary:");
 
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
-        metadata.setUserId(JwtUtil.getUserId());
-        metadata.setOrganizationId(JwtUtil.getOrgId());
+        metadata.setUserId(UUID.randomUUID());
+        metadata.setOrganizationId(UUID.randomUUID());
         metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
 
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
