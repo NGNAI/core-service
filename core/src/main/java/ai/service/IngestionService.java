@@ -2,6 +2,7 @@ package ai.service;
 
 import java.io.File;
 import java.io.InputStream;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -87,7 +88,7 @@ public class IngestionService {
         }
 
         try {
-            String jsonBody = objectMapper.writeValueAsString(body);
+            String jsonBody = objectMapper.writeValueAsString(bodyWithoutFile(body));
             log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_RAG_PATH, prettyPrint(jsonBody));
 
             return ingestionRestClient.post()
@@ -147,7 +148,7 @@ public class IngestionService {
         }
 
         try {
-            String jsonBody = objectMapper.writeValueAsString(body);
+            String jsonBody = objectMapper.writeValueAsString(bodyWithoutFile(body));
             log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_RAG_PATH, prettyPrint(jsonBody));
 
             return ingestionRestClient.post()
@@ -199,7 +200,7 @@ public class IngestionService {
         }
 
         try {
-            String jsonBody = objectMapper.writeValueAsString(body);
+            String jsonBody = objectMapper.writeValueAsString(bodyWithoutFile(body));
             log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_RAG_PATH, prettyPrint(jsonBody));
 
             return ingestionRestClient.post()
@@ -273,7 +274,7 @@ public class IngestionService {
         }
 
         try {
-            String jsonBody = objectMapper.writeValueAsString(body);
+            String jsonBody = objectMapper.writeValueAsString(bodyWithoutFile(body));
             log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_RAG_PATH, prettyPrint(jsonBody));
 
             return ingestionRestClient.post()
@@ -316,7 +317,7 @@ public class IngestionService {
         }
 
         try {
-            String jsonBody = objectMapper.writeValueAsString(body);
+            String jsonBody = objectMapper.writeValueAsString(bodyWithoutFile(body));
             log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_CHAT_PATH, prettyPrint(jsonBody));
 
             return ingestionRestClient.post()
@@ -352,7 +353,7 @@ public class IngestionService {
         }
 
         try {
-            String jsonBody = objectMapper.writeValueAsString(body);
+            String jsonBody = objectMapper.writeValueAsString(bodyWithoutFile(body));
             log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_CHAT_PATH, prettyPrint(jsonBody));
 
             return ingestionRestClient.post()
@@ -397,7 +398,7 @@ public class IngestionService {
         }
 
         try {
-            String jsonBody = objectMapper.writeValueAsString(body);
+            String jsonBody = objectMapper.writeValueAsString(bodyWithoutFile(body));
             log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_CHAT_PATH, prettyPrint(jsonBody));
 
             return ingestionRestClient.post()
@@ -436,7 +437,7 @@ public class IngestionService {
         }
 
         try {
-            String jsonBody = objectMapper.writeValueAsString(body);
+            String jsonBody = objectMapper.writeValueAsString(bodyWithoutFile(body));
             log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_NOTEBOOK_PATH, prettyPrint(jsonBody));
 
             return ingestionRestClient.post()
@@ -472,7 +473,7 @@ public class IngestionService {
         }
 
         try {
-            String jsonBody = objectMapper.writeValueAsString(body);
+            String jsonBody = objectMapper.writeValueAsString(bodyWithoutFile(body));
             log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_NOTEBOOK_PATH, prettyPrint(jsonBody));
 
             return ingestionRestClient.post()
@@ -517,7 +518,7 @@ public class IngestionService {
         }
 
         try {
-            String jsonBody = objectMapper.writeValueAsString(body);
+            String jsonBody = objectMapper.writeValueAsString(bodyWithoutFile(body));
             log.info("INGESTION POST {} request body:\n{}", INGESTION_UPLOAD_NOTEBOOK_PATH, prettyPrint(jsonBody));
 
             return ingestionRestClient.post()
@@ -648,6 +649,21 @@ public class IngestionService {
             exception.printStackTrace();
             throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE, exception.getMessage());
         }
+    }
+
+    /**
+     * Tạo bản sao chỉ chứa metadata (loại trừ phần binary "file") của multipart body
+     * để có thể JSON-serialize an toàn cho mục đích logging, tránh lỗi
+     * InvalidDefinitionException khi Jackson cố serialize InputStream/Resource.
+     */
+    private Map<String, Object> bodyWithoutFile(MultiValueMap<String, Object> body) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        body.forEach((key, values) -> {
+            if (!"file".equals(key)) {
+                metadata.put(key, values != null && values.size() == 1 ? values.get(0) : values);
+            }
+        });
+        return metadata;
     }
 
     private String prettyPrint(String json) {
