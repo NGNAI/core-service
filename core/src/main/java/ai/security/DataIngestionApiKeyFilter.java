@@ -29,6 +29,7 @@ public class DataIngestionApiKeyFilter extends OncePerRequestFilter {
     static Pattern DATA_INGESTION_DOWNLOAD_URL_PATTERN = Pattern.compile("^/user/data-ingestion/[^/]+/download-url$");
     static Pattern DATA_INGESTION_WEBHOOK_PATTERN = Pattern.compile("^/user/data-ingestion/ingestion/webhook/status$");
     static Pattern NOTEBOOK_SOURCE_WEBHOOK_PATTERN = Pattern.compile("^/user/notebooks/sources/ingestion/webhook/status$");
+    static Pattern NOTEBOOK_SOURCE_GUIDE_WEBHOOK_PATTERN = Pattern.compile("^/user/notebooks/sources/source-guide/webhook/status$");
 
     AppProperties appProperties;
 
@@ -42,7 +43,8 @@ public class DataIngestionApiKeyFilter extends OncePerRequestFilter {
 
         boolean isWebhookPath = "POST".equalsIgnoreCase(request.getMethod())
             && (DATA_INGESTION_WEBHOOK_PATTERN.matcher(servletPath).matches()
-            || NOTEBOOK_SOURCE_WEBHOOK_PATTERN.matcher(servletPath).matches());
+            || NOTEBOOK_SOURCE_WEBHOOK_PATTERN.matcher(servletPath).matches()
+            || NOTEBOOK_SOURCE_GUIDE_WEBHOOK_PATTERN.matcher(servletPath).matches());
 
         return !isGetProtectedPath && !isWebhookPath;
     }
@@ -53,9 +55,11 @@ public class DataIngestionApiKeyFilter extends OncePerRequestFilter {
         String servletPath = request.getServletPath();
         boolean isWebhookPath = "POST".equalsIgnoreCase(request.getMethod())
             && (DATA_INGESTION_WEBHOOK_PATTERN.matcher(servletPath).matches()
-            || NOTEBOOK_SOURCE_WEBHOOK_PATTERN.matcher(servletPath).matches());
+            || NOTEBOOK_SOURCE_WEBHOOK_PATTERN.matcher(servletPath).matches()
+            || NOTEBOOK_SOURCE_GUIDE_WEBHOOK_PATTERN.matcher(servletPath).matches());
         boolean isNotebookWebhookPath = "POST".equalsIgnoreCase(request.getMethod())
-            && NOTEBOOK_SOURCE_WEBHOOK_PATTERN.matcher(servletPath).matches();
+            && (NOTEBOOK_SOURCE_WEBHOOK_PATTERN.matcher(servletPath).matches()
+            || NOTEBOOK_SOURCE_GUIDE_WEBHOOK_PATTERN.matcher(servletPath).matches());
 
         if (hasBearerToken(request)) {
             filterChain.doFilter(request, response);

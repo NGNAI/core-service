@@ -49,6 +49,14 @@ public interface NoteBookSourceRepository extends JpaRepository<NoteBookSourceEn
         """)
         List<NoteBookSourceEntity> findSourcesForIngestionMaintenance(@Param("maxRetry") int maxRetry);
 
+    @Query("""
+            SELECT ns FROM NoteBookSourceEntity ns
+            WHERE ns.deleteStatus = ai.enums.DataIngestionDeleteStatus.ACTIVE
+                AND ns.vectorStatus = ai.entity.postgres.NoteBookSourceEntity.VectorStatus.COMPLETED
+                AND (ns.summary IS NULL OR ns.summary = '')
+            """)
+    List<NoteBookSourceEntity> findCompletedWithoutSummary(Pageable pageable);
+
     @Query("SELECT COUNT(ns) FROM NoteBookSourceEntity ns WHERE ns.noteBook.id = :noteBookId")
     long countByNoteBookId(UUID noteBookId);
 }

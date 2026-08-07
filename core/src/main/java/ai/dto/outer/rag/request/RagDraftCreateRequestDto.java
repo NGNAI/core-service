@@ -1,5 +1,6 @@
 package ai.dto.outer.rag.request;
 
+import java.util.Set;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -33,4 +34,12 @@ public class RagDraftCreateRequestDto {
 
     @JsonProperty("stream")
     boolean stream;
+
+    @JsonProperty("scopes")
+    @Builder.Default
+    Set<String> scopes = Set.of();
+
+    @JsonProperty("file_ids")
+    @Builder.Default
+    Set<String> fileIds = Set.of();
 }

@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
+import ai.dto.outer.rag.response.RagSourceGuideResponseDto;
 import ai.dto.own.request.MessageFeedbackRequestDto;
 import ai.dto.own.request.NoteBookCreateConversationRequestDto;
 import ai.dto.own.request.NoteBookCreateRequestDto;
@@ -283,6 +284,17 @@ public class NoteBookUserController {
                 ApiResponseModel.<NoteBookSourceJobStatusResponseDto>builder()
                         .message("Receive notebook source ingestion callback successfully")
                         .data(noteBookSourceService.handleIngestionCallback(callbackPayload))
+                        .build());
+    }
+
+    @Operation(summary = "Receive notebook source guide callback", description = "Webhook endpoint để RAG service callback trạng thái source-guide (summary) của notebook source")
+    @PostMapping(value = "/sources/source-guide/webhook/status", consumes = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<ApiResponseModel<NoteBookSourceResponseDto>> sourceGuideWebhookStatus(
+            @RequestBody RagSourceGuideResponseDto callbackPayload) {
+        return ResponseEntity.ok(
+                ApiResponseModel.<NoteBookSourceResponseDto>builder()
+                        .message("Receive notebook source guide callback successfully")
+                        .data(noteBookSourceService.handleSourceGuideCallback(callbackPayload))
                         .build());
     }
 

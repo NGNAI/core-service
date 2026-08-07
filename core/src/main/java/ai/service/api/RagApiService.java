@@ -8,6 +8,8 @@ import ai.api.RagApiCore;
 import ai.dto.outer.rag.request.RagCompletionRequestDto;
 import ai.dto.outer.rag.request.RagDraftCreateRequestDto;
 import ai.dto.outer.rag.request.RagDraftReviseRequestDto;
+import ai.dto.outer.rag.request.RagSourceGuideRequestDto;
+import ai.dto.outer.rag.response.RagSourceGuideResponseDto;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -37,5 +39,24 @@ public class RagApiService {
 
     public String general(RagCompletionRequestDto requestDto) throws JsonProcessingException {
         return apiCore.postForString("/generate/v1/chat/completions_simple", requestDto);
+    }
+
+    /**
+     * Trigger sinh source-guide (summary) cho một file trong notebook (NotebookLM).
+     * RAG service sẽ callback kết quả về callback_url khi xử lý xong.
+     * @param requestDto thông tin trigger (file_id, notebook_id, ..., callback_url)
+     * @return response ban đầu (thường status = processing)
+     */
+    public RagSourceGuideResponseDto triggerSourceGuide(RagSourceGuideRequestDto requestDto) throws JsonProcessingException {
+        return apiCore.postForObject("/notebook/v2/source-guide", requestDto, RagSourceGuideResponseDto.class);
+    }
+
+    /**
+     * Lấy kết quả source-guide (summary) của một file trong notebook.
+     * @param fileId ID của file/source
+     * @return response (status có thể là completed / failed / processing / not_found)
+     */
+    public RagSourceGuideResponseDto getSourceGuide(String fileId) {
+        return apiCore.getForObject("/notebook/v2/source-guide/" + fileId, RagSourceGuideResponseDto.class);
     }
 }

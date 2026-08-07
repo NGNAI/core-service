@@ -22,9 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import ai.AppProperties;
+import ai.constant.NotebookSourceSummaryConfig;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.outer.ingestion.response.IngestionSummaryResponseDto;
 import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
+import ai.dto.outer.rag.request.RagSourceGuideRequestDto;
+import ai.dto.outer.rag.response.RagSourceGuideResponseDto;
 import ai.dto.own.request.NoteBookSourceAddFilesRequestDto;
 import ai.dto.own.request.NoteBookSourceAddNotesRequestDto;
 import ai.dto.own.request.NoteBookSourceAddTextRequestDto;
@@ -44,6 +47,7 @@ import ai.exception.AppException;
 import ai.mapper.NoteBookSourceMapper;
 import ai.model.CustomPairModel;
 import ai.repository.NoteBookSourceRepository;
+import ai.service.api.RagApiService;
 import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -57,6 +61,7 @@ import lombok.extern.slf4j.Slf4j;
 public class NoteBookSourceService {
     static final String NOTEBOOK_BUCKET = "notebookllm";
     static final int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
+    static final int SOURCE_GUIDE_SYNC_BATCH_SIZE = 50;
 
     NoteBookSourceRepository noteBookSourceRepository;
     NoteBookSourceMapper noteBookSourceMapper;
@@ -64,6 +69,7 @@ public class NoteBookSourceService {
     NoteService noteService;
     MinioService minioService;
     IngestionService ingestionService;
+    RagApiService ragApiService;
     SystemEventSseService systemEventSseService;
     OrganizationService organizationService;
     UserService userService;
@@ -549,6 +555,91 @@ public class NoteBookSourceService {
     }
 
     /**
+     * Xử lý callback trạng thái source-guide (NotebookLM) từ RAG service sau khi trigger sinh summary.
+     * Chỉ lưu summary vào NoteBookSourceEntity khi status = completed và summary không rỗng.
+     * Các status khác (failed / processing / not_found) chỉ được log để theo dõi.
+     * @param callbackDto
+     * @return
+     */
+    @Transactional
+    public NoteBookSourceResponseDto handleSourceGuideCallback(RagSourceGuideResponseDto callbackDto) {
+        if (callbackDto == null || callbackDto.getFileId() == null || callbackDto.getFileId().isBlank()) {
+            throw new AppException(ApiResponseStatus.INVALID_REQUEST_INFORMATION);
+        }
+
+        UUID sourceId;
+        try {
+            sourceId = UUID.fromString(callbackDto.getFileId());
+        } catch (IllegalArgumentException exception) {
+            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_NOT_EXISTS);
+        }
+
+        NoteBookSourceEntity source = noteBookSourceRepository.findById(sourceId)
+                .orElseThrow(() -> new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_NOT_EXISTS));
+
+        if (DataIngestionDeleteStatus.PENDING_DELETE.equals(resolveDeleteStatus(source))) {
+            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_DELETE_IN_PROGRESS);
+        }
+
+        String status = callbackDto.getStatus();
+        if ("completed".equalsIgnoreCase(status)) {
+            String summary = normalizeText(callbackDto.getSummary());
+            if (summary != null) {
+                source.setSummary(summary);
+                source = noteBookSourceRepository.save(source);
+                publishStatusEvent(source, source.getVectorStatus());
+                log.info("Saved source guide summary for notebook source ID: {}", source.getId());
+            }
+        } else {
+            log.warn("Source guide callback for notebook source ID: {} status={}, error={}",
+                    source.getId(), status, callbackDto.getError());
+        }
+
+        return noteBookSourceMapper.entityToResponseDto(source);
+    }
+
+    /**
+     * Scheduler recovery cho source-guide: GET kết quả source-guide của các source COMPLETED nhưng chưa có summary
+     * (callback có thể bị mất/trễ). Chỉ lưu summary khi status = completed và summary không rỗng.
+     */
+    public void syncCompletedSourceGuides() {
+        if (!NotebookSourceSummaryConfig.USE_RAG_SOURCE_GUIDE) {
+            return;
+        }
+
+        List<NoteBookSourceEntity> sources = noteBookSourceRepository.findCompletedWithoutSummary(
+                PageRequest.of(0, SOURCE_GUIDE_SYNC_BATCH_SIZE));
+        if (sources.isEmpty()) {
+            return;
+        }
+
+        log.info("Syncing source guides for {} completed notebook source(s) without summary", sources.size());
+        for (NoteBookSourceEntity source : sources) {
+            try {
+                RagSourceGuideResponseDto response = ragApiService.getSourceGuide(source.getId().toString());
+                if (response == null) {
+                    continue;
+                }
+
+                if ("completed".equalsIgnoreCase(response.getStatus())) {
+                    String summary = normalizeText(response.getSummary());
+                    if (summary != null) {
+                        source.setSummary(summary);
+                        noteBookSourceRepository.save(source);
+                        publishStatusEvent(source, source.getVectorStatus());
+                        log.info("Synced source guide summary for notebook source ID: {}", source.getId());
+                    }
+                } else {
+                    log.debug("Source guide not ready for notebook source ID: {}, status={}",
+                            source.getId(), response.getStatus());
+                }
+            } catch (Exception exception) {
+                log.error("Failed to sync source guide for notebook source ID: {}", source.getId(), exception);
+            }
+        }
+    }
+
+    /**
      * Xóa source của notebook. Thực chất là đánh dấu source là PENDING_DELETE để hệ thống xử lý xóa sau.
      * @param source
      * @return
@@ -639,10 +730,16 @@ public class NoteBookSourceService {
 
         if (NoteBookSourceEntity.VectorStatus.COMPLETED.equals(resolvedStatus)
                 && (source.getSummary() == null || source.getSummary().isBlank())) {
-            String summary = fetchNotebookSourceSummary(source.getId());
-            if (summary != null) {
-                source.setSummary(summary);
-                shouldSave = true;
+            if (NotebookSourceSummaryConfig.USE_RAG_SOURCE_GUIDE) {
+                // Cách mới: trigger source-guide (NotebookLM) bất đồng bộ — summary sẽ về qua webhook callback
+                triggerSourceGuideForSource(source);
+            } else {
+                // Cách cũ: lấy summary đồng bộ từ ingestion service /summarize
+                String summary = fetchNotebookSourceSummary(source.getId());
+                if (summary != null) {
+                    source.setSummary(summary);
+                    shouldSave = true;
+                }
             }
         }
 
@@ -978,6 +1075,52 @@ public class NoteBookSourceService {
             log.error("Failed to fetch ingestion summary for notebook source ID: {}", sourceId, exception);
             return null;
         }
+    }
+
+    /**
+     * Chế độ mới: trigger source-guide (NotebookLM) để RAG service sinh summary bất đồng bộ.
+     * Kết quả sẽ được RAG service callback về webhook /sources/source-guide/webhook/status.
+     * Nếu trigger lỗi, scheduler syncCompletedSourceGuides (dùng GET) sẽ lấy lại sau.
+     * @param source
+     */
+    private void triggerSourceGuideForSource(NoteBookSourceEntity source) {
+        try {
+            RagSourceGuideRequestDto requestDto = RagSourceGuideRequestDto.builder()
+                    .fileId(source.getId().toString())
+                    .notebookId(source.getNoteBook() == null ? null : source.getNoteBook().getId().toString())
+                    .organizationId(source.getOrganizationId() == null ? null : source.getOrganizationId().toString())
+                    .scopes(List.of("global"))
+                    .userId(source.getOwnerId() == null ? null : source.getOwnerId().toString())
+                    .forceRegenerate(false)
+                    .callbackUrl(resolveSourceGuideCallbackUrl())
+                    .build();
+
+            RagSourceGuideResponseDto response = ragApiService.triggerSourceGuide(requestDto);
+            log.info("Triggered source guide for notebook source ID: {}, status={}",
+                    source.getId(), response == null ? null : response.getStatus());
+        } catch (Exception exception) {
+            log.error("Failed to trigger source guide for notebook source ID: {}", source.getId(), exception);
+        }
+    }
+
+    /**
+     * Giải mã callback URL cho source-guide webhook. Tái dùng cấu hình integration.notebook-source-callback.url
+     * (cùng host/base path), chỉ thay suffix path /ingestion/webhook/status → /source-guide/webhook/status.
+     * @return
+     */
+    private String resolveSourceGuideCallbackUrl() {
+        String callbackUrl = resolveCallbackUrl();
+        if (callbackUrl == null || callbackUrl.isBlank()) {
+            return null;
+        }
+
+        if (callbackUrl.endsWith("/ingestion/webhook/status")) {
+            return callbackUrl.substring(0, callbackUrl.length() - "/ingestion/webhook/status".length())
+                    + "/source-guide/webhook/status";
+        }
+
+        log.warn("Cannot derive source-guide callback URL from notebook-source-callback URL: {}", callbackUrl);
+        return null;
     }
 
     /**
