@@ -231,8 +231,7 @@ public class RagService {
                 .doOnNext(raw -> {
                     try {
                         JsonNode node = objectMapper.readTree(raw);
-                        // Bỏ qua các event metadata không có trường event (assistantMessage, topicId,
-                        // messageId)
+                        // Bỏ qua các event metadata không có trường event (assistantMessage, topicId, messageId)
                         if (!node.has("event")) {
                             return;
                         }
@@ -243,23 +242,25 @@ public class RagService {
                                     fullAnswer.append(node.get("content").asText());
                                 }
                             }
-                            case "sources" -> {
+                            case "final_answer" -> {
+                                if (node.has("reasoning_steps")) {
+                                    reasoningSteps.setLength(0);
+                                    reasoningSteps.append(node.get("reasoning_steps").toString());
+                                }
+
                                 if (node.has("sources")) {
                                     source.setLength(0);
                                     source.append(node.get("sources").toString());
                                 }
-                            }
-                            case "final_answer" -> {
-                                if (node.has("reasoning_steps")) {
-                                    reasoningSteps.append(node.get("reasoning_steps").toString());
-                                }
 
-                                // Fallback: nếu chưa tích lũy được nội dung từ delta thì dùng response đầy đủ
-                                if (fullAnswer.isEmpty() && node.has("response") && node.get("response").isTextual()) {
-                                    fullAnswer.append(node.get("response").asText());
+                                if (node.has("content")) {
+                                    fullAnswer.setLength(0);
+                                    fullAnswer.append(node.get("content").asText());
                                 }
-                                // Fallback: nếu event "sources" chưa gửi thì dùng sources trong final_answer
-                                if (source.isEmpty() && node.has("sources")) {
+                            }
+                            case "sources" -> {
+                                if (node.has("sources")) {
+                                    source.setLength(0);
                                     source.append(node.get("sources").toString());
                                 }
                             }
@@ -391,57 +392,49 @@ public class RagService {
                         new ObjectMapper().writeValueAsString(assistantMessage)))
                 .doOnNext(raw -> {
                     try {
-                        if (!raw.trim().equals("[DONE]")) {
-                            JsonNode node = objectMapper.readTree(raw);
+                        JsonNode node = objectMapper.readTree(raw);
 
-                            // Stream theo event (giống chatTopic): final_answer/sources/suggested_replies
-                            if (node.has("event")) {
-                                switch (node.get("event").asText()) {
-                                    case "final_answer" -> {
-                                        if (node.has("reasoning_steps")) {
-                                            reasoningSteps.setLength(0);
-                                            reasoningSteps.append(node.get("reasoning_steps").toString());
-                                        }
-                                        if (node.has("sources")) {
-                                            source.setLength(0);
-                                            source.append(node.get("sources").toString());
-                                        }
-                                        // Fallback: nếu chưa tích lũy token thì dùng response đầy đủ
-                                        if (fullAnswer.isEmpty() && node.has("response")
-                                                && node.get("response").isTextual()) {
-                                            fullAnswer.append(node.get("response").asText());
-                                        }
-                                    }
-                                    case "sources" -> {
-                                        if (node.has("sources")) {
-                                            source.setLength(0);
-                                            source.append(node.get("sources").toString());
-                                        }
-                                    }
-                                    case "suggested_replies" -> {
-                                        if (node.has("suggested_replies")) {
-                                            suggestedReplies.setLength(0);
-                                            suggestedReplies.append(node.get("suggested_replies").toString());
-                                        }
-                                    }
-                                    default -> {
-                                        // "delta", "done", ... không cần xử lý
-                                    }
+                        if (!node.has("event")) {
+                            return;
+                        }
+
+                        // Stream theo event (giống chatTopic): final_answer/sources/suggested_replies
+                        switch (node.get("event").asText()) {
+                            case "delta" -> {
+                                if (node.has("content")) {
+                                    fullAnswer.append(node.get("content").asText());
                                 }
-                            } else {
-                                // Format cũ: token/sources trực tiếp trong từng chunk
-                                if (node.has("token")) {
-                                    fullAnswer.append(node.get("token").asText());
-                                }
-                                if (node.has("sources")) {
-                                    source.append(node.get("sources").asText());
-                                }
+                            }
+                            case "final_answer" -> {
                                 if (node.has("reasoning_steps")) {
-                                    reasoningSteps.append(node.get("reasoning_steps").asText());
+                                    reasoningSteps.setLength(0);
+                                    reasoningSteps.append(node.get("reasoning_steps").toString());
                                 }
-                                if (node.has("suggested_replies")) {
-                                    suggestedReplies.append(node.get("suggested_replies").asText());
+
+                                if (node.has("sources")) {
+                                    source.setLength(0);
+                                    source.append(node.get("sources").toString());
                                 }
+
+                                if (node.has("content")) {
+                                    fullAnswer.setLength(0);
+                                    fullAnswer.append(node.get("content").asText());
+                                }
+                            }
+                            case "sources" -> {
+                                if (node.has("sources")) {
+                                    source.setLength(0);
+                                    source.append(node.get("sources").toString());
+                                }
+                            }
+                            case "suggested_replies" -> {
+                                if (node.has("content")) {
+                                    suggestedReplies.setLength(0);
+                                    suggestedReplies.append(node.get("content").toString());
+                                }
+                            }
+                            default -> {
+                                // "delta", "done", ... không cần xử lý
                             }
                         }
                     } catch (JsonProcessingException e) {
@@ -488,6 +481,8 @@ public class RagService {
                 .context(draftResponse.getDetailedDescription())
                 .userId(capturedUserId)
                 .organizationId(capturedOrgId)
+                .scopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()))
+                .fileIds(Set.of())
                 .stream(true)
                 .build();
 
@@ -505,28 +500,66 @@ public class RagService {
                 .doOnNext(raw -> {
                     try {
                         JsonNode node = objectMapper.readTree(raw);
-                        if (node.has("type") && node.get("type").asText().equalsIgnoreCase("done")) {
-                            JsonNode response = node.get("response");
-                            if (response != null) {
-                                if (response.has("session_id")) {
-                                    sessionId.append(response.get("session_id").asText());
+
+                        if (!node.has("event")) {
+                            return;
+                        }
+
+                        if (node.has("session_id")) {
+                            sessionId.setLength(0);
+                            sessionId.append(node.get("session_id").asText());
+                        }
+
+                        switch (node.get("event").asText()) {
+                            case "thought" -> {
+                                if (node.has("content")) {
+                                    thoughts.append(node.get("content").asText());
+                                }
+                            }
+                            case "draft_produced" -> {
+                                if (node.has("content")) {
+                                    draftContent.append(node.get("content").asText());
+                                }
+                            }
+                            case "draft_revised" -> {
+                                if (node.has("content")) {
+                                    draftContent.append(node.get("content").asText());
+                                }
+                            }
+                            case "question_for_user" -> {
+                                if (node.has("content")) {
+                                    questionForUser.setLength(0);
+                                    questionForUser.append(node.get("content").asText());
+                                }
+                            }
+                            case "final_answer" -> {
+                                if (node.has("session_id")) {
+                                    sessionId.setLength(0);
+                                    sessionId.append(node.get("session_id").asText());
                                 }
 
-                                if (response.has("status")) {
-                                    status.append(response.get("status").asText());
+                                if (node.has("status")) {
+                                    status.setLength(0);
+                                    status.append(node.get("status").asText());
                                 }
 
-                                if (response.has("question_for_user")) {
-                                    questionForUser.append(response.get("question_for_user").asText());
+                                if (node.has("question_for_user")) {
+                                    questionForUser.setLength(0);
+                                    questionForUser.append(node.get("question_for_user").asText());
                                 }
 
-                                if (response.has("draft")) {
-                                    draftContent.append(response.get("draft").asText());
+                                if (node.has("draft")) {
+                                    draftContent.setLength(0);
+                                    draftContent.append(node.get("draft").asText());
                                 }
 
-                                if (response.has("thoughts")) {
-                                    thoughts.append(response.get("thoughts").asText());
+                                if (node.has("thoughts")) {
+                                    thoughts.setLength(0);
+                                    thoughts.append(node.get("thoughts").asText());
                                 }
+                            }
+                            default -> {
+                                // Các event khác không cần xử lý
                             }
                         }
                     } catch (JsonProcessingException e) {
@@ -539,15 +572,14 @@ public class RagService {
                     draftService.updateSessionId(draftResponse.getId(), sessionIdStr);
 
                     // Update assistant message with generated content
-                    if (!status.isEmpty() && status.toString().equalsIgnoreCase("completed")) {
-                        if(questionForUser.isEmpty()) {
-                            questionForUser.append("Đã hoàn thành");
-                        }
+                    if(questionForUser.isEmpty()) {
+                        questionForUser.append("Đã hoàn thành");
                     }
 
                     if (thoughts.isEmpty()) {
                         thoughts.append("[]");
                     }
+
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
                             .content(questionForUser.toString())
                             .source(thoughts.toString())
@@ -563,19 +595,18 @@ public class RagService {
                                         .currentDraftContent(draftContentStr)
                                         .changeRequest(null)
                                         .build());
-                        log.info("Draft {} updated to version {} via chat", draftResponse.getId(),
-                                newVersion.getVersionNumber());
+                        log.info("Draft {} updated to version {} via chat", draftResponse.getId(), newVersion.getVersionNumber());
                     }
                 })
-                .concatWith(
-                        Mono.fromCallable(() -> {
-                            assistantMessage.setContent(questionForUser.toString());
-                            assistantMessage.setSource(thoughts.toString());
-                            log.info("assistantMessage before sending: {}", assistantMessage);
-                            return String.format(
-                                    "{\"updatedAssistantMessage\": %s}",
-                                    new ObjectMapper().writeValueAsString(assistantMessage));
-                        }).flatMapMany(Flux::just))
+                // .concatWith(
+                //         Mono.fromCallable(() -> {
+                //             assistantMessage.setContent(questionForUser.toString());
+                //             assistantMessage.setSource(thoughts.toString());
+                //             log.info("assistantMessage before sending: {}", assistantMessage);
+                //             return String.format(
+                //                     "{\"updatedAssistantMessage\": %s}",
+                //                     new ObjectMapper().writeValueAsString(assistantMessage));
+                //         }).flatMapMany(Flux::just))
                 .doOnError(e -> {
                     log.error("Error during draft chat streaming", e);
                 })
@@ -635,24 +666,56 @@ public class RagService {
                 .doOnNext(raw -> {
                     try {
                         JsonNode node = objectMapper.readTree(raw);
-                        if (node.has("type") && node.get("type").asText().equalsIgnoreCase("done")) {
-                            JsonNode response = node.get("response");
-                            if (response != null) {
-                                if (response.has("status")) {
-                                    status.append(response.get("status").asText());
+                        
+                        if (!node.has("event")) {
+                            return;
+                        }
+
+                        switch (node.get("event").asText()) {
+                            case "thought" -> {
+                                if (node.has("content")) {
+                                    thoughts.append(node.get("content").asText());
+                                }
+                            }
+                            case "draft_produced" -> {
+                                if (node.has("content")) {
+                                    draftContent.append(node.get("content").asText());
+                                }
+                            }
+                            case "draft_revised" -> {
+                                if (node.has("content")) {
+                                    draftContent.append(node.get("content").asText());
+                                }
+                            }
+                            case "question_for_user" -> {
+                                if (node.has("content")) {
+                                    questionForUser.setLength(0);
+                                    questionForUser.append(node.get("content").asText());
+                                }
+                            }
+                            case "final_answer" -> {
+                                if (node.has("status")) {
+                                    status.setLength(0);
+                                    status.append(node.get("status").asText());
                                 }
 
-                                if (response.has("question_for_user")) {
-                                    questionForUser.append(response.get("question_for_user").asText());
+                                if (node.has("question_for_user")) {
+                                    questionForUser.setLength(0);
+                                    questionForUser.append(node.get("question_for_user").asText());
                                 }
 
-                                if (response.has("draft")) {
-                                    draftContent.append(response.get("draft").asText());
+                                if (node.has("draft")) {
+                                    draftContent.setLength(0);
+                                    draftContent.append(node.get("draft").asText());
                                 }
 
-                                if (response.has("thoughts")) {
-                                    thoughts.append(response.get("thoughts"));
+                                if (node.has("thoughts")) {
+                                    thoughts.setLength(0);
+                                    thoughts.append(node.get("thoughts").asText());
                                 }
+                            }
+                            default -> {
+                                // Các event khác không cần xử lý
                             }
                         }
                     } catch (JsonProcessingException e) {
@@ -661,10 +724,8 @@ public class RagService {
                 })
                 .doOnComplete(() -> {
                     // Update assistant message with generated content
-                    if (!status.isEmpty() && status.toString().equalsIgnoreCase("completed")) {
-                        if(questionForUser.isEmpty()) {
+                    if(questionForUser.isEmpty()) {
                             questionForUser.append("Đã hoàn thành");
-                        }
                     }
 
                     if (thoughts.isEmpty()) {
@@ -688,15 +749,15 @@ public class RagService {
                         log.info("Draft {} updated to version {} via chat", draftId, newVersion.getVersionNumber());
                     }
                 })
-                .concatWith(
-                        Mono.fromCallable(() -> {
-                            assistantMessage.setContent(questionForUser.toString());
-                            assistantMessage.setSource(thoughts.toString());
-                            log.info("assistantMessage before sending: {}", assistantMessage);
-                            return String.format(
-                                    "{\"updatedAssistantMessage\": %s}",
-                                    new ObjectMapper().writeValueAsString(assistantMessage));
-                        }).flatMapMany(Flux::just))
+                // .concatWith(
+                //         Mono.fromCallable(() -> {
+                //             assistantMessage.setContent(questionForUser.toString());
+                //             assistantMessage.setSource(thoughts.toString());
+                //             log.info("assistantMessage before sending: {}", assistantMessage);
+                //             return String.format(
+                //                     "{\"updatedAssistantMessage\": %s}",
+                //                     new ObjectMapper().writeValueAsString(assistantMessage));
+                //         }).flatMapMany(Flux::just))
                 .doOnError(e -> log.error("Error during draft chat streaming", e))
                 .doFinally(signalType -> log.info("Draft chat streaming completed with signal: {}", signalType));
     }

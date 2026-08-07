@@ -19,6 +19,7 @@ public class NoteBookIngestionMaintenanceScheduler {
 
     AtomicBoolean ingestionStatusSyncRunning = new AtomicBoolean(false);
     AtomicBoolean pendingDeleteWorkerRunning = new AtomicBoolean(false);
+    AtomicBoolean sourceGuideSyncRunning = new AtomicBoolean(false);
 
     @Scheduled(cron = "0 0/1 * * * ?")
     public void syncNotebookSourceStatuses() {
@@ -47,6 +48,21 @@ public class NoteBookIngestionMaintenanceScheduler {
             log.error("Error while processing pending notebook source deletions", exception);
         } finally {
             pendingDeleteWorkerRunning.set(false);
+        }
+    }
+
+    @Scheduled(cron = "0 0/1 * * * ?")
+    public void syncCompletedSourceGuides() {
+        if (!sourceGuideSyncRunning.compareAndSet(false, true)) {
+            return;
+        }
+
+        try {
+            noteBookSourceService.syncCompletedSourceGuides();
+        } catch (Exception exception) {
+            log.error("Error while syncing completed source guides", exception);
+        } finally {
+            sourceGuideSyncRunning.set(false);
         }
     }
 }
