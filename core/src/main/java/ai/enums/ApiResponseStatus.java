@@ -261,6 +261,15 @@ public enum ApiResponseStatus {
     SHARE_LINK_EXPIRY_DAYS_EXCEED_MAX(1181, "Số ngày hết hạn vượt quá giới hạn cho phép", HttpStatus.BAD_REQUEST),
 
     // ========================================================================
+    // PROMPT TEMPLATE - 1182..1186
+    // ========================================================================
+    PROMPT_TEMPLATE_NOT_EXISTS(1182, "Prompt template không tồn tại", HttpStatus.NOT_FOUND),
+    PROMPT_TEMPLATE_TITLE_CAN_NOT_BE_NULL_OR_EMPTY(1183, "Tiêu đề prompt template không được để trống", HttpStatus.BAD_REQUEST),
+    PROMPT_TEMPLATE_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY(1184, "Nội dung prompt template không được để trống", HttpStatus.BAD_REQUEST),
+    PROMPT_TEMPLATE_TYPE_CAN_NOT_BE_NULL_OR_EMPTY(1185, "Loại prompt template không được để trống", HttpStatus.BAD_REQUEST),
+    PROMPT_TEMPLATE_OWNER_ONLY(1186, "Chỉ owner mới được quản lý prompt template này", HttpStatus.FORBIDDEN),
+
+    // ========================================================================
     // UNEXPECTED - 9999
     // ========================================================================
     UNEXPECTED(9999, "An unexpected error occurred!", HttpStatus.INTERNAL_SERVER_ERROR);

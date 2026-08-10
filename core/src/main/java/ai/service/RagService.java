@@ -267,7 +267,7 @@ public class RagService {
                             case "suggested_replies" -> {
                                 if (node.has("suggested_replies")) {
                                     suggestedReplies.setLength(0);
-                                    suggestedReplies.append(node.get("suggested_replies").toString());
+                                    suggestedReplies.append(normalizeJsonArrayText(node.get("suggested_replies")));
                                 }
                             }
                             default -> {
@@ -428,9 +428,12 @@ public class RagService {
                                 }
                             }
                             case "suggested_replies" -> {
-                                if (node.has("content")) {
+                                JsonNode repliesNode = node.has("suggested_replies")
+                                        ? node.get("suggested_replies")
+                                        : node.get("content");
+                                if (repliesNode != null && !repliesNode.isMissingNode()) {
                                     suggestedReplies.setLength(0);
-                                    suggestedReplies.append(node.get("content").toString());
+                                    suggestedReplies.append(normalizeJsonArrayText(repliesNode));
                                 }
                             }
                             default -> {
@@ -1090,6 +1093,42 @@ public class RagService {
         log.info("RagCompletionRequestDto builder: {}", builder);
 
         return builder;
+    }
+
+    /**
+     * Chuẩn hóa một JsonNode thành text dạng mảng JSON (vd: ["a", "b"]).
+     * Xử lý cả 2 trường hợp:
+     * <ul>
+     * <li>node là mảng JSON thật → trả về toString() trực tiếp</li>
+     * <li>node là chuỗi chứa JSON bị double-encoded (vd: "[\"a\", \"b\"]") →
+     * parse lại để lưu DB đúng dạng array, tránh lưu thành string lồng array</li>
+     * </ul>
+     *
+     * @param node node cần chuẩn hóa
+     * @return text dạng mảng JSON
+     */
+    private String normalizeJsonArrayText(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return "[]";
+        }
+
+        if (node.isArray()) {
+            return node.toString();
+        }
+
+        if (node.isTextual()) {
+            String text = node.asText().trim();
+            try {
+                JsonNode parsed = objectMapper.readTree(text);
+                if (parsed.isArray()) {
+                    return parsed.toString();
+                }
+            } catch (JsonProcessingException e) {
+                log.warn("Không parse được JSON array từ text: {}", text);
+            }
+        }
+
+        return node.toString();
     }
 
     private boolean isBlank(String value) {
