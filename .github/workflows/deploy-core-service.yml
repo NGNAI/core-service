@@ -37,6 +37,8 @@ jobs:
           cache: maven
 
       - name: Build JAR
+        env:
+          HOME: /home/github-runner   # Hoặc /home/github-runner tùy user chạy runner
         run: |
           chmod +x ./mvnw
           ./mvnw -B -ntp -pl core -am clean package -DskipTests
