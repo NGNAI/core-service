@@ -265,9 +265,12 @@ public class RagService {
                                 }
                             }
                             case "suggested_replies" -> {
-                                if (node.has("suggested_replies")) {
+                                JsonNode repliesNode = node.has("suggested_replies")
+                                        ? node.get("suggested_replies")
+                                        : node.get("content");
+                                if (repliesNode != null && !repliesNode.isMissingNode()) {
                                     suggestedReplies.setLength(0);
-                                    suggestedReplies.append(normalizeJsonArrayText(node.get("suggested_replies")));
+                                    suggestedReplies.append(normalizeJsonArrayText(repliesNode));
                                 }
                             }
                             default -> {
