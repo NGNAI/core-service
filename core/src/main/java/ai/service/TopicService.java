@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import ai.annotation.Audited;
 import ai.dto.own.request.TopicCreateRequestDto;
@@ -13,12 +14,17 @@ import ai.dto.own.request.TopicRenameTitleRequestDto;
 import ai.dto.own.request.filter.TopicFilterDto;
 import ai.dto.own.response.TopicResponseDto;
 import ai.entity.postgres.TopicEntity;
+import ai.entity.postgres.TopicMessageEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
 import ai.enums.AuditResource;
+import ai.enums.ShareResource;
 import ai.exception.AppException;
 import ai.mapper.TopicMapper;
 import ai.model.CustomPairModel;
+import ai.repository.MessageFeedbackHistoryRepository;
+import ai.repository.ShareLinkRepository;
+import ai.repository.TopicMessagesRepository;
 import ai.repository.TopicRepository;
 import ai.util.JwtUtil;
 import jakarta.persistence.criteria.Predicate;
@@ -31,6 +37,9 @@ import lombok.experimental.FieldDefaults;
 @Service
 public class TopicService {
     TopicRepository topicRepository;
+    TopicMessagesRepository topicMessagesRepository;
+    MessageFeedbackHistoryRepository messageFeedbackHistoryRepository;
+    ShareLinkRepository shareLinkRepository;
     UserService userService;
     OrganizationService organizationService;
 
@@ -90,8 +99,24 @@ public class TopicService {
     }
 
     @Audited(action = AuditAction.DELETE, resource = AuditResource.TOPIC, resourceIdExpression = "#arg0", description = "Xoá chủ đề: {0}")
+    @Transactional
     public void delete(UUID id){
-        validateTopicOfUser(id,JwtUtil.getUserId());
+        UUID userId = JwtUtil.getUserId();
+        validateTopicOfUser(id, userId);
+
+        // 1. Xoá feedback history của các message thuộc topic trước (FK message_id)
+        List<TopicMessageEntity> topicMessages = topicMessagesRepository.findByTopic_IdOrderById_MessageIdAsc(id);
+        if (!topicMessages.isEmpty()) {
+            List<UUID> messageIds = topicMessages.stream()
+                    .map(topicMessage -> topicMessage.getMessageEntity().getId())
+                    .toList();
+            messageFeedbackHistoryRepository.deleteByMessage_IdIn(messageIds);
+        }
+
+        // 2. Xoá share links của topic
+        shareLinkRepository.deleteByResourceTypeAndResourceId(ShareResource.TOPIC, id);
+
+        // 3. Xoá topic (cascade xoá topic_messages + message + topic_sources)
         topicRepository.deleteById(id);
     }
 

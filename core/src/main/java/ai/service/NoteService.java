@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -173,6 +174,7 @@ public class NoteService {
     }
 
     @Audited(action = AuditAction.DELETE, resource = AuditResource.NOTE, resourceIdExpression = "#arg0", description = "Xoá ghi chú: {0}")
+    @Transactional
     public void delete(UUID noteId) {
         UUID userId = JwtUtil.getUserId();
         validateNoteOfUser(noteId, userId);

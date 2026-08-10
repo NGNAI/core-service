@@ -36,6 +36,10 @@ Có 2 nguồn prompt:
 - `POST /` — tạo **system prompt** (global, không gắn owner/org).
 - `PUT /{id}` — cập nhật prompt bất kỳ (kể cả của user, trong org của admin).
 - `DELETE /{id}` — xóa prompt bất kỳ.
+- `GET /types` — danh sách PromptType.
+
+### Dùng chung (`/category`)
+- `GET /category/prompt-types` — danh sách PromptType (TOPIC / NOTEBOOK / BOTH) cho mọi authenticated user.
 
 ## Quy tắc nghiệp vụ
 

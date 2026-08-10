@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import ai.annotation.Audited;
 import ai.dto.own.request.NoteBookCreateRequestDto;
@@ -15,13 +16,18 @@ import ai.dto.own.request.NoteBookUpdateRequestDto;
 import ai.dto.own.request.filter.NoteBookFilterDto;
 import ai.dto.own.response.NoteBookResponseDto;
 import ai.entity.postgres.NoteBookEntity;
+import ai.entity.postgres.NotebookMessageEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
 import ai.enums.AuditResource;
+import ai.enums.ShareResource;
 import ai.exception.AppException;
 import ai.mapper.NoteBookMapper;
 import ai.model.CustomPairModel;
+import ai.repository.MessageFeedbackHistoryRepository;
 import ai.repository.NoteBookRepository;
+import ai.repository.NotebookMessagesRepository;
+import ai.repository.ShareLinkRepository;
 import ai.util.JwtUtil;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
@@ -33,6 +39,9 @@ import lombok.experimental.FieldDefaults;
 @Service
 public class NoteBookService {
     NoteBookRepository noteBookRepository;
+    NotebookMessagesRepository notebookMessagesRepository;
+    MessageFeedbackHistoryRepository messageFeedbackHistoryRepository;
+    ShareLinkRepository shareLinkRepository;
     UserService userService;
     OrganizationService organizationService;
     NoteBookMapper noteBookMapper;
@@ -116,8 +125,23 @@ public class NoteBookService {
     }
 
     @Audited(action = AuditAction.DELETE, resource = AuditResource.NOTEBOOK, resourceIdExpression = "#arg0", description = "Xoá sổ tay: {0}")
+    @Transactional
     public void delete(UUID id){
-        validateNoteBookOfUser(id,JwtUtil.getUserId());
+        validateNoteBookOfUser(id, JwtUtil.getUserId());
+
+        // 1. Xoá feedback history của các message thuộc notebook trước (FK message_id)
+        List<NotebookMessageEntity> notebookMessages = notebookMessagesRepository.findByNotebook_IdOrderById_MessageIdAsc(id);
+        if (!notebookMessages.isEmpty()) {
+            List<UUID> messageIds = notebookMessages.stream()
+                    .map(notebookMessage -> notebookMessage.getMessageEntity().getId())
+                    .toList();
+            messageFeedbackHistoryRepository.deleteByMessage_IdIn(messageIds);
+        }
+
+        // 2. Xoá share links của notebook
+        shareLinkRepository.deleteByResourceTypeAndResourceId(ShareResource.NOTEBOOK, id);
+
+        // 3. Xoá notebook (cascade xoá notebook_messages + message + notebook_sources)
         noteBookRepository.deleteById(id);
     }
 

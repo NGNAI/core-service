@@ -18,6 +18,7 @@ import ai.enums.IngestionStatus;
 import ai.enums.MessageFeedbackType;
 import ai.enums.NoteSourceBy;
 import ai.enums.NoteSourceType;
+import ai.enums.PromptType;
 import ai.model.ApiResponseModel;
 import ai.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -163,5 +164,15 @@ public class CategoryController {
                                                 .message("Get data ingestion statuses successfully")
                                                 .data(ingestionStatuses)
                                                 .build());
-        }      
+        }
+
+        @Operation(summary = "Get prompt types", description = "Retrieve all prompt template type values")
+        @GetMapping("/prompt-types")
+        ResponseEntity<ApiResponseModel<List<PromptType>>> promptTypes() {
+                return ResponseEntity.ok(
+                                ApiResponseModel.<List<PromptType>>builder()
+                                                .message("Get prompt types successfully")
+                                                .data(Arrays.asList(PromptType.values()))
+                                                .build());
+        }
 }

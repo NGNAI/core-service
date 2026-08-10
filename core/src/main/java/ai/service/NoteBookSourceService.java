@@ -602,6 +602,7 @@ public class NoteBookSourceService {
      * Scheduler recovery cho source-guide: GET kết quả source-guide của các source COMPLETED nhưng chưa có summary
      * (callback có thể bị mất/trễ). Chỉ lưu summary khi status = completed và summary không rỗng.
      */
+    @Transactional
     public void syncCompletedSourceGuides() {
         if (!NotebookSourceSummaryConfig.USE_RAG_SOURCE_GUIDE) {
             return;
@@ -616,7 +617,9 @@ public class NoteBookSourceService {
         log.info("Syncing source guides for {} completed notebook source(s) without summary", sources.size());
         for (NoteBookSourceEntity source : sources) {
             try {
-                RagSourceGuideResponseDto response = ragApiService.getSourceGuide(source.getId().toString());
+                RagSourceGuideResponseDto response = ragApiService.getSourceGuide(
+                        source.getId().toString(),
+                        source.getNoteBook() == null ? null : source.getNoteBook().getId().toString());
                 if (response == null) {
                     continue;
                 }

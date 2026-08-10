@@ -48,6 +48,11 @@ public interface ShareLinkRepository extends JpaRepository<ShareLinkEntity, UUID
             Pageable pageable);
 
     /**
+     * Xoá toàn bộ share link của một resource (topic/notebook) khi resource bị xoá.
+     */
+    void deleteByResourceTypeAndResourceId(ShareResource resourceType, UUID resourceId);
+
+    /**
      * Đếm số link active (chưa revoke) của owner.
      */
     long countByOwnerIdAndRevokedAtIsNull(UUID ownerId);
