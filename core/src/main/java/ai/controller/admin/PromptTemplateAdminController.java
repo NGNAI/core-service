@@ -1,5 +1,6 @@
 package ai.controller.admin;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,6 +20,7 @@ import ai.dto.own.request.PromptTemplateCreateRequestDto;
 import ai.dto.own.request.PromptTemplateUpdateRequestDto;
 import ai.dto.own.request.filter.PromptTemplateFilterDto;
 import ai.dto.own.response.PromptTemplateResponseDto;
+import ai.enums.PromptType;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.PromptTemplateService;
@@ -43,6 +45,17 @@ import lombok.experimental.FieldDefaults;
 public class PromptTemplateAdminController {
 
     PromptTemplateService promptTemplateService;
+
+    @Operation(summary = "Get prompt types", description = "Lấy danh sách loại prompt khả dụng (TOPIC / NOTEBOOK / BOTH)")
+    @GetMapping("/types")
+    @PreAuthorize("@adminAccessGuard.isAllowed()")
+    ResponseEntity<ApiResponseModel<List<PromptType>>> types() {
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<PromptType>>builder()
+                        .message("Get prompt types successfully")
+                        .data(Arrays.asList(PromptType.values()))
+                        .build());
+    }
 
     @Operation(summary = "List all prompt templates", description = "List tất cả prompt: system prompt (global) + user prompt trong org của admin. Có filter theo promptType / scope / isActive / keyword")
     @GetMapping

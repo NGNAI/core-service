@@ -1,5 +1,6 @@
 package ai.repository;
 
+import java.util.Collection;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -12,4 +13,6 @@ import ai.entity.postgres.MessageFeedbackHistoryEntity;
 @Repository
 public interface MessageFeedbackHistoryRepository extends JpaRepository<MessageFeedbackHistoryEntity, UUID> {
 	Page<MessageFeedbackHistoryEntity> findByMessage_IdOrderByAudit_CreatedAtDesc(UUID messageId, Pageable pageable);
+
+	void deleteByMessage_IdIn(Collection<UUID> messageIds);
 }

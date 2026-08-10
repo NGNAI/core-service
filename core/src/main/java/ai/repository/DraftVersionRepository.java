@@ -19,4 +19,6 @@ public interface DraftVersionRepository extends JpaRepository<DraftVersionEntity
     Optional<DraftVersionEntity> findByIdAndDraft_Id(UUID id, UUID draftId);
 
     long countByDraft_Id(UUID draftId);
+
+    void deleteByDraft_Id(UUID draftId);
 }

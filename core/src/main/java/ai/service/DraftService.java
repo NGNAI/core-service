@@ -16,6 +16,7 @@ import ai.dto.own.request.DraftSaveVersionRequestDto;
 import ai.dto.own.response.DraftResponseDto;
 import ai.dto.own.response.DraftVersionResponseDto;
 import ai.entity.postgres.DraftEntity;
+import ai.entity.postgres.DraftMessageEntity;
 import ai.entity.postgres.DraftVersionEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
@@ -24,8 +25,10 @@ import ai.enums.DraftType;
 import ai.exception.AppException;
 import ai.mapper.DraftMapper;
 import ai.model.CustomPairModel;
+import ai.repository.DraftMessagesRepository;
 import ai.repository.DraftRepository;
 import ai.repository.DraftVersionRepository;
+import ai.repository.MessageFeedbackHistoryRepository;
 import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +46,8 @@ public class DraftService {
 
     DraftRepository draftRepository;
     DraftVersionRepository draftVersionRepository;
+    DraftMessagesRepository draftMessagesRepository;
+    MessageFeedbackHistoryRepository messageFeedbackHistoryRepository;
     UserService userService;
     OrganizationService organizationService;
 
@@ -81,7 +86,28 @@ public class DraftService {
         return draftMapper.entityToResponseDto(draftRepository.save(entity));
     }
 
+    @Audited(action = AuditAction.DELETE, resource = AuditResource.DRAFT, resourceIdExpression = "#arg0", description = "Xoá bản soạn thảo: {0}")
+    @Transactional
     public void delete(UUID draftId) {
+        UUID userId = JwtUtil.getUserId();
+        validateDraftOfUser(draftId, userId);
+
+        // 1. Xoá feedback history của các message thuộc draft trước (FK message_id)
+        List<DraftMessageEntity> draftMessages = draftMessagesRepository.findByDraft_IdOrderById_MessageIdAsc(draftId);
+        if (!draftMessages.isEmpty()) {
+            List<UUID> messageIds = draftMessages.stream()
+                    .map(draftMessage -> draftMessage.getMessageEntity().getId())
+                    .toList();
+            messageFeedbackHistoryRepository.deleteByMessage_IdIn(messageIds);
+        }
+
+        // 2. Xoá draft_messages (cascade xoá message entity qua CascadeType.ALL)
+        draftMessagesRepository.deleteAll(draftMessages);
+
+        // 3. Xoá các version của draft
+        draftVersionRepository.deleteByDraft_Id(draftId);
+
+        // 4. Xoá draft
         draftRepository.deleteById(draftId);
     }
    

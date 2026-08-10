@@ -54,9 +54,11 @@ public class RagApiService {
     /**
      * Lấy kết quả source-guide (summary) của một file trong notebook.
      * @param fileId ID của file/source
+     * @param notebookId ID của notebook chứa file/source
      * @return response (status có thể là completed / failed / processing / not_found)
      */
-    public RagSourceGuideResponseDto getSourceGuide(String fileId) {
-        return apiCore.getForObject("/notebook/v2/source-guide/" + fileId, RagSourceGuideResponseDto.class);
+    public RagSourceGuideResponseDto getSourceGuide(String fileId, String notebookId) {
+        return apiCore.getForObject("/notebook/v2/source-guide?file_id={fileId}&notebook_id={notebookId}",
+                RagSourceGuideResponseDto.class, fileId, notebookId);
     }
 }

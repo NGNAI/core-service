@@ -85,14 +85,15 @@ public class RagApiCore {
     /**
      * Gọi GET đồng bộ (blocking) và parse response về object theo responseType.
      * Dùng cho các endpoint trả về JSON đơn lẻ, ví dụ GET source-guide.
-     * @param endPoint path bắt đầu bằng "/"
+     * @param endPoint path bắt đầu bằng "/", có thể chứa URI template (vd ?file_id={fileId}&notebook_id={notebookId})
      * @param responseType class của response DTO
+     * @param uriVariables các biến URI template nếu có
      * @return object đã parse
      */
-    public <T> T getForObject(String endPoint, Class<T> responseType) {
+    public <T> T getForObject(String endPoint, Class<T> responseType, Object... uriVariables) {
         try {
             return ragWebClient.get()
-                    .uri(endPoint)
+                    .uri(endPoint, uriVariables)
                     .retrieve()
                     .bodyToMono(responseType)
                     .block();

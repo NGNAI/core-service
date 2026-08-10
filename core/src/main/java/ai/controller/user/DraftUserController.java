@@ -187,6 +187,16 @@ public class DraftUserController {
                                                 .build());
         }
 
+        @Operation(summary = "Delete draft", description = "Xóa một bản soạn thảo theo id")
+        @DeleteMapping("/{draftId}")
+        public ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID draftId) {
+                draftService.delete(draftId);
+                return ResponseEntity.ok(
+                                ApiResponseModel.<Void>builder()
+                                                .message("Delete draft successfully")
+                                                .build());
+        }
+
         @Operation(summary = "Get draft versions", description = "Lấy lịch sử các version của draft")
         @GetMapping("/{draftId}/versions")
         public ResponseEntity<ApiResponseModel<List<DraftVersionResponseDto>>> getVersions(
