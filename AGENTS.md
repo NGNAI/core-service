@@ -70,6 +70,7 @@ Hướng dẫn cho AI agents làm việc trong repo `core-service`.
 - Dashboard (admin global + user personal), Reports (activity/user/data/comprehensive + CSV export)
 - System settings (admin + public), System health, LDAP import/sync
 - **Share link public** (Topic/Notebook read-only) — xem `docs/share-link-feature.md`
+- **Quick Prompt Template** (prompt mẫu cho chat Topic/NotebookLM — SYSTEM global + USER cá nhân) — xem `docs/prompt-template-feature.md`
 
 ## Khi thêm tính năng mới
 1. Thêm error codes vào `ApiResponseStatus` (theo dải số tương ứng, comment section header)
