@@ -1,6 +1,5 @@
 package ai.controller.user;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,14 +30,15 @@ import ai.dto.own.response.DraftResponseDto;
 import ai.dto.own.response.DraftVersionResponseDto;
 import ai.dto.own.response.MessageFeedbackHistoryResponseDto;
 import ai.dto.own.response.MessageResponseDto;
-import ai.enums.DraftPresentationStyle;
-import ai.enums.DraftType;
+import ai.dto.outer.rag.response.RagDraftDocumentTypeDto;
+import ai.dto.outer.rag.response.RagDraftFormatStandardDto;
 import ai.enums.MessageParentType;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.DraftService;
 import ai.service.MessageService;
 import ai.service.RagService;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -58,23 +58,23 @@ public class DraftUserController {
         MessageService messageService;
         RagService ragService;
 
-        @Operation(summary = "Get draft types", description = "Lấy danh sách loại soạn thảo hỗ trợ")
+        @Operation(summary = "Get draft types", description = "Lấy danh sách loại tài liệu hỗ trợ soạn thảo, quản lý tập trung từ RAG service")
         @GetMapping("/types")
-        public ResponseEntity<ApiResponseModel<List<DraftType>>> types() {
+        public ResponseEntity<ApiResponseModel<List<RagDraftDocumentTypeDto>>> types() {
                 return ResponseEntity.ok(
-                                ApiResponseModel.<List<DraftType>>builder()
+                                ApiResponseModel.<List<RagDraftDocumentTypeDto>>builder()
                                                 .message("Get draft types successfully")
-                                                .data(Arrays.asList(DraftType.values()))
+                                                .data(ragService.getDraftDocumentTypes())
                                                 .build());
         }
 
-        @Operation(summary = "Get draft presentation styles", description = "Lấy danh sách cách trình bày hỗ trợ")
-        @GetMapping("/presentation-styles")
-        public ResponseEntity<ApiResponseModel<List<DraftPresentationStyle>>> presentationStyles() {
+        @Operation(summary = "Get draft format standards", description = "Lấy danh sách chuẩn định dạng văn bản hỗ trợ, quản lý tập trung từ RAG service")
+        @GetMapping("/format-standards")
+        public ResponseEntity<ApiResponseModel<List<RagDraftFormatStandardDto>>> formatStandards() {
                 return ResponseEntity.ok(
-                                ApiResponseModel.<List<DraftPresentationStyle>>builder()
-                                                .message("Get draft presentation styles successfully")
-                                                .data(Arrays.asList(DraftPresentationStyle.values()))
+                                ApiResponseModel.<List<RagDraftFormatStandardDto>>builder()
+                                                .message("Get draft format standards successfully")
+                                                .data(ragService.getDraftFormatStandards())
                                                 .build());
         }
 
@@ -214,6 +214,7 @@ public class DraftUserController {
                                                 .build());
         }
 
+        @Hidden
         @Operation(summary = "Update draft message feedback", description = "Cập nhật feedback (like/dislike) cho 1 message trong cuộc hội thoại chỉnh sửa draft")
         @PatchMapping("/{draftId}/messages/{messageId}/feedback")
         public ResponseEntity<ApiResponseModel<MessageResponseDto>> updateMessageFeedback(
@@ -230,6 +231,7 @@ public class DraftUserController {
                                                 .build());
         }
 
+        @Hidden
         @Operation(summary = "Get draft message feedback history", description = "Lấy lịch sử feedback của 1 message trong cuộc hội thoại chỉnh sửa draft")
         @GetMapping("/{draftId}/messages/{messageId}/feedback/history")
         public ResponseEntity<ApiResponseModel<List<MessageFeedbackHistoryResponseDto>>> getMessageFeedbackHistory(

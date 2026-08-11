@@ -229,6 +229,12 @@ public enum ApiResponseStatus {
     SETTING_GROUP_CAN_NOT_BE_NULL_OR_EMPTY(1155, "Setting group cannot be null or empty", HttpStatus.BAD_REQUEST),
 
     // ========================================================================
+    // RAG SERVICE - 1156..1161
+    // ========================================================================
+    RAG_SERVICE_UNAVAILABLE(1156, "RAG service unavailable", HttpStatus.BAD_GATEWAY),
+    INVALID_DRAFT_FORMAT_STANDARD_VALUE(1157, "Invalid draft format standard value", HttpStatus.BAD_REQUEST),
+
+    // ========================================================================
     // SECURITY POLICY - 1162..1167
     // ========================================================================
     USER_ACCOUNT_LOCKED(1162, "Tài khoản đã bị khoá do đăng nhập sai quá nhiều lần", HttpStatus.FORBIDDEN),

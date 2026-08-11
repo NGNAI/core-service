@@ -22,4 +22,7 @@ public class RagDraftReviseRequestDto {
 
     @JsonProperty("stream")
     boolean stream = true;
+
+    @JsonProperty("max_iterations")
+    Integer max_iterations;
 }

@@ -14,12 +14,12 @@ import lombok.experimental.FieldDefaults;
         "ownerId",
         "organizationId",
         "type",
+        "formatStandard",
         "title",
         "detailedDescription",
-        "presentationStyle",
-        "language",
         "latestVersionNumber",
-        "latestContentPreview"
+        "latestContentPreview",
+        "sessionId"
 })
 @Getter
 @Setter
@@ -29,6 +29,7 @@ public class DraftResponseDto extends AuditResponseDto {
     UUID ownerId;
     UUID organizationId;
     String type;
+    String formatStandard;
     String title;
     String detailedDescription;
     Integer latestVersionNumber;

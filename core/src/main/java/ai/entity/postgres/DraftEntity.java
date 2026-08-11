@@ -42,6 +42,9 @@ public class DraftEntity {
     @Column(name = "type", nullable = false)
     String type;
 
+    @Column(name = "format_standard", nullable = true)
+    String formatStandard;
+
     @Column(name = "title", nullable = false)
     String title;
 

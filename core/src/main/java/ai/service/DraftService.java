@@ -21,7 +21,6 @@ import ai.entity.postgres.DraftVersionEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
 import ai.enums.AuditResource;
-import ai.enums.DraftType;
 import ai.exception.AppException;
 import ai.mapper.DraftMapper;
 import ai.model.CustomPairModel;
@@ -29,6 +28,7 @@ import ai.repository.DraftMessagesRepository;
 import ai.repository.DraftRepository;
 import ai.repository.DraftVersionRepository;
 import ai.repository.MessageFeedbackHistoryRepository;
+import ai.service.api.RagApiService;
 import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +42,6 @@ import lombok.extern.slf4j.Slf4j;
 public class DraftService {
     static final int DEFAULT_PAGE_SIZE = 20;
     static final int MAX_PAGE_SIZE = 100;
-    static final int CONTENT_PREVIEW_LENGTH = 320;
 
     DraftRepository draftRepository;
     DraftVersionRepository draftVersionRepository;
@@ -50,6 +49,7 @@ public class DraftService {
     MessageFeedbackHistoryRepository messageFeedbackHistoryRepository;
     UserService userService;
     OrganizationService organizationService;
+    RagApiService ragApiService;
 
     // @Autowired
     // @Lazy
@@ -77,6 +77,7 @@ public class DraftService {
 
         DraftEntity entity = new DraftEntity();
         entity.setType(normalizeDraftType(requestDto.getType()));
+        entity.setFormatStandard(normalizeFormatStandard(requestDto.getFormat()));
         entity.setTitle(normalizeRequired(requestDto.getTitle(), ApiResponseStatus.DRAFT_TITLE_CAN_NOT_BE_NULL_OR_EMPTY));
         entity.setDetailedDescription(normalizeRequired(requestDto.getDetailedDescription(), ApiResponseStatus.DRAFT_DESCRIPTION_CAN_NOT_BE_NULL_OR_EMPTY));
         entity.setLatestVersionNumber(0);
@@ -299,15 +300,40 @@ public class DraftService {
         return versionEntity;
     }
 
+    /**
+     * Chuẩn hóa + validate type: bắt buộc phải nằm trong danh sách document types từ RAG service.
+     */
     private String normalizeDraftType(String type) {
         String normalized = normalizeRequired(type, ApiResponseStatus.DRAFT_TYPE_CAN_NOT_BE_NULL_OR_EMPTY)
                 .toLowerCase(Locale.ROOT);
 
-        if (!DraftType.isSupportedValue(normalized)) {
+        boolean valid = ragApiService.getDraftDocumentTypes().stream()
+                .anyMatch(doc -> normalized.equalsIgnoreCase(doc.getValue()));
+        if (!valid) {
             throw new AppException(ApiResponseStatus.INVALID_DRAFT_TYPE_VALUE);
         }
 
         return normalized;
+    }
+
+    /**
+     * Chuẩn hóa + validate format (format_standard): là field tùy chọn nên null/rỗng đều hợp lệ.
+     * Nếu có giá trị, bắt buộc phải nằm trong danh sách format standards từ RAG service.
+     */
+    private String normalizeFormatStandard(String format) {
+        String normalized = normalizeNullable(format);
+        if (normalized == null) {
+            return null;
+        }
+        String lowerCased = normalized.toLowerCase(Locale.ROOT);
+
+        boolean valid = ragApiService.getDraftFormatStandards().stream()
+                .anyMatch(std -> lowerCased.equalsIgnoreCase(std.getId()));
+        if (!valid) {
+            throw new AppException(ApiResponseStatus.INVALID_DRAFT_FORMAT_STANDARD_VALUE);
+        }
+
+        return lowerCased;
     }
 
     private String resolveDetailedDescription(String existingValue, String updateValue) {
@@ -324,17 +350,12 @@ public class DraftService {
         return normalizedExisting;
     }
 
+    /**
+     * Trả về toàn bộ nội dung để lưu vào latestContentPreview.
+     * Cột đã là TEXT nên có thể lưu nội dung soạn thảo dài (vài trang A4), không cắt ngắn.
+     */
     private String buildContentPreview(String content) {
-        String normalized = normalizeNullable(content);
-        if (normalized == null) {
-            return null;
-        }
-
-        if (normalized.length() <= CONTENT_PREVIEW_LENGTH) {
-            return normalized;
-        }
-
-        return normalized.substring(0, CONTENT_PREVIEW_LENGTH) + "...";
+        return normalizeNullable(content);
     }
 
     private int normalizePageSize(int pageSize) {
