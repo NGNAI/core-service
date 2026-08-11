@@ -19,6 +19,8 @@ import ai.AppProperties;
 import ai.dto.outer.rag.request.RagCompletionRequestDto;
 import ai.dto.outer.rag.request.RagDraftCreateRequestDto;
 import ai.dto.outer.rag.request.RagDraftReviseRequestDto;
+import ai.dto.outer.rag.response.RagDraftDocumentTypeDto;
+import ai.dto.outer.rag.response.RagDraftFormatStandardDto;
 import ai.dto.own.request.DraftChatRequestDto;
 import ai.dto.own.request.DraftSaveVersionRequestDto;
 import ai.dto.own.request.MessageCreateRequestDto;
@@ -58,6 +60,11 @@ public class RagService {
     static final int DEFAULT_TOPIC_RECENT_MESSAGE_WINDOW = 10;
     static final int DEFAULT_NOTEBOOK_RECENT_MESSAGE_WINDOW = 14;
     static final int DEFAULT_MIN_MESSAGES_TO_COMPRESS = 4;
+
+    /** Giới hạn vòng reasoning khi tạo draft (theo text_drafting_guide, default 8, min 1, max 20) */
+    static final int DRAFT_CREATE_MAX_ITERATIONS = 8;
+    /** Giới hạn vòng reasoning khi revise draft (theo text_drafting_guide, default 5, min 1, max 15) */
+    static final int DRAFT_REVISE_MAX_ITERATIONS = 5;
 
     AppProperties appProperties;
     RagApiService ragApiService;
@@ -468,6 +475,22 @@ public class RagService {
                 });
     }
 
+    /**
+     * Lấy metadata các loại tài liệu hỗ trợ cho draft, quản lý tập trung từ RAG service.
+     * @return danh sách document types
+     */
+    public List<RagDraftDocumentTypeDto> getDraftDocumentTypes() {
+        return ragApiService.getDraftDocumentTypes();
+    }
+
+    /**
+     * Lấy metadata các chuẩn định dạng văn bản hỗ trợ cho draft, quản lý tập trung từ RAG service.
+     * @return danh sách format standards
+     */
+    public List<RagDraftFormatStandardDto> getDraftFormatStandards() {
+        return ragApiService.getDraftFormatStandards();
+    }
+
     public Flux<String> draftCreate(DraftResponseDto draftResponse) throws JsonProcessingException {
         UUID capturedUserId = JwtUtil.getUserId();
         UUID capturedOrgId = JwtUtil.getOrgId();
@@ -484,19 +507,20 @@ public class RagService {
         RagDraftCreateRequestDto ragDraftCreateRequestDto = RagDraftCreateRequestDto.builder()
                 .user_request(draftResponse.getTitle())
                 .document_type(draftResponse.getType())
+                .format_standard(draftResponse.getFormatStandard())
                 .context(draftResponse.getDetailedDescription())
                 .userId(capturedUserId)
                 .organizationId(capturedOrgId)
                 .scopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()))
                 .fileIds(Set.of())
                 .stream(true)
+                .max_iterations(DRAFT_CREATE_MAX_ITERATIONS)
                 .build();
 
         StringBuilder sessionId = new StringBuilder();
-        StringBuilder status = new StringBuilder();
         StringBuilder questionForUser = new StringBuilder();
         StringBuilder draftContent = new StringBuilder();
-        StringBuilder thoughts = new StringBuilder();
+        StringBuilder sources = new StringBuilder();
 
         return ragApiService.draftCreate(ragDraftCreateRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
@@ -517,11 +541,6 @@ public class RagService {
                         }
 
                         switch (node.get("event").asText()) {
-                            case "thought" -> {
-                                if (node.has("content")) {
-                                    thoughts.append(node.get("content").asText());
-                                }
-                            }
                             case "draft_produced" -> {
                                 if (node.has("content")) {
                                     draftContent.append(node.get("content").asText());
@@ -532,7 +551,7 @@ public class RagService {
                                     draftContent.append(node.get("content").asText());
                                 }
                             }
-                            case "question_for_user" -> {
+                            case "awaiting_input" -> {
                                 if (node.has("content")) {
                                     questionForUser.setLength(0);
                                     questionForUser.append(node.get("content").asText());
@@ -544,25 +563,16 @@ public class RagService {
                                     sessionId.append(node.get("session_id").asText());
                                 }
 
-                                if (node.has("status")) {
-                                    status.setLength(0);
-                                    status.append(node.get("status").asText());
-                                }
-
-                                if (node.has("question_for_user")) {
-                                    questionForUser.setLength(0);
-                                    questionForUser.append(node.get("question_for_user").asText());
-                                }
-
-                                if (node.has("draft")) {
+                                if (node.has("content")) {
                                     draftContent.setLength(0);
-                                    draftContent.append(node.get("draft").asText());
+                                    draftContent.append(node.get("content").asText());
                                 }
 
-                                if (node.has("thoughts")) {
-                                    thoughts.setLength(0);
-                                    thoughts.append(node.get("thoughts").asText());
+                                if (node.has("sources")) {
+                                    sources.setLength(0);
+                                    sources.append(node.get("sources").toString());
                                 }
+
                             }
                             default -> {
                                 // Các event khác không cần xử lý
@@ -580,15 +590,17 @@ public class RagService {
                     // Update assistant message with generated content
                     if(questionForUser.isEmpty()) {
                         questionForUser.append("Đã hoàn thành");
+                    } else {
+                        draftContent.setLength(0);
                     }
 
-                    if (thoughts.isEmpty()) {
-                        thoughts.append("[]");
+                    if (sources.isEmpty()) {
+                        sources.append("[]");
                     }
 
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
                             .content(questionForUser.toString())
-                            .source(thoughts.toString())
+                            .source(sources.toString())
                             .build());
 
                     // Lưu thành 1 version mới của draft để theo dõi lịch sử chỉnh sửa nếu có
@@ -604,15 +616,15 @@ public class RagService {
                         log.info("Draft {} updated to version {} via chat", draftResponse.getId(), newVersion.getVersionNumber());
                     }
                 })
-                // .concatWith(
-                //         Mono.fromCallable(() -> {
-                //             assistantMessage.setContent(questionForUser.toString());
-                //             assistantMessage.setSource(thoughts.toString());
-                //             log.info("assistantMessage before sending: {}", assistantMessage);
-                //             return String.format(
-                //                     "{\"updatedAssistantMessage\": %s}",
-                //                     new ObjectMapper().writeValueAsString(assistantMessage));
-                //         }).flatMapMany(Flux::just))
+                .concatWith(
+                        Mono.fromCallable(() -> {
+                            assistantMessage.setContent(questionForUser.toString());
+                            assistantMessage.setSource(sources.toString());
+                            log.info("assistantMessage before sending: {}", assistantMessage);
+                            return String.format(
+                                    "{\"updatedAssistantMessage\": %s}",
+                                    new ObjectMapper().writeValueAsString(assistantMessage));
+                        }).flatMapMany(Flux::just))
                 .doOnError(e -> {
                     log.error("Error during draft chat streaming", e);
                 })
@@ -657,12 +669,13 @@ public class RagService {
                 .session_id(draftEntity.getSessionId())
                 .feedback(requestDto.getMessage())
                 .stream(true)
+                .max_iterations(DRAFT_REVISE_MAX_ITERATIONS)
                 .build();
 
         StringBuilder status = new StringBuilder();
         StringBuilder questionForUser = new StringBuilder();
         StringBuilder draftContent = new StringBuilder();
-        StringBuilder thoughts = new StringBuilder();
+        StringBuilder sources = new StringBuilder();
 
         return ragApiService.draftRevise(ragDraftReviseRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
@@ -678,11 +691,6 @@ public class RagService {
                         }
 
                         switch (node.get("event").asText()) {
-                            case "thought" -> {
-                                if (node.has("content")) {
-                                    thoughts.append(node.get("content").asText());
-                                }
-                            }
                             case "draft_produced" -> {
                                 if (node.has("content")) {
                                     draftContent.append(node.get("content").asText());
@@ -705,19 +713,14 @@ public class RagService {
                                     status.append(node.get("status").asText());
                                 }
 
-                                if (node.has("question_for_user")) {
-                                    questionForUser.setLength(0);
-                                    questionForUser.append(node.get("question_for_user").asText());
-                                }
-
-                                if (node.has("draft")) {
+                                if (node.has("content")) {
                                     draftContent.setLength(0);
-                                    draftContent.append(node.get("draft").asText());
+                                    draftContent.append(node.get("content").asText());
                                 }
 
-                                if (node.has("thoughts")) {
-                                    thoughts.setLength(0);
-                                    thoughts.append(node.get("thoughts").asText());
+                                if (node.has("sources")) {
+                                    sources.setLength(0);
+                                    sources.append(node.get("sources").asText());
                                 }
                             }
                             default -> {
@@ -731,15 +734,18 @@ public class RagService {
                 .doOnComplete(() -> {
                     // Update assistant message with generated content
                     if(questionForUser.isEmpty()) {
-                            questionForUser.append("Đã hoàn thành");
+                        questionForUser.append("Đã hoàn thành");
+                    } else {
+                        draftContent.setLength(0);
+                    }   
+
+                    if (sources.isEmpty()) {
+                        sources.append("[]");
                     }
 
-                    if (thoughts.isEmpty()) {
-                        thoughts.append("[]");
-                    }
                     messageService.update(assistantMessage.getId(), MessageUpdateRequestDto.builder()
                             .content(questionForUser.toString())
-                            .source(thoughts.toString())
+                            .source(sources.toString())
                             .build());
 
                     // Lưu thành 1 version mới của draft để theo dõi lịch sử chỉnh sửa nếu có
@@ -755,15 +761,15 @@ public class RagService {
                         log.info("Draft {} updated to version {} via chat", draftId, newVersion.getVersionNumber());
                     }
                 })
-                // .concatWith(
-                //         Mono.fromCallable(() -> {
-                //             assistantMessage.setContent(questionForUser.toString());
-                //             assistantMessage.setSource(thoughts.toString());
-                //             log.info("assistantMessage before sending: {}", assistantMessage);
-                //             return String.format(
-                //                     "{\"updatedAssistantMessage\": %s}",
-                //                     new ObjectMapper().writeValueAsString(assistantMessage));
-                //         }).flatMapMany(Flux::just))
+                .concatWith(
+                        Mono.fromCallable(() -> {
+                            assistantMessage.setContent(questionForUser.toString());
+                            assistantMessage.setSource(sources.toString());
+                            log.info("assistantMessage before sending: {}", assistantMessage);
+                            return String.format(
+                                    "{\"updatedAssistantMessage\": %s}",
+                                    new ObjectMapper().writeValueAsString(assistantMessage));
+                        }).flatMapMany(Flux::just))
                 .doOnError(e -> log.error("Error during draft chat streaming", e))
                 .doFinally(signalType -> log.info("Draft chat streaming completed with signal: {}", signalType));
     }

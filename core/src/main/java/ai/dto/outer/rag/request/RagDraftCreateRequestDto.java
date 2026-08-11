@@ -23,6 +23,9 @@ public class RagDraftCreateRequestDto {
     @JsonProperty("document_type")
     String document_type;
 
+    @JsonProperty("format_standard")
+    String format_standard;
+
     @JsonProperty("context")
     String context;
 
@@ -34,6 +37,9 @@ public class RagDraftCreateRequestDto {
 
     @JsonProperty("stream")
     boolean stream;
+
+    @JsonProperty("max_iterations")
+    Integer max_iterations;
 
     @JsonProperty("scopes")
     @Builder.Default
