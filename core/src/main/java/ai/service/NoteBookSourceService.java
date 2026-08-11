@@ -1092,7 +1092,7 @@ public class NoteBookSourceService {
                     .fileId(source.getId().toString())
                     .notebookId(source.getNoteBook() == null ? null : source.getNoteBook().getId().toString())
                     .organizationId(source.getOrganizationId() == null ? null : source.getOrganizationId().toString())
-                    .scopes(List.of("global"))
+                    .scopes(List.of("personal"))
                     .userId(source.getOwnerId() == null ? null : source.getOwnerId().toString())
                     .forceRegenerate(false)
                     .callbackUrl(resolveSourceGuideCallbackUrl())
