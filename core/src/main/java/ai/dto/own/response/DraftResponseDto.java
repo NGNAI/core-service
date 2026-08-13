@@ -1,5 +1,6 @@
 package ai.dto.own.response;
 
+import java.util.List;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -14,6 +15,7 @@ import lombok.experimental.FieldDefaults;
         "ownerId",
         "organizationId",
         "type",
+        "scopes",
         "formatStandard",
         "title",
         "detailedDescription",
@@ -29,6 +31,7 @@ public class DraftResponseDto extends AuditResponseDto {
     UUID ownerId;
     UUID organizationId;
     String type;
+    List<String> scopes;
     String formatStandard;
     String title;
     String detailedDescription;

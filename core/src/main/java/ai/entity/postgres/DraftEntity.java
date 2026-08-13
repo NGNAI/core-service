@@ -3,6 +3,8 @@ package ai.entity.postgres;
 import java.util.List;
 import java.util.UUID;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import ai.entity.postgres.embeddable.AuditEmbed;
@@ -41,6 +43,10 @@ public class DraftEntity {
 
     @Column(name = "type", nullable = false)
     String type;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "scopes", nullable = true)
+    List<String> scopes;
 
     @Column(name = "format_standard", nullable = true)
     String formatStandard;

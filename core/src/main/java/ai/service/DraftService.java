@@ -1,5 +1,6 @@
 package ai.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -77,6 +78,7 @@ public class DraftService {
 
         DraftEntity entity = new DraftEntity();
         entity.setType(normalizeDraftType(requestDto.getType()));
+        entity.setScopes(requestDto.getScopes() == null ? null : new ArrayList<>(requestDto.getScopes()));
         entity.setFormatStandard(normalizeFormatStandard(requestDto.getFormat()));
         entity.setTitle(normalizeRequired(requestDto.getTitle(), ApiResponseStatus.DRAFT_TITLE_CAN_NOT_BE_NULL_OR_EMPTY));
         entity.setDetailedDescription(normalizeRequired(requestDto.getDetailedDescription(), ApiResponseStatus.DRAFT_DESCRIPTION_CAN_NOT_BE_NULL_OR_EMPTY));

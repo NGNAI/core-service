@@ -379,7 +379,7 @@ public class RagService {
         metadata.setFileIds(requestDto.getSourceIds());
         metadata.setSummaries(buildSummaryMetadata(noteBookEntity));
         metadata.setUserInstruction(noteBookEntity.getInstruction());
-        metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
+        metadata.setScopes(requestDto.getScopes());
 
         RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
                 .messages(historyConversations)
@@ -511,7 +511,9 @@ public class RagService {
                 .context(draftResponse.getDetailedDescription())
                 .userId(capturedUserId)
                 .organizationId(capturedOrgId)
-                .scopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()))
+                .scopes(draftResponse.getScopes() != null
+                        ? Set.copyOf(draftResponse.getScopes())
+                        : Set.of())
                 .fileIds(Set.of())
                 .stream(true)
                 .max_iterations(DRAFT_CREATE_MAX_ITERATIONS)
@@ -668,6 +670,7 @@ public class RagService {
         RagDraftReviseRequestDto ragDraftReviseRequestDto = RagDraftReviseRequestDto.builder()
                 .session_id(draftEntity.getSessionId())
                 .feedback(requestDto.getMessage())
+                .scopes(requestDto.getScopes())
                 .stream(true)
                 .max_iterations(DRAFT_REVISE_MAX_ITERATIONS)
                 .build();

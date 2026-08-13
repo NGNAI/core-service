@@ -1,5 +1,7 @@
 package ai.dto.outer.rag.request;
 
+import java.util.Set;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -25,4 +27,8 @@ public class RagDraftReviseRequestDto {
 
     @JsonProperty("max_iterations")
     Integer max_iterations;
+
+    @JsonProperty("scopes")
+    @Builder.Default
+    Set<String> scopes = Set.of();
 }
