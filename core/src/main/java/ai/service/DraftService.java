@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ai.annotation.Audited;
 import ai.dto.own.request.DraftCreateRequestDto;
 import ai.dto.own.request.DraftSaveVersionRequestDto;
+import ai.dto.own.request.DraftUpdateRequestDto;
 import ai.dto.own.response.DraftResponseDto;
 import ai.dto.own.response.DraftVersionResponseDto;
 import ai.entity.postgres.DraftEntity;
@@ -31,6 +32,8 @@ import ai.repository.DraftVersionRepository;
 import ai.repository.MessageFeedbackHistoryRepository;
 import ai.service.api.RagApiService;
 import ai.util.JwtUtil;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -85,6 +88,18 @@ public class DraftService {
         entity.setLatestVersionNumber(0);
         entity.setOwner(userService.getEntityById(userId));
         entity.setOrganization(organizationService.getEntityById(organizationId));
+
+        return draftMapper.entityToResponseDto(draftRepository.save(entity));
+    }
+
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.DRAFT, resourceIdExpression = "#arg0", description = "Cập nhật bản soạn thảo: {0}")
+    @Transactional
+    public DraftResponseDto update(UUID draftId, DraftUpdateRequestDto requestDto) {
+        UUID userId = JwtUtil.getUserId();
+        validateDraftOfUser(draftId, userId);
+
+        DraftEntity entity = getEntityById(draftId);
+        entity.setTitle(normalizeRequired(requestDto.getTitle(), ApiResponseStatus.DRAFT_TITLE_CAN_NOT_BE_NULL_OR_EMPTY));
 
         return draftMapper.entityToResponseDto(draftRepository.save(entity));
     }
@@ -203,6 +218,8 @@ public class DraftService {
         return draftMapper.entityToResponseDto(getEntityById(draftId));
     }
 
+    @Counted(value = "api.draft.list.calls", description = "Số lần gọi get list Draft")
+    @Timed(value = "api.draft.list", description = "Thời gian get list Draft")
     @Transactional(readOnly = true)
     public CustomPairModel<Long, List<DraftResponseDto>> getAll(int pageNumber, int pageSize) {
         UUID userId = JwtUtil.getUserId();

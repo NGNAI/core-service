@@ -26,6 +26,8 @@ import ai.repository.RoleRepository;
 import ai.repository.UserRepository;
 import ai.service.api.OtpApiService;
 import ai.util.JwtUtil;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -79,6 +81,8 @@ public class AuthService {
         return IntrospectResponseDto.builder().valid(isValid).build();
     }
 
+    @Counted(value = "auth.login.attempts", description = "Số lần đăng nhập (gồm cả thất bại)")
+    @Timed(value = "auth.login", description = "Thời gian xử lý đăng nhập")
     public AuthResponseDto auth(AuthRequestDto authRequestDto) throws JOSEException, JsonProcessingException {
         try {
             UserEntity userEntity;

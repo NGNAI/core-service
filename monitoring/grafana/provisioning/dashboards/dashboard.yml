@@ -1,0 +1,14 @@
+# Grafana dashboard provisioning — tự nạp mọi dashboard JSON trong thư mục này
+apiVersion: 1
+
+providers:
+  - name: "Spring Boot Dashboards"
+    orgId: 1
+    folder: "Spring Boot"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

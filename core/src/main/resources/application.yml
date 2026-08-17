@@ -10,6 +10,10 @@ spring:
   main:
     allow-circular-references: true
 
+  # User Actuator (basic auth) được định nghĩa tường minh trong ApplicationConfig#actuatorUserDetailsService
+  # (username: monitor, password: env ACTUATOR_USER_PASSWORD, mặc định "changeme").
+  # KHÔNG liên quan đến login người dùng (các chain /auth/**, /user/**, /admin/** dùng JWT/OAuth2).
+
   # Cấu hình thread pool cho các job @Scheduled (mặc định Spring Boot chỉ dùng 1 thread -> dễ nghẽn cổ chai)
   task:
     scheduling:
@@ -96,12 +100,19 @@ management:
       enabled: true
     loggers:
       enabled: true
+    prometheus:
+      enabled: true
   metrics:
     tags:
       application: "${spring.application.name}"
     distribution:
       percentiles-histogram:
         http.server.requests: true
+        # Timers tùy chỉnh (@Timed) — bật histogram để tính percentile (p95) trên Grafana
+        auth.login: true
+        api.topic.list: true
+        api.notebook.list: true
+        api.draft.list: true
   info:
     env:
       enabled: true
