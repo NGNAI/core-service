@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,6 +25,7 @@ import ai.dto.own.request.DraftChatRequestDto;
 import ai.dto.own.request.DraftCreateRequestDto;
 import ai.dto.own.request.DraftRollbackRequestDto;
 import ai.dto.own.request.DraftSaveVersionRequestDto;
+import ai.dto.own.request.DraftUpdateRequestDto;
 import ai.dto.own.request.MessageFeedbackRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.response.DraftResponseDto;
@@ -86,6 +88,18 @@ public class DraftUserController {
                                 ApiResponseModel.<DraftResponseDto>builder()
                                                 .message("Create draft successfully")
                                                 .data(draftService.create(requestDto))
+                                                .build());
+        }
+
+        @Operation(summary = "Update draft", description = "Cập nhật thông tin bản nháp, hiện tại chỉ hỗ trợ cập nhật title")
+        @PutMapping("/{draftId}")
+        public ResponseEntity<ApiResponseModel<DraftResponseDto>> update(
+                        @PathVariable UUID draftId,
+                        @Valid @RequestBody DraftUpdateRequestDto requestDto) {
+                return ResponseEntity.ok(
+                                ApiResponseModel.<DraftResponseDto>builder()
+                                                .message("Update draft successfully")
+                                                .data(draftService.update(draftId, requestDto))
                                                 .build());
         }
 

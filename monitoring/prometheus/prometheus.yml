@@ -1,0 +1,32 @@
+# Prometheus config cho core-service
+global:
+  scrape_interval: 15s      # mặc định scrape mỗi 15s
+  evaluation_interval: 15s  # đánh giá alert rule
+
+scrape_configs:
+  # Spring Boot core-service (Micrometer registry → /actuator/prometheus)
+  - job_name: "core-service"
+    metrics_path: "/api/v1/actuator/prometheus"   # context-path /api/v1 + actuator base-path /actuator
+    scheme: http
+    scrape_timeout: 10s
+    static_configs:
+      - targets:
+          # App chạy trên host (không phải container) → dùng host.docker.internal trên Windows/Mac.
+          # Nếu app chạy trên máy khác, đổi sang IP máy đó.
+          - "host.docker.internal:8081"
+        labels:
+          application: "NGN AI core"
+          module: "core"
+    # Basic auth: user monitor / password changeme (dev).
+    # LƯU Ý: hardcode password thay vì ${ACTUATOR_USER_PASSWORD} — Prometheus
+    # không expand biến môi trường vào field basic_auth.password một cách đáng tin cậy
+    # (đã test: container có env changeme nhưng scrape vẫn trả 401).
+    # Khi deploy production, đổi password tại đây và cân nhắc dùng password_file.
+    basic_auth:
+      username: "monitor"
+      password: "changeme"
+
+  # Option: tự scrape chính Prometheus để kiểm tra health của nó
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

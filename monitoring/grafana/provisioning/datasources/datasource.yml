@@ -1,0 +1,15 @@
+# Grafana datasource provisioning — tự nạp datasource Prometheus khi Grafana khởi động
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    orgId: 1
+    url: http://prometheus:9090   # tên service trong docker-compose
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: 15s
+      httpMethod: POST

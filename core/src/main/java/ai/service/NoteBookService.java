@@ -29,6 +29,8 @@ import ai.repository.NoteBookRepository;
 import ai.repository.NotebookMessagesRepository;
 import ai.repository.ShareLinkRepository;
 import ai.util.JwtUtil;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +62,8 @@ public class NoteBookService {
         return noteBookRepository.findById(NoteBookId).orElseThrow(() -> new AppException(ApiResponseStatus.NOTEBOOK_ID_NOT_EXISTS));
     }
 
+    @Counted(value = "api.notebook.list.calls", description = "Số lần gọi get list Notebook")
+    @Timed(value = "api.notebook.list", description = "Thời gian get list Notebook")
     public CustomPairModel<Long,List<NoteBookResponseDto>> getAll(NoteBookFilterDto filterDto){
         UUID userId = JwtUtil.getUserId();
         UUID organizationId = JwtUtil.getOrgId();

@@ -27,6 +27,8 @@ import ai.repository.ShareLinkRepository;
 import ai.repository.TopicMessagesRepository;
 import ai.repository.TopicRepository;
 import ai.util.JwtUtil;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +61,8 @@ public class TopicService {
         return topicRepository.findById(topicId).orElseThrow(() -> new AppException(ApiResponseStatus.TOPIC_ID_NOT_EXISTS));
     }
 
+    @Counted(value = "api.topic.list.calls", description = "Số lần gọi get list Topic")
+    @Timed(value = "api.topic.list", description = "Thời gian get list Topic")
     public CustomPairModel<Long,List<TopicResponseDto>> getAll(TopicFilterDto filterDto){
         UUID userId = JwtUtil.getUserId();
         UUID organizationId = JwtUtil.getOrgId();
