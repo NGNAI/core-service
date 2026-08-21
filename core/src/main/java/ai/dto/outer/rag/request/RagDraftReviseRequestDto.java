@@ -31,4 +31,8 @@ public class RagDraftReviseRequestDto {
     @JsonProperty("scopes")
     @Builder.Default
     Set<String> scopes = Set.of();
+
+    @JsonProperty("file_ids")
+    @Builder.Default
+    Set<String> fileIds = Set.of();
 }

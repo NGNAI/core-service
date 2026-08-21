@@ -14,6 +14,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 @Builder
@@ -31,4 +32,7 @@ public class DraftChatRequestDto {
 
     @Schema(description = "The content of the draft on editor, which can be used for generating content based on the change request. It should be provided when the user wants to generate content based on the change request.")
     String currentDraftContent;
+
+    @Schema(description = "Attachment files for FILE sources (server sẽ upload + chờ ingestion complete trước khi gọi RAG)")
+    MultipartFile[] files;
 }

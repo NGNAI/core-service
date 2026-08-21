@@ -278,8 +278,11 @@ public enum ApiResponseStatus {
     // ========================================================================
     // UNEXPECTED - 9999
     // ========================================================================
-    UNEXPECTED(9999, "An unexpected error occurred!", HttpStatus.INTERNAL_SERVER_ERROR);
-
+    UNEXPECTED(9999, "An unexpected error occurred!", HttpStatus.INTERNAL_SERVER_ERROR), 
+    DRAFT_SOURCE_PAYLOAD_REQUIRED(1187, "Draft source payload must include file(s) or rawContent", HttpStatus.BAD_REQUEST), 
+    DRAFT_SOURCE_ALREADY_EXISTS(1188, "Draft source already exists", HttpStatus.BAD_REQUEST),
+    DRAFT_SOURCE_NOT_EXISTS(1189, "Draft source does not exist", HttpStatus.NOT_FOUND)
+    ;
     int code;
     String message;
     HttpStatusCode httpStatusCode;

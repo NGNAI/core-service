@@ -491,7 +491,7 @@ public class RagService {
         return ragApiService.getDraftFormatStandards();
     }
 
-    public Flux<String> draftCreate(DraftResponseDto draftResponse) throws JsonProcessingException {
+    public Flux<String> draftCreate(DraftResponseDto draftResponse, Set<String> fileIds) throws JsonProcessingException {
         UUID capturedUserId = JwtUtil.getUserId();
         UUID capturedOrgId = JwtUtil.getOrgId();
 
@@ -514,7 +514,7 @@ public class RagService {
                 .scopes(draftResponse.getScopes() != null
                         ? Set.copyOf(draftResponse.getScopes())
                         : Set.of())
-                .fileIds(Set.of())
+                .fileIds(fileIds)
                 .stream(true)
                 .max_iterations(DRAFT_CREATE_MAX_ITERATIONS)
                 .build();
@@ -643,7 +643,7 @@ public class RagService {
      * @return
      * @throws JsonProcessingException
      */
-    public Flux<String> chatDraft(UUID draftId, DraftChatRequestDto requestDto) throws JsonProcessingException {
+    public Flux<String> chatDraft(UUID draftId, DraftChatRequestDto requestDto, Set<String> fileIds) throws JsonProcessingException {
         UUID capturedUserId = JwtUtil.getUserId();
 
         draftService.validateDraftOfUser(draftId, capturedUserId);
@@ -671,6 +671,7 @@ public class RagService {
                 .session_id(draftEntity.getSessionId())
                 .feedback(requestDto.getMessage())
                 .scopes(requestDto.getScopes())
+                .fileIds(fileIds)
                 .stream(true)
                 .max_iterations(DRAFT_REVISE_MAX_ITERATIONS)
                 .build();

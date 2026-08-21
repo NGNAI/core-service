@@ -1,8 +1,12 @@
 package ai.controller.user;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.data.util.Pair;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,10 +29,14 @@ import ai.dto.own.request.DraftChatRequestDto;
 import ai.dto.own.request.DraftCreateRequestDto;
 import ai.dto.own.request.DraftRollbackRequestDto;
 import ai.dto.own.request.DraftSaveVersionRequestDto;
+import ai.dto.own.request.DraftSourcesAddRequestDto;
 import ai.dto.own.request.DraftUpdateRequestDto;
 import ai.dto.own.request.MessageFeedbackRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
 import ai.dto.own.response.DraftResponseDto;
+import ai.dto.own.response.DraftSourceDownloadData;
+import ai.dto.own.response.DraftSourcePresignedUrlResponseDto;
+import ai.dto.own.response.DraftSourceResponseDto;
 import ai.dto.own.response.DraftVersionResponseDto;
 import ai.dto.own.response.MessageFeedbackHistoryResponseDto;
 import ai.dto.own.response.MessageResponseDto;
@@ -38,6 +46,7 @@ import ai.enums.MessageParentType;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.DraftService;
+import ai.service.DraftSourceService;
 import ai.service.MessageService;
 import ai.service.RagService;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -59,6 +68,7 @@ public class DraftUserController {
         DraftService draftService;
         MessageService messageService;
         RagService ragService;
+        DraftSourceService draftSourceService;
 
         @Operation(summary = "Get draft types", description = "Lấy danh sách loại tài liệu hỗ trợ soạn thảo, quản lý tập trung từ RAG service")
         @GetMapping("/types")
@@ -80,7 +90,7 @@ public class DraftUserController {
                                                 .build());
         }
 
-        @Operation(summary = "Create draft", description = "Tạo bản nháp mới với nội dung được sinh từ AI")
+        @Operation(summary = "Create draft", description = "Tạo bản nháp mới với nội dung được sinh từ AI. File đính kèm sẽ được upload qua endpoint chat hoặc sources")
         @PostMapping
         public ResponseEntity<ApiResponseModel<DraftResponseDto>> create(
                         @Valid @RequestBody DraftCreateRequestDto requestDto) {
@@ -141,23 +151,34 @@ public class DraftUserController {
                                                 .build());
         }
 
-        @Operation(summary = "Chat with draft", description = "Gửi yêu cầu chỉnh sửa draft từ nội dung chat, server sẽ gọi AI sinh lại bản draft mới dựa trên lịch sử hội thoại và lưu thành 1 version mới")
-        @PostMapping(value = "/{draftId}/messages", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+        @Operation(summary = "Chat with draft", description = "Gửi yêu cầu chỉnh sửa draft (hỗ trợ đính kèm file). Server upload + chờ ingestion complete rồi mới gọi AI")
+        @PostMapping(value = "/{draftId}/messages", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
         public Flux<String> chatWithDraft(
                         @PathVariable UUID draftId,
-                        @Valid @RequestBody DraftChatRequestDto requestDto) throws JsonProcessingException {
+                        @Valid @ModelAttribute DraftChatRequestDto requestDto) throws JsonProcessingException {
                 DraftResponseDto draftResponse = draftService.getById(draftId);
                 if(draftResponse == null) {
                         return Flux.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Draft not found"));
-                } 
+                }
+
+                // Nếu có file đính kèm thì upload trước (tạo source) — chờ ingestion ở bước dưới
+                if (requestDto.getFiles() != null && requestDto.getFiles().length > 0) {
+                        DraftSourcesAddRequestDto sourceRequest = new DraftSourcesAddRequestDto();
+                        sourceRequest.setFiles(requestDto.getFiles());
+                        draftSourceService.uploadSources(draftId, sourceRequest);
+                }
+
+                // Chờ mọi source của draft đạt ingestion complete trước khi gọi RAG,
+                // tránh trường hợp RAG chưa có vector sẵn sàng cho file
+                Set<String> readyFileIds = draftSourceService.ingestAndWaitAllSourcesReady(draftId);
 
                 // Nếu chưa có sessionId thì tạo mới draft, nếu đã có sessionId thì gọi API chatDraft
                 if(draftResponse.getSessionId() == null || draftResponse.getSessionId().isEmpty()) {
-                        return ragService.draftCreate(draftResponse);
-                } 
+                        return ragService.draftCreate(draftResponse, readyFileIds);
+                }
                 // Nếu đã có sessionId thì gọi API chatDraft
                 else {
-                        return ragService.chatDraft(draftId, requestDto);
+                        return ragService.chatDraft(draftId, requestDto, readyFileIds);
                 }
         }
 
@@ -260,6 +281,79 @@ public class DraftUserController {
                                                 .message("Get draft message feedback history successfully")
                                                 .count(result.getFirst())
                                                 .data(result.getSecond())
+                                                .build());
+        }
+
+        @Operation(summary = "Get draft sources", description = "Lấy danh sách sources của draft")
+        @GetMapping("/{draftId}/sources")
+        public ResponseEntity<ApiResponseModel<List<DraftSourceResponseDto>>> getSources(
+                        @PathVariable UUID draftId,
+                        @RequestParam(defaultValue = "0") int pageNumber,
+                        @RequestParam(defaultValue = "20") int pageSize) {
+                Pair<Long, List<DraftSourceResponseDto>> result = draftSourceService.getSources(draftId, pageNumber, pageSize);
+                return ResponseEntity.ok(
+                                ApiResponseModel.<List<DraftSourceResponseDto>>builder()
+                                                .message("Get draft sources successfully")
+                                                .count(result.getFirst())
+                                                .data(result.getSecond())
+                                                .build());
+        }
+
+        @Operation(summary = "Add sources to draft", description = "Upload và đính kèm file vào draft (ingestion sẽ được chờ hoàn tất khi chat message)")
+        @PostMapping(value = "/{draftId}/sources", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        public ResponseEntity<ApiResponseModel<List<DraftSourceResponseDto>>> addSources(
+                        @PathVariable UUID draftId,
+                        @Valid @ModelAttribute DraftSourcesAddRequestDto requestDto) {
+                return ResponseEntity.ok(
+                                ApiResponseModel.<List<DraftSourceResponseDto>>builder()
+                                                .message("Add source to draft successfully")
+                                                .data(draftSourceService.uploadSources(draftId, requestDto))
+                                                .build());
+        }
+
+        @Operation(summary = "Remove source from draft", description = "Xóa một source khỏi draft")
+        @DeleteMapping("/{draftId}/sources/{sourceId}")
+        public ResponseEntity<ApiResponseModel<Void>> removeSource(
+                        @PathVariable UUID draftId,
+                        @PathVariable UUID sourceId) {
+                draftSourceService.removeSource(draftId, sourceId);
+                return ResponseEntity.ok(
+                                ApiResponseModel.<Void>builder()
+                                                .message("Remove source from draft successfully")
+                                                .build());
+        }
+
+        @Operation(summary = "Download draft source", description = "Tải về một source file của draft")
+        @GetMapping("/{draftId}/sources/{sourceId}/download")
+        public ResponseEntity<org.springframework.core.io.InputStreamResource> downloadSource(
+                        @PathVariable UUID draftId,
+                        @PathVariable UUID sourceId) {
+                DraftSourceDownloadData fileData = draftSourceService.downloadSource(draftId, sourceId);
+
+                org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+                String contentType = (fileData.getContentType() == null || fileData.getContentType().isBlank())
+                                ? org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE
+                                : fileData.getContentType();
+                headers.setContentType(org.springframework.http.MediaType.parseMediaType(contentType));
+                headers.setContentDisposition(org.springframework.http.ContentDisposition.attachment().filename(fileData.getFileName()).build());
+
+                return ResponseEntity.ok()
+                                .headers(headers)
+                                .contentLength(fileData.getSize())
+                                .body(new org.springframework.core.io.InputStreamResource(fileData.getInputStream()));
+        }
+
+        @Operation(summary = "Get draft source download URL", description = "Lấy presigned URL để tải về một source file của draft")
+        @GetMapping("/{draftId}/sources/{sourceId}/download-url")
+        public ResponseEntity<ApiResponseModel<DraftSourcePresignedUrlResponseDto>> getDownloadUrl(
+                        @PathVariable UUID draftId,
+                        @PathVariable UUID sourceId,
+                        @RequestParam(required = false) Integer expiresInSeconds) {
+                DraftSourcePresignedUrlResponseDto downloadUrl = draftSourceService.getSourceDownloadUrl(draftId, sourceId, expiresInSeconds);
+                return ResponseEntity.ok(
+                                ApiResponseModel.<DraftSourcePresignedUrlResponseDto>builder()
+                                                .message("Get draft source download URL successfully")
+                                                .data(downloadUrl)
                                                 .build());
         }
 }
