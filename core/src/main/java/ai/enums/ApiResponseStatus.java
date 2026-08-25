@@ -237,12 +237,12 @@ public enum ApiResponseStatus {
     // ========================================================================
     // SECURITY POLICY - 1162..1167
     // ========================================================================
-    USER_ACCOUNT_LOCKED(1162, "Tài khoản đã bị khoá do đăng nhập sai quá nhiều lần", HttpStatus.FORBIDDEN),
-    PASSWORD_TOO_SHORT(1163, "Mật khẩu quá ngắn, không đạt độ dài tối thiểu", HttpStatus.BAD_REQUEST),
-    FILE_SIZE_EXCEEDED(1164, "Kích thước file vượt quá giới hạn cho phép", HttpStatus.BAD_REQUEST),
-    FILE_TYPE_NOT_ALLOWED(1165, "Loại file không được phép tải lên", HttpStatus.BAD_REQUEST),
-    SYSTEM_MAINTENANCE(1166, "Hệ thống đang trong chế độ bảo trì", HttpStatus.SERVICE_UNAVAILABLE),
-    TWO_FACTOR_REQUIRED(1167, "Yêu cầu xác thực hai yếu tố", HttpStatus.BAD_REQUEST),
+    USER_ACCOUNT_LOCKED(1162, "Account has been locked due to too many failed login attempts", HttpStatus.FORBIDDEN),
+    PASSWORD_TOO_SHORT(1163, "Password is too short, does not meet the minimum length", HttpStatus.BAD_REQUEST),
+    FILE_SIZE_EXCEEDED(1164, "File size exceeds the allowed limit", HttpStatus.BAD_REQUEST),
+    FILE_TYPE_NOT_ALLOWED(1165, "File type is not allowed to upload", HttpStatus.BAD_REQUEST),
+    SYSTEM_MAINTENANCE(1166, "System is under maintenance", HttpStatus.SERVICE_UNAVAILABLE),
+    TWO_FACTOR_REQUIRED(1167, "Two-factor authentication required", HttpStatus.BAD_REQUEST),
 
     // ========================================================================
     // OTHER - 1168..1173
@@ -257,23 +257,23 @@ public enum ApiResponseStatus {
     // ========================================================================
     // SHARE LINK - 1174..1180
     // ========================================================================
-    SHARE_LINK_NOT_EXISTS(1174, "Link chia sẻ không tồn tại", HttpStatus.NOT_FOUND),
-    SHARE_LINK_EXPIRED(1175, "Link chia sẻ đã hết hạn", HttpStatus.FORBIDDEN),
-    SHARE_LINK_REVOKED(1176, "Link chia sẻ đã bị hủy", HttpStatus.FORBIDDEN),
-    SHARE_LINK_PASSWORD_REQUIRED(1177, "Link chia sẻ yêu cầu mật khẩu", HttpStatus.FORBIDDEN),
-    SHARE_LINK_PASSWORD_INVALID(1178, "Mật khẩu link chia sẻ không đúng", HttpStatus.FORBIDDEN),
-    SHARE_LINK_RESOURCE_MISMATCH(1179, "Loại tài nguyên không khớp với link chia sẻ", HttpStatus.BAD_REQUEST),
-    SHARE_LINK_RESOURCE_OWNER_ONLY(1180, "Chỉ owner mới được quản lý link chia sẻ", HttpStatus.FORBIDDEN),
-    SHARE_LINK_EXPIRY_DAYS_EXCEED_MAX(1181, "Số ngày hết hạn vượt quá giới hạn cho phép", HttpStatus.BAD_REQUEST),
+    SHARE_LINK_NOT_EXISTS(1174, "Share link does not exist", HttpStatus.NOT_FOUND),
+    SHARE_LINK_EXPIRED(1175, "Share link has expired", HttpStatus.FORBIDDEN),
+    SHARE_LINK_REVOKED(1176, "Share link has been revoked", HttpStatus.FORBIDDEN),
+    SHARE_LINK_PASSWORD_REQUIRED(1177, "Share link requires a password", HttpStatus.FORBIDDEN),
+    SHARE_LINK_PASSWORD_INVALID(1178, "Share link password is incorrect", HttpStatus.FORBIDDEN),
+    SHARE_LINK_RESOURCE_MISMATCH(1179, "Resource type does not match the share link", HttpStatus.BAD_REQUEST),
+    SHARE_LINK_RESOURCE_OWNER_ONLY(1180, "Only the owner can manage share links", HttpStatus.FORBIDDEN),
+    SHARE_LINK_EXPIRY_DAYS_EXCEED_MAX(1181, "Expiry days exceed the allowed limit", HttpStatus.BAD_REQUEST),
 
     // ========================================================================
     // PROMPT TEMPLATE - 1182..1186
     // ========================================================================
-    PROMPT_TEMPLATE_NOT_EXISTS(1182, "Prompt template không tồn tại", HttpStatus.NOT_FOUND),
-    PROMPT_TEMPLATE_TITLE_CAN_NOT_BE_NULL_OR_EMPTY(1183, "Tiêu đề prompt template không được để trống", HttpStatus.BAD_REQUEST),
-    PROMPT_TEMPLATE_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY(1184, "Nội dung prompt template không được để trống", HttpStatus.BAD_REQUEST),
-    PROMPT_TEMPLATE_TYPE_CAN_NOT_BE_NULL_OR_EMPTY(1185, "Loại prompt template không được để trống", HttpStatus.BAD_REQUEST),
-    PROMPT_TEMPLATE_OWNER_ONLY(1186, "Chỉ owner mới được quản lý prompt template này", HttpStatus.FORBIDDEN),
+    PROMPT_TEMPLATE_NOT_EXISTS(1182, "Prompt template does not exist", HttpStatus.NOT_FOUND),
+    PROMPT_TEMPLATE_TITLE_CAN_NOT_BE_NULL_OR_EMPTY(1183, "Prompt template title cannot be null or empty", HttpStatus.BAD_REQUEST),
+    PROMPT_TEMPLATE_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY(1184, "Prompt template content cannot be null or empty", HttpStatus.BAD_REQUEST),
+    PROMPT_TEMPLATE_TYPE_CAN_NOT_BE_NULL_OR_EMPTY(1185, "Prompt template type cannot be null or empty", HttpStatus.BAD_REQUEST),
+    PROMPT_TEMPLATE_OWNER_ONLY(1186, "Only the owner can manage this prompt template", HttpStatus.FORBIDDEN),
 
     // ========================================================================
     // UNEXPECTED - 9999
@@ -281,7 +281,18 @@ public enum ApiResponseStatus {
     UNEXPECTED(9999, "An unexpected error occurred!", HttpStatus.INTERNAL_SERVER_ERROR), 
     DRAFT_SOURCE_PAYLOAD_REQUIRED(1187, "Draft source payload must include file(s) or rawContent", HttpStatus.BAD_REQUEST), 
     DRAFT_SOURCE_ALREADY_EXISTS(1188, "Draft source already exists", HttpStatus.BAD_REQUEST),
-    DRAFT_SOURCE_NOT_EXISTS(1189, "Draft source does not exist", HttpStatus.NOT_FOUND)
+    DRAFT_SOURCE_NOT_EXISTS(1189, "Draft source does not exist", HttpStatus.NOT_FOUND),
+
+    // ========================================================================
+    // FEEDBACK - 1190..1196
+    // ========================================================================
+    FEEDBACK_ID_NOT_EXISTS(1190, "Feedback does not exist", HttpStatus.NOT_FOUND),
+    FEEDBACK_SUBJECT_CAN_NOT_BE_NULL_OR_EMPTY(1191, "Feedback subject cannot be null or empty", HttpStatus.BAD_REQUEST),
+    FEEDBACK_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY(1192, "Feedback content cannot be null or empty", HttpStatus.BAD_REQUEST),
+    FEEDBACK_RESPONSE_CAN_NOT_BE_NULL_OR_EMPTY(1193, "Feedback response cannot be null or empty", HttpStatus.BAD_REQUEST),
+    FEEDBACK_ALREADY_RESPONDED(1194, "Feedback has already been responded", HttpStatus.CONFLICT),
+    FEEDBACK_ID_CAN_NOT_BE_NULL(1195, "Feedback ID cannot be null or empty", HttpStatus.BAD_REQUEST),
+    FEEDBACK_NOT_OWNER(1196, "Only the owner can update this feedback", HttpStatus.FORBIDDEN),
     ;
     int code;
     String message;

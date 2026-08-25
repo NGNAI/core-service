@@ -1,0 +1,54 @@
+# Maven
+target/
+!target/*.jar
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Spring Boot
+!src/main/resources/application*.yml
+!src/main/resources/application*.yaml
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Documentation
+*.md
+docs/
+
+# Logs
+logs/
+*.log
+
+# Test
+src/test/
+target/test-classes/
+
+# Temp files
+*.tmp
+*.bak
+*~
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Other
+nb-configuration.xml
+nbactions.xml
+HELP.xml
+.mvn/

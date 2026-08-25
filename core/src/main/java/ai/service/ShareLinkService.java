@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ import ai.dto.own.response.ShareLinkResponseDto;
 import ai.dto.own.response.ShareLinkStatsDto;
 import ai.dto.own.response.SharedResourceResponseDto;
 import ai.dto.own.response.MessageResponseDto;
+import ai.entity.postgres.DraftEntity;
 import ai.entity.postgres.NoteBookEntity;
 import ai.entity.postgres.ShareLinkEntity;
 import ai.entity.postgres.TopicEntity;
@@ -62,9 +64,11 @@ public class ShareLinkService {
     MessageService messageService;
     TopicSourceService topicSourceService;
     NoteBookSourceService noteBookSourceService;
+    DraftSourceService draftSourceService;
+    DraftService draftService;
     UserService userService;
     AppProperties appProperties;
-    org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    PasswordEncoder passwordEncoder;
     SecureRandom secureRandom = new SecureRandom();
 
     // ========================================================================
@@ -289,6 +293,22 @@ public class ShareLinkService {
                         .passwordRequired(link.isPasswordRequired())
                         .build();
             }
+            case DRAFT -> {
+                DraftEntity topic = draftService.getEntityByIdShared(link.getResourceId());
+                UserEntity owner = userService.getEntityById(topic.getOwner().getId());
+                yield SharedResourceResponseDto.builder()
+                        .resourceType(ShareResource.DRAFT)
+                        .resourceId(topic.getId())
+                        .title(topic.getTitle())
+                        .ownerDisplayName(buildDisplayName(owner))
+                        .createdAt(topic.getAudit().getCreatedAt())
+                        .messageCount(messageService.getAllShared(
+                                topic.getId(), MessageParentType.DRAFT, emptyMessageFilter()).getFirst())
+                        .sourceCount(topicSourceService.getSourcesShared(topic.getId(), 0, 1).getFirst())
+                        .passwordRequired(link.isPasswordRequired())
+                        .build();
+            }
+
         };
     }
 
@@ -300,6 +320,7 @@ public class ShareLinkService {
         MessageParentType parentType = switch (link.getResourceType()) {
             case TOPIC -> MessageParentType.TOPIC;
             case NOTEBOOK -> MessageParentType.NOTEBOOK;
+            case DRAFT -> MessageParentType.DRAFT;
         };
         ai.dto.own.request.filter.MessageFilterDto filter = new ai.dto.own.request.filter.MessageFilterDto();
         filter.setPageNumber(page);
@@ -315,6 +336,7 @@ public class ShareLinkService {
         return switch (link.getResourceType()) {
             case TOPIC -> topicSourceService.getSourcesShared(link.getResourceId(), page, size);
             case NOTEBOOK -> noteBookSourceService.getSourcesShared(link.getResourceId(), page, size);
+            case DRAFT -> draftSourceService.getSourcesShared(link.getResourceId(), page, size);
         };
     }
 
@@ -326,6 +348,7 @@ public class ShareLinkService {
         return switch (link.getResourceType()) {
             case TOPIC -> topicSourceService.getSourceDownloadUrlShared(link.getResourceId(), sourceId, expiresInSeconds);
             case NOTEBOOK -> noteBookSourceService.getSourceDownloadUrlShared(link.getResourceId(), sourceId, expiresInSeconds);
+            case DRAFT -> draftSourceService.getSourceDownloadUrlShared(link.getResourceId(), sourceId, expiresInSeconds);
         };
     }
 
@@ -353,6 +376,7 @@ public class ShareLinkService {
         switch (resourceType) {
             case TOPIC -> topicService.validateTopicOfUser(resourceId, ownerId);
             case NOTEBOOK -> noteBookService.validateNoteBookOfUser(resourceId, ownerId);
+            case DRAFT -> draftService.validateDraftOfUser(resourceId, ownerId);
         }
     }
 
@@ -361,6 +385,7 @@ public class ShareLinkService {
             return switch (resourceType) {
                 case TOPIC -> topicService.getEntityByIdShared(resourceId).getTitle();
                 case NOTEBOOK -> noteBookService.getEntityByIdShared(resourceId).getTitle();
+                case DRAFT -> draftService.getEntityByIdShared(resourceId).getTitle();
             };
         } catch (Exception e) {
             log.warn("Could not resolve resource title for {} {}: {}", resourceType, resourceId, e.getMessage());

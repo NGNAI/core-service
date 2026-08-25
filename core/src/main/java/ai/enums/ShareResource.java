@@ -17,7 +17,8 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum ShareResource {
     TOPIC("topic", "Chủ đề"),
-    NOTEBOOK("notebook", "Sổ tay");
+    NOTEBOOK("notebook", "Sổ tay"),
+    DRAFT("draft", "Bản soạn thảo");
 
     String value;
     String name;

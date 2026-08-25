@@ -29,7 +29,8 @@ public enum AuditResource {
     SYSTEM_SETTING("SYSTEM_SETTING", "Cấu hình hệ thống"),
     SYSTEM_HEALTH("SYSTEM_HEALTH", "Trạng thái hệ thống"),
     SHARE_LINK("SHARE_LINK", "Link chia sẻ"),
-    PROMPT_TEMPLATE("PROMPT_TEMPLATE", "Prompt template");
+    PROMPT_TEMPLATE("PROMPT_TEMPLATE", "Prompt template"),
+    FEEDBACK("FEEDBACK", "Góp ý và phản hồi");
 
     String key;
     String name;
