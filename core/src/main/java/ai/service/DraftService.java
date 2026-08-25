@@ -23,6 +23,7 @@ import ai.entity.postgres.DraftVersionEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.AuditAction;
 import ai.enums.AuditResource;
+import ai.enums.ShareResource;
 import ai.exception.AppException;
 import ai.mapper.DraftMapper;
 import ai.model.CustomPairModel;
@@ -30,6 +31,7 @@ import ai.repository.DraftMessagesRepository;
 import ai.repository.DraftRepository;
 import ai.repository.DraftVersionRepository;
 import ai.repository.MessageFeedbackHistoryRepository;
+import ai.repository.ShareLinkRepository;
 import ai.service.api.RagApiService;
 import ai.util.JwtUtil;
 import io.micrometer.core.annotation.Counted;
@@ -54,6 +56,7 @@ public class DraftService {
     UserService userService;
     OrganizationService organizationService;
     RagApiService ragApiService;
+    ShareLinkRepository shareLinkRepository;
 
     // @Autowired
     // @Lazy
@@ -119,13 +122,10 @@ public class DraftService {
             messageFeedbackHistoryRepository.deleteByMessage_IdIn(messageIds);
         }
 
-        // 2. Xoá draft_messages (cascade xoá message entity qua CascadeType.ALL)
-        draftMessagesRepository.deleteAll(draftMessages);
+        // 2. Xoá share links của draft (nếu có)
+        shareLinkRepository.deleteByResourceTypeAndResourceId(ShareResource.DRAFT, draftId);
 
-        // 3. Xoá các version của draft
-        draftVersionRepository.deleteByDraft_Id(draftId);
-
-        // 4. Xoá draft
+        // 3. Xoá draft (cascade xoá draft_messages + draft_versions + draft_sources)
         draftRepository.deleteById(draftId);
     }
    
@@ -408,6 +408,11 @@ public class DraftService {
         DraftEntity draft = getEntityById(id);
         draft.setSessionId(sessionIdStr);
         draftRepository.save(draft);
+    }
+
+    public DraftEntity getEntityByIdShared(UUID draftId) {
+        return draftRepository.findById(draftId)
+                .orElseThrow(() -> new AppException(ApiResponseStatus.DRAFT_ID_NOT_EXISTS));
     }
    
 }

@@ -8,6 +8,7 @@ import org.hibernate.type.SqlTypes;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import ai.entity.postgres.embeddable.AuditEmbed;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -74,8 +75,11 @@ public class DraftEntity {
     @JoinColumn(name = "organization_id")
     OrganizationEntity organization;
 
-    @OneToMany(mappedBy = "draft")
+    @OneToMany(mappedBy = "draft", cascade = CascadeType.ALL)
     List<DraftVersionEntity> versions;
+
+    @OneToMany(mappedBy = "draft", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<DraftSourceEntity> draftSources;
 
     @Column(name = "session_id", nullable = true)
     String sessionId;
