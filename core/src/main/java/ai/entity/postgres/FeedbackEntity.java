@@ -4,6 +4,7 @@ import ai.entity.postgres.embeddable.AuditEmbed;
 import ai.enums.FeedbackStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
@@ -36,7 +37,8 @@ public class FeedbackEntity {
     String content;
 
     @Column(name = "is_private", nullable = false)
-    boolean isPrivate = false;
+    @Builder.Default
+    Boolean isPrivate = false;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 32)

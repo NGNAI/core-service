@@ -124,7 +124,7 @@ public class FeedbackService {
         FeedbackEntity newEntity = new FeedbackEntity();
         newEntity.setSubject(dto.getSubject());
         newEntity.setContent(dto.getContent());
-        newEntity.setPrivate(Boolean.TRUE.equals(dto.getIsPrivate()));
+        newEntity.setIsPrivate(Boolean.TRUE.equals(dto.getIsPrivate()));
         newEntity.setStatus(ai.enums.FeedbackStatus.PENDING);
         newEntity.setSender(userService.getEntityById(userId));
         newEntity.setSenderOrg(organizationService.getEntityById(orgId));
@@ -147,7 +147,7 @@ public class FeedbackService {
             entity.setContent(dto.getContent());
         }
         if (dto.getIsPrivate() != null) {
-            entity.setPrivate(dto.getIsPrivate());
+            entity.setIsPrivate(dto.getIsPrivate());
         }
 
         return feedbackMapper.entityToResponseDto(feedbackRepository.save(entity));
