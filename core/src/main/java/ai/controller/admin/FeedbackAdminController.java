@@ -19,6 +19,7 @@ import ai.dto.own.request.FeedbackStatusUpdateRequestDto;
 import ai.dto.own.request.filter.FeedbackFilterDto;
 import ai.dto.own.response.FeedbackResponseDto;
 import ai.model.ApiResponseModel;
+import ai.security.AdminAccessGuard;
 import ai.service.FeedbackService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -38,6 +39,18 @@ import lombok.experimental.FieldDefaults;
 public class FeedbackAdminController {
 
     FeedbackService feedbackService;
+    AdminAccessGuard adminAccessGuard;
+
+    @Operation(summary = "Check access", description = "Kiểm tra token hiện tại có quyền truy cập Feedback admin APIs (dựa trên danh sách username được phép cấu hình trong hệ thống)")
+    @GetMapping("/access")
+    ResponseEntity<ApiResponseModel<Boolean>> checkAccess() {
+        return ResponseEntity.ok(
+                ApiResponseModel.<Boolean>builder()
+                        .message("Check access successfully")
+                        .data(adminAccessGuard.isAllowed())
+                        .build()
+        );
+    }
 
     @Operation(summary = "Get feedback by ID", description = "Retrieve a feedback by its ID (admin only, no ownership check)")
     @GetMapping("/{id}")
