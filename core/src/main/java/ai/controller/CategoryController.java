@@ -14,6 +14,7 @@ import ai.dto.own.response.PermissionScopeResponseDto;
 import ai.entity.postgres.NoteBookSourceEntity;
 import ai.enums.DataScope;
 import ai.enums.DataSource;
+import ai.enums.FeedbackStatus;
 import ai.enums.IngestionStatus;
 import ai.enums.MessageFeedbackType;
 import ai.enums.NoteSourceBy;
@@ -174,5 +175,15 @@ public class CategoryController {
                                                 .message("Get prompt types successfully")
                                                 .data(Arrays.asList(PromptType.values()))
                                                 .build());
+        }
+
+        @Operation(summary = "Get feedback statuses", description = "Retrieve all feedback status values")
+        @GetMapping("/feedback-statuses")
+        ResponseEntity<ApiResponseModel<List<FeedbackStatus>>> statuses() {
+                return ResponseEntity.ok(
+                        ApiResponseModel.<List<FeedbackStatus>>builder()
+                                .message("Get feedback statuses successfully")
+                                .data(Arrays.asList(FeedbackStatus.values()))
+                                .build());
         }
 }
