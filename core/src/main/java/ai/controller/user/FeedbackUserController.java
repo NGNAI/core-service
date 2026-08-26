@@ -1,5 +1,6 @@
 package ai.controller.user;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,6 +19,7 @@ import ai.dto.own.request.FeedbackCreateRequestDto;
 import ai.dto.own.request.FeedbackUpdateRequestDto;
 import ai.dto.own.request.filter.FeedbackFilterDto;
 import ai.dto.own.response.FeedbackResponseDto;
+import ai.enums.FeedbackStatus;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
 import ai.service.FeedbackService;
@@ -90,6 +92,16 @@ public class FeedbackUserController {
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Delete feedback successfully")
+                        .build());
+    }
+
+    @Operation(summary = "Get feedback statuses", description = "Retrieve all feedback status values")
+    @GetMapping("/statuses")
+    ResponseEntity<ApiResponseModel<List<FeedbackStatus>>> statuses() {
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<FeedbackStatus>>builder()
+                        .message("Get feedback statuses successfully")
+                        .data(Arrays.asList(FeedbackStatus.values()))
                         .build());
     }
 }

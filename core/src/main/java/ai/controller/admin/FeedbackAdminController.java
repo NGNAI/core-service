@@ -1,5 +1,7 @@
 package ai.controller.admin;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -18,6 +20,7 @@ import ai.dto.own.request.FeedbackRespondRequestDto;
 import ai.dto.own.request.FeedbackStatusUpdateRequestDto;
 import ai.dto.own.request.filter.FeedbackFilterDto;
 import ai.dto.own.response.FeedbackResponseDto;
+import ai.enums.FeedbackStatus;
 import ai.model.ApiResponseModel;
 import ai.security.AdminAccessGuard;
 import ai.service.FeedbackService;
@@ -129,5 +132,15 @@ public class FeedbackAdminController {
                         .data(dto)
                         .build()
         );
+    }
+
+    @Operation(summary = "Get feedback statuses", description = "Retrieve all feedback status values")
+    @GetMapping("/statuses")
+    ResponseEntity<ApiResponseModel<List<FeedbackStatus>>> statuses() {
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<FeedbackStatus>>builder()
+                        .message("Get feedback statuses successfully")
+                        .data(Arrays.asList(FeedbackStatus.values()))
+                        .build());
     }
 }
