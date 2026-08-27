@@ -82,6 +82,11 @@ logging:
     com.baeldung: "TRACE"
     de.codecentric.boot.admin.client: "DEBUG"
     org.springframework.boot.actuate: "DEBUG"
+  # Cấu hình Loki log aggregation
+  loki:
+    url: "http://localhost:3100/loki/api/v1/push"
+    user: "loki"
+    password: "loki123"
 
 # Cấu hình Spring Boot Actuator & Spring Boot Admin Client
 management:

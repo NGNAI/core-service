@@ -50,4 +50,52 @@
         <appender-ref ref="RollingFile" />
         <appender-ref ref="Console" />
     </root>
+
+    <!-- ── Loki Appender: đẩy log sang Loki server ──────────────────────── -->
+    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="NGN AI core" />
+    <springProperty scope="context" name="lokiUrl" source="logging.loki.url" defaultValue="http://localhost:3100/loki/api/v1/push" />
+    <springProperty scope="context" name="lokiUser" source="logging.loki.user" defaultValue="" />
+    <springProperty scope="context" name="lokiPassword" source="logging.loki.password" defaultValue="" />
+
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>${lokiUrl}</url>
+            <auth>
+                <type>basic</type>
+                <username>${lokiUser}</username>
+                <password>${lokiPassword}</password>
+            </auth>
+            <!-- Timeout settings -->
+            <connectTimeout>5000</connectTimeout>
+            <readTimeout>10000</readTimeout>
+            <retryInitialInterval>2000</retryInitialInterval>
+            <retryMaxInterval>10000</retryMaxInterval>
+            <retryCount>3</retryCount>
+        </http>
+        <format>
+            <label>
+                <pattern>app=${appName},host=${HOSTNAME},level=%level</pattern>
+            </label>
+            <message>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            </message>
+        </format>
+        <!-- Batch settings -->
+        <batch>
+            <maxSize>10000</maxSize>
+            <maxDuration>10000</maxDuration>
+        </batch>
+        <!-- Circuit breaker để không block app nếu Loki down -->
+        <circuitBreaker>
+            <errorThreshold>3</errorThreshold>
+            <resetTimeout>30000</resetTimeout>
+        </circuitBreaker>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="RollingFile" />
+        <appender-ref ref="Console" />
+        <appender-ref ref="LOKI" />
+    </root>
+
 </configuration>
