@@ -1,4 +1,4 @@
-# Grafana datasource provisioning — tự nạp datasource Prometheus khi Grafana khởi động
+# Grafana datasource provisioning — tự nạp datasource Prometheus và Loki khi Grafana khởi động
 apiVersion: 1
 
 datasources:
@@ -13,3 +13,20 @@ datasources:
     jsonData:
       timeInterval: 15s
       httpMethod: POST
+
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    orgId: 1
+    url: http://loki:3100         # tên service trong docker-compose
+    editable: true
+    isDefault: false
+    jsonData:
+      maxLines: 50
+      httpMethod: POST
+      basicAuth: true
+      basicAuthUser: loki
+      # Sử dụng secureJsonData để lưu mật khẩu an toàn hơn
+    secureJsonData:
+      basicAuthPassword: loki123

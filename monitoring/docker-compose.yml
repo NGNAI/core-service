@@ -1,7 +1,8 @@
-# Bộ cấu hình local monitoring: Prometheus + Grafana cho core-service
+# Bộ cấu hình local monitoring: Prometheus + Grafana + Loki cho core-service
 # Chạy:  docker compose -f monitoring/docker-compose.yml up -d
 #   - Prometheus: http://localhost:9090
 #   - Grafana:    http://localhost:3000  (admin / admin)
+#   - Loki:       http://localhost:3100  (loki / loki123)
 version: "3.8"
 
 services:
@@ -44,12 +45,30 @@ services:
       - grafana-data:/var/lib/grafana
     depends_on:
       - prometheus
+      - loki
+    networks:
+      - monitoring
+
+  loki:
+    image: grafana/loki:latest
+    container_name: monitoring-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    command:
+      - "-config.file=/etc/loki/loki-config.yml"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - monitoring
 
 volumes:
   prometheus-data:
   grafana-data:
+  loki-data:
 
 networks:
   monitoring:
