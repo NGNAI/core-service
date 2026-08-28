@@ -15,8 +15,9 @@ import org.springframework.stereotype.Repository;
 
 import ai.entity.postgres.DataIngestionEntity;
 import ai.enums.DataIngestionDeleteStatus;
+import ai.enums.DataScope;
+import ai.enums.DataSource;
 import ai.enums.IngestionStatus;
-
 @Repository
 public interface DataIngestionRepository extends JpaRepository<DataIngestionEntity, UUID>, JpaSpecificationExecutor<DataIngestionEntity> {
     Optional<DataIngestionEntity> findByJobId(UUID jobId);
@@ -42,6 +43,27 @@ public interface DataIngestionRepository extends JpaRepository<DataIngestionEnti
             UUID ownerId,
             UUID organizationId,
             DataIngestionDeleteStatus deleteStatus);
+
+        // Tìm record file FAILED cũ (cùng name + parent + owner + org + fromSource + accessLevel) để tái sử dụng khi retry,
+        // tránh tạo record mới gây trùng lắp dữ liệu trong auto-import.
+        Optional<DataIngestionEntity> findFirstByFolderFalseAndNameAndParentIsNullAndOwnerIdAndOrganizationIdAndFromSourceAndAccessLevelAndDeleteStatusAndIngestionStatus(
+            String name,
+            UUID ownerId,
+            UUID organizationId,
+            DataSource fromSource,
+            DataScope accessLevel,
+            DataIngestionDeleteStatus deleteStatus,
+            IngestionStatus ingestionStatus);
+
+        Optional<DataIngestionEntity> findFirstByFolderFalseAndNameAndParentIdAndOwnerIdAndOrganizationIdAndFromSourceAndAccessLevelAndDeleteStatusAndIngestionStatus(
+            String name,
+            UUID parentId,
+            UUID ownerId,
+            UUID organizationId,
+            DataSource fromSource,
+            DataScope accessLevel,
+            DataIngestionDeleteStatus deleteStatus,
+            IngestionStatus ingestionStatus);
             
     @Query("SELECT COUNT(d) FROM DataIngestionEntity d")
     long countAllDataIngestions();

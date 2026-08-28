@@ -2,14 +2,14 @@ package ai;
 
 import java.util.List;
 
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.experimental.FieldDefaults;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-import ai.enums.DataSource;
 import ai.enums.DataScope;
+import ai.enums.DataSource;
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.experimental.FieldDefaults;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -124,6 +124,14 @@ public class AppProperties {
         String failedDir;
         Long pollerDelayMs;
         Long fileStableSeconds;
+        /** Giới hạn số file được xử lý trong mỗi lần quét thư mục. Để trống hoặc <= 0 thì dùng mặc định 50. */
+        Integer maxMessagesPerPoll;
+        /**
+         * Số lần retry tối đa khi đẩy file sang ingestion service (RAG) thất bại.
+         * File sẽ được đưa trở lại thư mục input để retry ở lần quét sau, tái sử dụng record FAILED cũ (không tạo mới).
+         * Để trống hoặc < 0 thì dùng mặc định 3. Đặt 0 để không retry (move thẳng sang .failed).
+         */
+        Integer maxRetryAttempts;
         DataScope accessLevel;
         DataSource fromSource;
         boolean deleteLocalAfterSuccess;

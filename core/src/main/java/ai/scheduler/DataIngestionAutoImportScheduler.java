@@ -47,8 +47,8 @@ public class DataIngestionAutoImportScheduler {
 	@Bean
 	IntegrationFlow autoIngestionFlow() {
 		return IntegrationFlow
-				.from(autoIngestionFileSource(), c -> c.poller(Pollers.fixedDelay(resolvePollerDelayMs())
-						.maxMessagesPerPoll(50)))
+				.from(autoIngestionFileSource(), c -> c.poller(Pollers.fixedDelay(resolvePollerDelayMs()) // Cấu hình thời gian giữa 2 lần quét thư mục để tìm file mới, đơn vị là ms. Mặc định 60000ms (60 giây)
+				.maxMessagesPerPoll(resolveMaxMessagesPerPoll()))) // Giới hạn số file được xử lý trong mỗi lần quét thư mục để tránh quá tải. Mặc định 50 file/lần quét
 				.handle(File.class, (file, headers) -> {
 					processFile(file);
 					return null;
@@ -175,10 +175,21 @@ public class DataIngestionAutoImportScheduler {
 					accessLevel,
 					fromSource);
 
-			// Nếu ingest thất bại, thì move file sang thư mục failed để tránh bị xử lý lại, đồng thời ghi log lỗi. Nếu move không thành công thì ghi log lỗi và giữ nguyên file trong thư mục processing để có thể thử lại ở lần quét tiếp theo
+			// Nếu ingest thất bại (đẩy sang RAG lỗi), thì dựa vào retryCount để quyết định:
+			// - Nếu chưa vượt quá maxRetryAttempts: đưa file trở lại thư mục input để retry ở lần quét sau.
+			//   Record FAILED cũ sẽ được tái sử dụng (không tạo mới) nên không gây trùng lắp dữ liệu.
+			// - Nếu đã vượt quá maxRetryAttempts: move file sang thư mục failed để dừng hẳn, tránh retry vô hạn.
 			if (response.getIngestionStatus().equals(IngestionStatus.FAILED.name())) {
-				log.error("Auto-ingestion failed when pushing to ingestion service. file={}", originalFile);
-				moveToFailed(stagedFile, relativePath);
+				int retryCount = response.getRetryCount() == null ? 0 : response.getRetryCount();
+				if (retryCount < resolveMaxRetryAttempts()) {
+					log.warn("Auto-ingestion push to ingestion service failed, moving file back to input for retry. attempt={}/{}. file={}",
+							retryCount, resolveMaxRetryAttempts(), originalFile);
+					moveBackToInput(stagedFile, relativePath);
+				} else {
+					log.error("Auto-ingestion failed after exceeding max retry attempts ({}). Moving file to failed area. file={}",
+							resolveMaxRetryAttempts(), originalFile);
+					moveToFailed(stagedFile, relativePath);
+				}
 				return;
 			}
 
@@ -241,13 +252,32 @@ public class DataIngestionAutoImportScheduler {
 		}
 	}
 
-    // Thời gian giữa 2 lần quét thư mục để tìm file mới, đơn vị là ms. Mặc định 5000ms (5 giây)
+    // Thời gian giữa 2 lần quét thư mục để tìm file mới, đơn vị là ms. Mặc định 60000ms (60 giây)
 	private long resolvePollerDelayMs() {
 		if (appProperties.getAutoIngestion() == null || appProperties.getAutoIngestion().getPollerDelayMs() == null
 				|| appProperties.getAutoIngestion().getPollerDelayMs() <= 0) {
-			return 5000L;
+			return 60000L;
 		}
 		return appProperties.getAutoIngestion().getPollerDelayMs();
+	}
+
+    // Giới hạn số file được xử lý trong mỗi lần quét thư mục để tránh quá tải. Mặc định 50 file/lần quét
+	private int resolveMaxMessagesPerPoll() {
+		if (appProperties.getAutoIngestion() == null || appProperties.getAutoIngestion().getMaxMessagesPerPoll() == null
+				|| appProperties.getAutoIngestion().getMaxMessagesPerPoll() <= 0) {
+			return 50;
+		}
+		return appProperties.getAutoIngestion().getMaxMessagesPerPoll();
+	}
+
+    // Số lần retry tối đa khi đẩy file sang ingestion service (RAG) thất bại. Mặc định 3 nếu để trống hoặc < 0.
+    // Đặt 0 để không retry (move thẳng sang .failed).
+	private int resolveMaxRetryAttempts() {
+		if (appProperties.getAutoIngestion() == null || appProperties.getAutoIngestion().getMaxRetryAttempts() == null
+				|| appProperties.getAutoIngestion().getMaxRetryAttempts() < 0) {
+			return 3;
+		}
+		return appProperties.getAutoIngestion().getMaxRetryAttempts();
 	}
 
     // Thời gian tối thiểu mà một file được coi là "ổn định" (không còn đang được ghi thêm dữ liệu) để có thể xử lý, đơn vị là ms. Mặc định 20000ms (20 giây)

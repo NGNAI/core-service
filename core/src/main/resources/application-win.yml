@@ -184,6 +184,10 @@ auto-ingestion:
   failed-dir: "C:\\Users\\khuetech\\Documents\\Input\\.failed"
   poller-delay-ms: 5000
   file-stable-seconds: 20
+  # Giới hạn số file được xử lý trong mỗi lần quét thư mục (mặc định 50 nếu để trống)
+  max-messages-per-poll: 50
+  # Số lần retry tối đa khi đẩy file sang ingestion service (RAG) thất bại (mặc định 3 nếu để trống; đặt 0 để không retry)
+  max-retry-attempts: 3
   access-level: "GLOBAL"
   from-source: "SYSTEM"
   delete-local-after-success: true
