@@ -22,6 +22,7 @@ import ai.dto.own.request.filter.FeedbackFilterDto;
 import ai.dto.own.response.FeedbackResponseDto;
 import ai.enums.FeedbackStatus;
 import ai.model.ApiResponseModel;
+import ai.model.CustomPairModel;
 import ai.security.AdminAccessGuard;
 import ai.service.FeedbackService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -76,12 +77,13 @@ public class FeedbackAdminController {
     @ApiResponse(responseCode = "200", description = "Get feedbacks successfully",
                  content = @Content(schema = @Schema(implementation = FeedbackResponseDto.class)))
     @PreAuthorize("@adminAccessGuard.isAllowed()")
-    ResponseEntity<ApiResponseModel<Page<FeedbackResponseDto>>> getAll(@Valid FeedbackFilterDto filterDto) {
-        Page<FeedbackResponseDto> page = feedbackService.getAllFeedbacks(filterDto);
+    ResponseEntity<ApiResponseModel<List<FeedbackResponseDto>>> getAll(@Valid FeedbackFilterDto filterDto) {
+        CustomPairModel<Long, List<FeedbackResponseDto>> result = feedbackService.getAllFeedbacks(filterDto);
         return ResponseEntity.ok(
-                ApiResponseModel.<Page<FeedbackResponseDto>>builder()
+                ApiResponseModel.<List<FeedbackResponseDto>>builder()
                         .message("Get feedbacks successfully")
-                        .data(page)
+                        .count(result.getFirst())
+                        .data(result.getSecond())
                         .build()
         );
     }
