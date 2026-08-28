@@ -68,7 +68,7 @@ public class FeedbackService {
     }
 
     // Admin queries
-    public Page<FeedbackResponseDto> getAllFeedbacks(FeedbackFilterDto filterDto) {
+    public CustomPairModel<Long, List<FeedbackResponseDto>> getAllFeedbacks(FeedbackFilterDto filterDto) {
         UUID userId = JwtUtil.getUserId();
         userService.validateUserId(userId);
 
@@ -89,7 +89,8 @@ public class FeedbackService {
                 filterDto.createPageable()
         );
 
-        return page.map(feedbackMapper::entityToResponseDto);
+        List<FeedbackResponseDto> list = page.map(feedbackMapper::entityToResponseDto).getContent();
+        return new CustomPairModel<>(page.getTotalElements(), list);
     }
 
     // User flows
