@@ -365,7 +365,12 @@ public class DataIngestionService {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);
         }
 
-        DataIngestionEntity dataIngestion = new DataIngestionEntity();
+        // Tái sử dụng record FAILED cũ (cùng name + parent + owner + org + fromSource + accessLevel) nếu có,
+        // để tránh tạo record mới gây trùng lắp dữ liệu khi auto-import retry. Nếu không có thì tạo mới.
+        DataIngestionEntity dataIngestion = findFailedRecordForRetry(
+                fileName, parent, owner, organization, accessLevel, fromSource)
+                .orElseGet(DataIngestionEntity::new);
+
         dataIngestion.setName(fileName);
         dataIngestion.setFolder(false);
         dataIngestion.setMinioPath(minioPath);
@@ -378,15 +383,36 @@ public class DataIngestionService {
         dataIngestion.setIngestionStatus(IngestionStatus.CREATED);
         dataIngestion.setDeleteStatus(DataIngestionDeleteStatus.ACTIVE);
         dataIngestion.setParent(parent);
+        // Reset retry count khi bắt đầu một lần ingest mới (thành công hoặc thất bại đều tính lại từ đầu)
+        dataIngestion.setRetryCount(0);
 
         dataIngestion = dataIngestionRepository.save(dataIngestion);
 
+        return pushToIngestionService(stagedFile, dataIngestion, owner, organization, accessLevel);
+    }
+
+    /**
+     * Đẩy file đã lưu trong DB lên ingestion service (RAG). Nếu đẩy thất bại (response null/invalid hoặc ném AppException),
+     * cập nhật trạng thái FAILED + tăng retryCount để luồng auto-import có thể retry, tránh kẹt ở trạng thái trung gian.
+     * @param stagedFile file vật lý đang nằm trong thư mục processing
+     * @param dataIngestion record data ingestion đã lưu (có id)
+     * @param owner chủ sở hữu
+     * @param organization tổ chức
+     * @param accessLevel quyền truy cập
+     * @return response với trạng thái mới nhất (CREATED nếu thành công, FAILED nếu thất bại)
+     */
+    private DataIngestionResponseDto pushToIngestionService(
+            Path stagedFile,
+            DataIngestionEntity dataIngestion,
+            UserEntity owner,
+            OrganizationEntity organization,
+            DataScope accessLevel) {
         try {
             String callbackUrl = resolveCallbackUrl(null);
             // Đẩy trực tiếp từ file trên disk (FileSystemResource) để tránh load toàn bộ file vào RAM
             IngestionUploadResponseDto ingestionResponse = ingestionService.uploadRag(
                     stagedFile.toFile(),
-                    fileName,
+                    dataIngestion.getName(),
                     dataIngestion.getId().toString(),
                     owner.getId().toString(),
                     owner.getUserName(),
@@ -398,6 +424,7 @@ public class DataIngestionService {
             if (ingestionResponse == null || ingestionResponse.getJobId() == null) {
                 dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
                 dataIngestion.setIngestionError("Ingestion service returned null or invalid response");
+                dataIngestion.setRetryCount((dataIngestion.getRetryCount() == null ? 0 : dataIngestion.getRetryCount()) + 1);
                 dataIngestion = dataIngestionRepository.save(dataIngestion);
                 return dataIngestionMapper.entityToResponseDto(dataIngestion);
             }
@@ -410,9 +437,44 @@ public class DataIngestionService {
             log.error("Ingestion push failed for data ingestion with ID: {}", dataIngestion.getId(), exception);
             dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
             dataIngestion.setIngestionError(resolveIngestionError(exception));
+            dataIngestion.setRetryCount((dataIngestion.getRetryCount() == null ? 0 : dataIngestion.getRetryCount()) + 1);
             dataIngestion = dataIngestionRepository.save(dataIngestion);
             return dataIngestionMapper.entityToResponseDto(dataIngestion);
         }
+    }
+
+    /**
+     * Tìm record file FAILED cũ (cùng name + parent + owner + org + fromSource + accessLevel) để tái sử dụng khi retry,
+     * tránh tạo record mới gây trùng lắp dữ liệu trong auto-import.
+     */
+    private Optional<DataIngestionEntity> findFailedRecordForRetry(
+            String fileName,
+            DataIngestionEntity parent,
+            UserEntity owner,
+            OrganizationEntity organization,
+            DataScope accessLevel,
+            DataSource fromSource) {
+        if (parent == null) {
+            return dataIngestionRepository
+                    .findFirstByFolderFalseAndNameAndParentIsNullAndOwnerIdAndOrganizationIdAndFromSourceAndAccessLevelAndDeleteStatusAndIngestionStatus(
+                            fileName,
+                            owner.getId(),
+                            organization.getId(),
+                            fromSource,
+                            accessLevel,
+                            DataIngestionDeleteStatus.ACTIVE,
+                            IngestionStatus.FAILED);
+        }
+        return dataIngestionRepository
+                .findFirstByFolderFalseAndNameAndParentIdAndOwnerIdAndOrganizationIdAndFromSourceAndAccessLevelAndDeleteStatusAndIngestionStatus(
+                        fileName,
+                        parent.getId(),
+                        owner.getId(),
+                        organization.getId(),
+                        fromSource,
+                        accessLevel,
+                        DataIngestionDeleteStatus.ACTIVE,
+                        IngestionStatus.FAILED);
     }
 
     /**

@@ -53,6 +53,7 @@ Hướng dẫn cho AI agents làm việc trong repo `core-service`.
 - **Shared methods (no ownership):** thêm overload `*Shared` (vd `getEntityByIdShared`, `getSourcesShared`) cho public access flow — **không sửa** method cũ
 - **Source flow:** Topic/Notebook source → MinIO upload → ingestion service (vector) → callback/poll → `SystemEventType` SSE event
 - **Delete queue:** `deleteStatus` (ACTIVE/PENDING_DELETE/DELETE_FAILED) + scheduler retry
+- **Auto-ingestion retry:** `DataIngestionAutoImportScheduler` quét thư mục input → move sang `.processing` → `ingestLocalFile` → move về input (retry) hoặc sang `.failed` (dừng hẳn). Khi đẩy RAG FAILED, record FAILED cũ được **tái sử dụng** (tìm theo `name + parent + owner + org + fromSource + accessLevel`) để **tránh trùng lắp DB record**; retry đếm qua `retryCount` trong entity, giới hạn bởi config `auto-ingestion.max-retry-attempts` (mặc định 3, đặt 0 để không retry).
 
 ## Modules
 - `core/` — toàn bộ business logic, REST API
@@ -66,7 +67,7 @@ Hướng dẫn cho AI agents làm việc trong repo `core-service`.
 ## Tính năng đã có
 - Auth (local + LDAP/OTP), RBAC (org/role/permission), audit log
 - Topic/Notebook (CRUD, sources, RAG chat SSE), Note, Draft (AI soạn thảo + version)
-- Data ingestion (upload, folder, MinIO, ingestion pipeline, scheduler)
+- Data ingestion (upload, folder, MinIO, ingestion pipeline, scheduler, **auto-import từ thư mục với retry tự động**)
 - Dashboard (admin global + user personal), Reports (activity/user/data/comprehensive + CSV export)
 - System settings (admin + public), System health, LDAP import/sync
 - **Share link public** (Topic/Notebook read-only) — xem `docs/share-link-feature.md`
