@@ -3,12 +3,12 @@ services:
     image: quay.io/minio/minio:latest
     container_name: minio-server
     ports:
-      - "9000:9000"     # Cổng dành cho API (Spring Boot sẽ gọi vào đây) 
+      - "${MINIO_API_PORT}:9000"     # Cổng dành cho API (Spring Boot sẽ gọi vào đây) 
       - "${MINIO_CONSOLE_PORT}:9001"   # Cổng dành cho Giao diện quản lý (Console)
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - ${MINIO_DATA_PATH}:/data              # Lưu dữ liệu vào thư mục minio_data ở máy thật
-    command: server /data --console-address ":9001"
+    command: server /data --console-address ":${MINIO_CONSOLE_PORT}"
     restart: always
