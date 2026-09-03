@@ -23,14 +23,15 @@ spring:
       max-request-size: "100MB"
 
   datasource:
-    url: "jdbc:postgresql://192.168.30.72:5432/core_service_2"
+    url: "jdbc:postgresql://192.168.30.72:5432/core_service_3"
     username: "postgres"
     password: "P@ssw0rd"
 
   jpa:
     database-platform: "org.hibernate.dialect.PostgreSQLDialect"
+    # Schema do Flyway quản lý hoàn toàn (V1__init_schema.sql chứa CREATE TABLE đầy đủ)
     hibernate:
-      ddl-auto: "update"
+      ddl-auto: "none"
     show-sql: false
     properties:
       hibernate:

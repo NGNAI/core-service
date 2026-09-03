@@ -210,6 +210,13 @@ public class AppProperties {
          * Để trống/null → fallback về ["root"].
          */
         List<String> adminAllowedUsernames;
+
+        /**
+         * Danh sách origin được phép CORS. Rỗng → cho phép tất cả (dev).
+         * Production nên liệt kê domain FE cụ thể, vd: https://ai.example.com.
+         * Dùng AllowedOriginPatterns nên có thể dùng wildcard như https://*.example.com.
+         */
+        List<String> allowedOrigins;
     }
 
     /**

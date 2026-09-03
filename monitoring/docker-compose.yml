@@ -16,8 +16,11 @@ services:
       # Password basic auth để scrape /actuator/prometheus (khớp với ACTUATOR_USER_PASSWORD của app)
       # Mặc định "changeme" — nhớ đổi và đặt cùng giá trị với biến môi trường của core-service.
       ACTUATOR_USER_PASSWORD: "${ACTUATOR_USER_PASSWORD:-changeme}"
+      # Port của core-service trên host (8080 = profile mặc định, 8081 = profile win)
+      PROMETHEUS_APP_PORT: "${PROMETHEUS_APP_PORT:-8080}"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
       - prometheus-data:/prometheus
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -65,10 +68,28 @@ services:
     networks:
       - monitoring
 
+  # Alertmanager nhận alert từ Prometheus và gửi notification (email, slack, ...)
+  # Cấu hình receivers trong monitoring/alertmanager/alertmanager.yml
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: monitoring-alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    networks:
+      - monitoring
+
 volumes:
   prometheus-data:
   grafana-data:
   loki-data:
+  alertmanager-data:
 
 networks:
   monitoring:

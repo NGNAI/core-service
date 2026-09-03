@@ -1,0 +1,21 @@
+# Grafana Alerting provisioning
+#
+# LƯU Ý QUAN TRỌNG: Trên Grafana 13 (kiến trúc alerting mới / unistore),
+# provisioning alert rules qua file KHÔNG tạo được rules hiệu quả
+# (log báo success nhưng API vẫn trả Groups: 0).
+#
+# → Alert rules nên được tạo qua Grafana UI: Alerting → Alert rules → New alert rule
+#   (hoặc import từ file JSON qua dashboards provisioning)
+#
+# Các alert nên tạo từ UI:
+#   1. Spring Boot core-service down  — up{job="core-service"} < 1 (for 2m, critical)
+#   2. HTTP 5xx rate cao              — rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.1
+#   3. Latency p95 vượt ngưỡng        — histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 2
+#   4. JVM heap cao                   — jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.85
+#   5. Log ERROR tăng đột biến (Loki) — count_over_time({app="NGN AI core", level="ERROR"}[5m]) > 5
+#   6. RAG / Ingestion health DOWN    — theo dõi actuator health hoặc metric tùy chỉnh
+#
+# File này CỐ TÌNH chỉ chứa comments (apiVersion + hướng dẫn) để KHÔNG gây lỗi
+# provisioning — Grafana chỉ đọc file YAML hợp lệ.
+
+apiVersion: 1

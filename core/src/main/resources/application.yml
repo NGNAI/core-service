@@ -27,14 +27,16 @@ spring:
       max-request-size: "100MB"
 
   datasource:
-    url: "jdbc:postgresql://192.168.30.72:5432/core_service_2"
-    username: "postgres"
-    password: "P@ssw0rd"
+    url: "jdbc:postgresql://${DB_HOST:192.168.30.72}:${DB_PORT:5432}/${DB_NAME:core_service_3}"
+    username: "${DB_USERNAME:postgres}"
+    password: "${DB_PASSWORD:P@ssw0rd}"
 
   jpa:
     database-platform: "org.hibernate.dialect.PostgreSQLDialect"
+    # Schema do Flyway quản lý hoàn toàn (V1__init_schema.sql chứa CREATE TABLE đầy đủ).
+    # Hibernate KHÔNG tự sửa schema (none); validate cần dialect metadata nên tắt luôn.
     hibernate:
-      ddl-auto: "update"
+      ddl-auto: "none"
     show-sql: false
     properties:
       hibernate:
@@ -49,8 +51,8 @@ spring:
 
   data:
     redis:
-      password: "P@ssw0rd"
-      host: 192.168.30.74
+      password: "${REDIS_PASSWORD:P@ssw0rd}"
+      host: "${REDIS_HOST:192.168.30.74}"
       port: 6379
       timeout: 60000
       lettuce:
@@ -84,9 +86,9 @@ logging:
     org.springframework.boot.actuate: "DEBUG"
   # Cấu hình Loki log aggregation
   loki:
-    url: "http://localhost:3100/loki/api/v1/push"
-    user: "loki"
-    password: "loki123"
+    url: "${LOKI_URL:http://localhost:3100/loki/api/v1/push}"
+    user: "${LOKI_USER:loki}"
+    password: "${LOKI_PASSWORD:loki123}"
 
 # Cấu hình Spring Boot Actuator & Spring Boot Admin Client
 management:
@@ -132,13 +134,13 @@ management:
 
 # Cấu hình cho JWT (JSON Web Token)
 jwt:
-  secret-key: "2daEri6ObwgO7dlnqH8SlcgtKWQ1njWdkg7hFv+gjTlfxxaeqBdg7XimfhBEIJEn"
+  secret-key: "${JWT_SECRET_KEY:2daEri6ObwgO7dlnqH8SlcgtKWQ1njWdkg7hFv+gjTlfxxaeqBdg7XimfhBEIJEn}"
   expiry-duration: 216000
 
 # Cấu hình cho OTP service (One-Time Password)
 otp:
-  url: "http://192.168.200.42:16500"
-  x-api-key: "kgw5KynWd9MAGht7waCZsFI0eTumLPxLVUEnRVtEXjypXNkpQ3vHEtPvWK5llC4MDf4bvl0BsbedKaGFsnOPJOd8kpaTcW7R04FDsZZMOAwlyKwguh0LVEsi3qQnDJM3BkVeBjH4F2WYga6D3TGqKljEJSl7QyluPpq0+Rp0S+HYx07sp4Wjynvaxb4oRB14"
+  url: "${OTP_URL:http://192.168.200.42:16500}"
+  x-api-key: "${OTP_API_KEY:kgw5KynWd9MAGht7waCZsFI0eTumLPxLVUEnRVtEXjypXNkpQ3vHEtPvWK5llC4MDf4bvl0BsbedKaGFsnOPJOd8kpaTcW7R04FDsZZMOAwlyKwguh0LVEsi3qQnDJM3BkVeBjH4F2WYga6D3TGqKljEJSl7QyluPpq0+Rp0S+HYx07sp4Wjynvaxb4oRB14}"
   customer-code: "ngn"
 
 # Cấu hình cho RAG (Retrieval-Augmented Generation)
@@ -159,32 +161,28 @@ ingestion:
 
 # Cấu hình cho MinIO (dùng để lưu trữ file đính kèm, notebook source, v.v.)
 minio:
-  endpoint: "http://192.168.30.71:9000"
-  access-key: "admin"
-  secret-key: "password"
+  endpoint: "${MINIO_ENDPOINT:http://192.168.30.71:9000}"
+  access-key: "${MINIO_ACCESS_KEY:admin}"
+  secret-key: "${MINIO_SECRET_KEY:password}"
 
 # Cấu hình cho các API cho việc tích hợp với các service khác (attachment service, ingestion service, v.v.)
 integration:
   attachment-api:
     header-name: "X-API-KEY"
-    key: "ATTACHMENT_API_KEY_1234567890"
+    key: "${ATTACHMENT_API_KEY:ATTACHMENT_API_KEY_1234567890}"
   data-ingestion-api:
     header-name: "X-API-KEY"
-    key: "DATA_INGESTION_API_KEY_1234567890"
+    key: "${DATA_INGESTION_API_KEY:DATA_INGESTION_API_KEY_1234567890}"
   data-ingestion-callback:
     # URL để ingestion service callback trạng thái về core service
-    url: "http://192.168.30.71:8080/api/v1/user/data-ingestion/ingestion/webhook/status"
+    url: "${DATA_INGESTION_CALLBACK_URL:http://192.168.30.71:8080/api/v1/user/data-ingestion/ingestion/webhook/status}"
     # Shared secret dùng để xác thực webhook callback (máy chủ gọi về phải gửi đúng giá trị này)
-    signature: "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
-    # Có thể gửi signature qua query param, ví dụ: ?signature=YOUR_WEBHOOK_SHARED_SECRET
-    signature-param-name: "signature"
-    # Hoặc gửi qua header, ví dụ: X-Webhook-Signature: YOUR_WEBHOOK_SHARED_SECRET
-    signature-header-name: "X-Webhook-Signature"
+    signature: "${DATA_INGESTION_CALLBACK_SECRET:ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890}"
   notebook-source-callback:
     # URL để ingestion service callback trạng thái notebook source về core service
-    url: "http://192.168.30.71:8080/api/v1/user/notebooks/sources/ingestion/webhook/status"
+    url: "${NOTEBOOK_SOURCE_CALLBACK_URL:http://192.168.30.71:8080/api/v1/user/notebooks/sources/ingestion/webhook/status}"
     # Shared secret dùng để xác thực webhook callback notebook source
-    signature: "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+    signature: "${NOTEBOOK_SOURCE_CALLBACK_SECRET:ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890}"
     # Có thể gửi signature qua query param, ví dụ: ?signature=YOUR_WEBHOOK_SHARED_SECRET
     signature-param-name: "signature"
     # Hoặc gửi qua header, ví dụ: X-Webhook-Signature: YOUR_WEBHOOK_SHARED_SECRET
@@ -220,6 +218,12 @@ security:
   admin-allowed-usernames:
     - "root"
     - "admin"
+  # Danh sách origin được phép CORS. Rỗng/để trống → cho phép tất cả (chỉ DEV!).
+  # Production nên liệt kê domain FE cụ thể, ví dụ:
+  #   allowed-origins:
+  #     - "https://ai.example.com"
+  #     - "https://*.example.com"
+  allowed-origins: ""
 
 # Cấu hình tích hợp LDAP (qua OTP Service trung gian)
 ldap:
@@ -235,7 +239,7 @@ ldap:
     enabled: false
     cron: "0 0 2 * * ?"
 
-# Cấu hình tính năng Share Link (public share cho Topic / Notebook)
+# Cấu hình cho tính năng Share Link (public share cho Topic / Notebook)
 share:
   # Base URL dùng để build link chia sẻ trả về cho FE.
   # Vd: https://ai.example.com/share → link đầy đủ: https://ai.example.com/share/{token}

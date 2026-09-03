@@ -17,6 +17,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.List;
+
 import ai.AppProperties;
 import ai.enums.TokenType;
 import ai.service.SystemSettingService;
@@ -165,7 +167,17 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("*"); // Cho phép tất cả các nguồn gốc (origins) trong các yêu cầu CORS
+        // Danh sách origin cho phép đọc từ cấu hình security.allowed-origins (application.yml).
+        // "*" = cho phép tất cả (chỉ DEV). Productive nên liệt kê domain FE cụ thể.
+        List<String> origins = appProperties.getSecurity() != null
+                ? appProperties.getSecurity().getAllowedOrigins()
+                : null;
+        if (origins != null && !origins.isEmpty()) {
+            config.setAllowedOriginPatterns(origins);
+        } else {
+            // Fallback (dev): cho phép mọi origin pero KHÔNG cho credentials
+            config.addAllowedOrigin("*");
+        }
         config.addAllowedMethod("*"); // Cho phép tất cả các phương thức HTTP trong các yêu cầu CORS
         config.addAllowedHeader("*"); // Cho phép tất cả các header trong các yêu cầu CORS
         // config.setAllowCredentials(true); // Cho phép gửi cookie và thông tin xác thực trong các yêu cầu CORS

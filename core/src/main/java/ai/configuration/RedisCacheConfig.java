@@ -45,10 +45,9 @@ public class RedisCacheConfig {
     
     @Bean
     RedisCacheManager cacheManager(RedisConnectionFactory factory) {
-		//Xóa dữ liệu cache cũ khi khởi động ứng dụng
-		factory.getConnection().serverCommands().flushDb(); 
-		System.out.println("Redis cache cleared on startup.");
-		
+		// LƯU Ý: KHÔNG flushDb() khi khởi động — nếu Redis dùng chung cho nhiều ứng dụng
+		// sẽ xóa sạch cache của app khác. TTL (48h) là đủ để hết giá trị stale.
+
 		// QUAN TRỌNG: Cấu hình Serializer cho Key là String
         RedisCacheConfiguration defaultConfig =
             RedisCacheConfiguration.defaultCacheConfig()

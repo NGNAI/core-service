@@ -3,6 +3,17 @@ global:
   scrape_interval: 15s      # mặc định scrape mỗi 15s
   evaluation_interval: 15s  # đánh giá alert rule
 
+# Gửi alert tới Alertmanager (service trong docker-compose monitoring)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "alertmanager:9093"
+
+# Alert rules (tùy chọn — hiện alert chủ yếu tạo qua Grafana UI)
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
 scrape_configs:
   # Spring Boot core-service (Micrometer registry → /actuator/prometheus)
   - job_name: "core-service"
@@ -13,15 +24,16 @@ scrape_configs:
       - targets:
           # App chạy trên host (không phải container) → dùng host.docker.internal trên Windows/Mac.
           # Nếu app chạy trên máy khác, đổi sang IP máy đó.
-          - "host.docker.internal:8081"
+          # PORT 8080 MẶC ĐỊNH (profile null), 8081 CHỈ dùng khi chạy profile "win".
+          # PROMETHEUS_APP_PORT truyền từ docker-compose (env, mặc định 8080).
+          - "host.docker.internal:${PROMETHEUS_APP_PORT:-8080}"
         labels:
           application: "NGN AI core"
           module: "core"
-    # Basic auth: user monitor / password changeme (dev).
-    # LƯU Ý: hardcode password thay vì ${ACTUATOR_USER_PASSWORD} — Prometheus
-    # không expand biến môi trường vào field basic_auth.password một cách đáng tin cậy
-    # (đã test: container có env changeme nhưng scrape vẫn trả 401).
-    # Khi deploy production, đổi password tại đây và cân nhắc dùng password_file.
+    # Basic auth: user monitor / password từ env ACTUATOR_USER_PASSWORD của app (mặc định changeme - dev).
+    # Ưu tiên dùng password_file khi production (đặt trong bind mount, chmod 600).
+    # LƯU Ý: Prometheus đọc file env tại lúc start, KHÔNG expand biến env vào password field
+    # một cách đáng tin cậy — vì vậy dùng giá trị mặc định "changeme" cho dev, production dùng password_file.
     basic_auth:
       username: "monitor"
       password: "changeme"

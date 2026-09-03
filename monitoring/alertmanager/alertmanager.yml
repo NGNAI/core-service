@@ -1,0 +1,43 @@
+# Alertmanager config — nhận alert từ Prometheus và gửi notification
+# Hiện cấu hình "null receiver" (không gửi đi đâu, chỉ giữ state + UI ở :9093).
+# Khi cần email/Slack/telegram, thêm receivers tương ứng bên dưới.
+global:
+  resolve_timeout: 5m
+
+route:
+  # Route mặc định: gom nhóm theo alertname + severity
+  receiver: "default"
+  group_by: ["alertname", "severity"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    # Alert critical → receiver riêng (để sau này cấu hình priority cao)
+    - match:
+        severity: critical
+      receiver: "critical"
+
+receivers:
+  - name: "default"
+    # TODO: thêm khi cần, ví dụ email:
+    # email_configs:
+    #   - to: "ops@example.com"
+    #     from: "alertmanager@example.com"
+    #     smarthost: "smtp.example.com:587"
+    #     auth_username: "alertmanager@example.com"
+    #     auth_password: "${SMTP_PASSWORD}"
+
+  - name: "critical"
+    # TODO: thêm khi cần, ví dụ Slack:
+    # slack_configs:
+    #   - api_url: "${SLACK_WEBHOOK_URL}"
+    #     channel: "#alerts"
+    #     title: "[CRITICAL] {{ .GroupLabels.alertname }}"
+
+# Inhibit rules: khi app DOWN, tắt các alert phụ (5xx, latency, heap) để không spam
+inhibit_rules:
+  - source_match:
+      alertname: CoreServiceDown
+    target_match_re:
+      alertname: CoreService.*
+    equal: ["service"]
