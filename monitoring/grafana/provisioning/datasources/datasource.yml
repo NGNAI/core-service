@@ -23,10 +23,10 @@ datasources:
     editable: true
     isDefault: false
     jsonData:
-      maxLines: 50
+      maxLines: 100
       httpMethod: POST
-      basicAuth: true
-      basicAuthUser: loki
-      # Sử dụng secureJsonData để lưu mật khẩu an toàn hơn
-    secureJsonData:
-      basicAuthPassword: loki123
+      derivedFields:
+        - datasourceUid: prometheus
+          matcherRegex: ".*(request_id=([a-zA-Z0-9-]+)).*"
+          name: request_id
+          url: "$${__value.raw}"

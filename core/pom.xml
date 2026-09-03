@@ -77,6 +77,8 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <!-- Ghi đè version BOM (42.7.10) để vá CVE-2026-42198 + CVE-2026-54291 (HIGH) -->
+            <version>42.7.12</version>
         </dependency>
         <dependency>
             <groupId>com.nimbusds</groupId>
@@ -113,6 +115,8 @@
         <dependency>
             <groupId>org.springframework.integration</groupId>
             <artifactId>spring-integration-file</artifactId>
+            <!-- Ghi đè version BOM (7.0.4) để vá CVE-2026-40987 (HIGH) -->
+            <version>7.0.5</version>
         </dependency>
         <dependency>
             <groupId>com.github.f4b6a3</groupId>

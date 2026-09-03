@@ -35,7 +35,7 @@ Hướng dẫn cho AI agents làm việc trong repo `core-service`.
 - **Audit:** `@Audited(action, resource, resourceIdExpression, description)` annotation → `AuditAspect` ghi log async
 - **Response:** `ApiResponseModel<T>` wrapper (status, message, count, data)
 - **Pagination:** `PageableFilterDto` (pageNumber, pageSize, sortBy, sortDir), `CustomPairModel<Long, List<>>` cho list response
-- **ddl-auto:** `update` (Hibernate tự sinh schema), nhưng vẫn dùng Flyway cho migrations có control
+- **Schema DB:** Flyway là nguồn quản lý DUY NHẤT — `ddl-auto: none`. `V1__init_schema.sql` chứa CREATE TABLE đầy đủ; mọi thay đổi schema mới phải thêm migration `V{n}__desc.sql`. KHÔNG revert `ddl-auto` về `update`
 
 ## Security architecture
 - **Filter chains (SecurityConfig):**
@@ -55,6 +55,11 @@ Hướng dẫn cho AI agents làm việc trong repo `core-service`.
 - **Delete queue:** `deleteStatus` (ACTIVE/PENDING_DELETE/DELETE_FAILED) + scheduler retry
 - **Auto-ingestion retry:** `DataIngestionAutoImportScheduler` quét thư mục input → move sang `.processing` → `ingestLocalFile` → move về input (retry) hoặc sang `.failed` (dừng hẳn). Khi đẩy RAG FAILED, record FAILED cũ được **tái sử dụng** (tìm theo `name + parent + owner + org + fromSource + accessLevel`) để **tránh trùng lắp DB record**; retry đếm qua `retryCount` trong entity, giới hạn bởi config `auto-ingestion.max-retry-attempts` (mặc định 3, đặt 0 để không retry).
 
+## Secrets & cấu hình môi trường
+- `application.yml` dùng placeholder `${ENV_VAR:default}` cho secrets: `DB_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET_KEY`, `OTP_API_KEY`, `MINIO_ACCESS_KEY/SECRET_KEY`, `ATTACHMENT_API_KEY`, `DATA_INGESTION_API_KEY`, callback secrets, `LOKI_PASSWORD`, `ACTUATOR_USER_PASSWORD`.
+- Mặc định giữ giá trị dev cũ để không phá local flow; **production bắt buộc đặt env riêng**.
+- CORS: `security.allowed-origins` (AppProperties.Security) — rỗng = cho phép tất cả (dev); production liệt kê domain FE (hỗ trợ wildcard pattern).
+
 ## Modules
 - `core/` — toàn bộ business logic, REST API
 - `common/` — shared util (`ai.util`)
@@ -72,6 +77,13 @@ Hướng dẫn cho AI agents làm việc trong repo `core-service`.
 - System settings (admin + public), System health, LDAP import/sync
 - **Share link public** (Topic/Notebook read-only) — xem `docs/share-link-feature.md`
 - **Quick Prompt Template** (prompt mẫu cho chat Topic/NotebookLM — SYSTEM global + USER cá nhân) — xem `docs/prompt-template-feature.md`
+
+## Monitoring (Prometheus + Grafana + Loki + Alertmanager)
+- Stack chạy qua `monitoring/docker-compose.yml` (app + metrics + logs + alerts)
+- Prometheus scrape app qua `host.docker.internal:${PROMETHEUS_APP_PORT:-8080}`, basic auth `monitor/changeme` (dev)
+- Alert rules Prometheus: `monitoring/prometheus/rules/core-service.yml` (app down, 5xx, p95, heap)
+- Alertmanager: `monitoring/alertmanager/alertmanager.yml` (receivers TODO khi cần email/Slack)
+- Grafana alert qua UI (provisioning file không hoạt động trên Grafana 13)
 
 ## Khi thêm tính năng mới
 1. Thêm error codes vào `ApiResponseStatus` (theo dải số tương ứng, comment section header)

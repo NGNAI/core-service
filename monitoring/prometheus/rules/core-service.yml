@@ -1,0 +1,68 @@
+# Alert rules cho core-service — Prometheus tự đánh giá và gửi sang Alertmanager
+# Mount vào /etc/prometheus/rules/ (đã cấu hình rule_files trong prometheus.yml)
+groups:
+  - name: core-service.rules
+    rules:
+      # 1. App down — không scrape được metrics
+      - alert: CoreServiceDown
+        expr: up{job="core-service"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: core-service
+        annotations:
+          summary: "Core-service DOWN"
+          description: "Prometheus không scrape được metrics từ core-service trong 2 phút. App có thể đã dừng."
+
+      # 2. HTTP 5xx rate cao
+      - alert: CoreServiceHighErrorRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{application="NGN AI core", status=~"5.."}[5m]))
+            /
+          sum(rate(http_server_requests_seconds_count{application="NGN AI core"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: core-service
+        annotations:
+          summary: "Core-service: tỷ lệ HTTP 5xx > 5% trong 5 phút"
+          description: "Tỷ lệ lỗi 5xx vượt 5% trong 5 phút gần nhất. Kiểm tra log ERROR qua Loki."
+
+      # 3. Latency p95 vượt ngưỡng (2s)
+      - alert: CoreServiceHighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket{application="NGN AI core"}[5m])) by (le, uri)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: core-service
+        annotations:
+          summary: "Core-service: latency p95 > 2s"
+          description: "P95 của HTTP request vượt 2 giây trong 5 phút. Kiểm tra query chậm / external API."
+
+      # 4. JVM heap dùng > 85%
+      - alert: CoreServiceHighHeapUsage
+        expr: |
+          sum(jvm_memory_used_bytes{application="NGN AI core", area="heap"})
+            /
+          sum(jvm_memory_max_bytes{application="NGN AI core", area="heap"}) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: core-service
+        annotations:
+          summary: "Core-service: JVM heap > 85%"
+          description: "Heap usage vượt 85% trong 5 phút. Có nguy cơ OOM."
+
+      # 5. Endpoint /actuator/health không còn UP
+      - alert: CoreServiceHealthDown
+        expr: 'max_over_time(up{job="core-service"}[5m]) == 0'
+        for: 5m
+        labels:
+          severity: critical
+          service: core-service
+        annotations:
+          summary: "Core-service vẫn DOWN sau 5 phút"
+          description: "App không khôi phục sau 5 phút — cần can thiệp thủ công."

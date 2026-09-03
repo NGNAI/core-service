@@ -4,7 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS public.draft_sources (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    draft_id        UUID         NOT NULL REFERENCES public.drafts (id) ON DELETE CASCADE,
+    draft_id        UUID         NOT NULL REFERENCES public.draft (id) ON DELETE CASCADE,
     source_type     VARCHAR(32)  NOT NULL,
     display_name    VARCHAR(512) NOT NULL,
     raw_content     TEXT,
