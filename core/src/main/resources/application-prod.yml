@@ -10,7 +10,7 @@ server:
     context-path: "/api/v1"
   # Cổng HTTP chạy ứng dụng. Production thường sau reverse proxy (nginx) thì
   # nên để 8080 và proxy sang port khác, hoặc để 8080 và đổi ngoài proxy.
-  port: 8080
+  port: 8081
 
 spring:
   application:
@@ -64,7 +64,7 @@ spring:
   #  - DB_PASSWORD: mật khẩu DB -> BẮT BUỘC đặt env trong production, đừng để default.
   # Ví dụ kết nối: jdbc:postgresql://192.168.30.72:5432/core_service_3 (user postgres)
   datasource:
-    url: "jdbc:postgresql://${DB_HOST:192.168.30.72}:${DB_PORT:5432}/${DB_NAME:core_service_3}"
+    url: "jdbc:postgresql://${DB_HOST:192.168.30.72}:${DB_PORT:5432}/${DB_NAME:core_service_prod_1}"
     username: "${DB_USERNAME:postgres}"
     password: "${DB_PASSWORD:P@ssw0rd}"
 
@@ -114,7 +114,7 @@ spring:
   data:
     redis:
       password: "${REDIS_PASSWORD:P@ssw0rd}"
-      host: "${REDIS_HOST:192.168.30.74}"
+      host: "${REDIS_HOST:localhost}"
       port: 6379
       timeout: 60000
       lettuce:
@@ -347,9 +347,9 @@ integration:
 # - delete-local-after-success: true = xóa file local sau khi đẩy thành công.
 auto-ingestion:
   enabled: true
-  input-dir: "D:/input"
-  processing-dir: "D:/input/.processing"
-  failed-dir: "D:/input/.failed"
+  input-dir: "/opt/dev/app/data-input/input"
+  processing-dir: "/opt/dev/app/data-input/input/.processing"
+  failed-dir: "/opt/dev/app/data-input/input/.failed"
   poller-delay-ms: 5000
   file-stable-seconds: 20
   max-messages-per-poll: 50
