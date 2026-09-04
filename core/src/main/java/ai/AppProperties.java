@@ -132,6 +132,13 @@ public class AppProperties {
          * Để trống hoặc < 0 thì dùng mặc định 3. Đặt 0 để không retry (move thẳng sang .failed).
          */
         Integer maxRetryAttempts;
+        /**
+         * Danh sách extension file được phép ingest (không cần dấu chấm, không phân biệt hoa thường).
+         * File có extension không nằm trong danh sách này sẽ bị BỎ QUA hoàn toàn (không move, không tạo record DB,
+         * không gọi RAG) để tránh loop lỗi với các file không được RAG hỗ trợ (vd .DS_Store).
+         * Để trống/null → dùng mặc định: txt, pdf, docx, html, htm, md, csv.
+         */
+        List<String> allowedExtensions;
         DataScope accessLevel;
         DataSource fromSource;
         boolean deleteLocalAfterSuccess;
