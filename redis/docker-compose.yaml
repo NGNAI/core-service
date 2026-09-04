@@ -1,0 +1,17 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis-server
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --maxmemory ${REDIS_MAXMEMORY}
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "${REDIS_PORT}:6379"     # Cổng dành cho Redis (Spring Boot sẽ gọi vào đây)
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - ${REDIS_DATA_PATH}:/data   # Lưu dữ liệu vào thư mục redis_data ở máy thật
+    restart: always

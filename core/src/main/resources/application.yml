@@ -114,7 +114,7 @@ spring:
   data:
     redis:
       password: "${REDIS_PASSWORD:P@ssw0rd}"
-      host: "${REDIS_HOST:192.168.30.74}"
+      host: "${REDIS_HOST:192.168.30.71}"
       port: 6379
       timeout: 60000
       lettuce:
@@ -276,7 +276,7 @@ ingestion:
 minio:
   endpoint: "${MINIO_ENDPOINT:http://192.168.30.71:9000}"
   access-key: "${MINIO_ACCESS_KEY:admin}"
-  secret-key: "${MINIO_SECRET_KEY:password}"
+  secret-key: "${MINIO_SECRET_KEY:P@ssw0rd!@#}"
 
 # ============================================================================
 # INTEGRATION (kết nối các service ngoài: attachment, ingestion...)
@@ -343,6 +343,10 @@ integration:
 # - max-retry-attempts: số lần gửi lại khi ingestion thất bại. Đặt 0 = không retry.
 #   Khi retry, record FAILED cũ được tái sử dụng (theo name+parent+owner+org+
 #   fromSource+accessLevel) để tránh trùng lắp DB.
+# - allowed-extensions: danh sách extension file được phép ingest (không cần dấu chấm,
+#   không phân biệt hoa thường). File có extension không nằm trong danh sách này sẽ bị
+#   BỎ QUA hoàn toàn (không move, không tạo record DB, không gọi RAG) để tránh loop lỗi
+#   với file RAG không hỗ trợ (vd .DS_Store). Để trống → dùng mặc định txt/pdf/docx/html/htm/md/csv.
 # - access-level / from-source: gán quyền/nhãn mặc định cho dữ liệu ingest.
 # - delete-local-after-success: true = xóa file local sau khi đẩy thành công.
 auto-ingestion:
@@ -354,6 +358,15 @@ auto-ingestion:
   file-stable-seconds: 20
   max-messages-per-poll: 50
   max-retry-attempts: 3
+  allowed-extensions:
+    - "txt"
+    - "pdf"
+    - "doc"
+    - "docx"
+    - "html"
+    - "htm"
+    - "md"
+    - "csv"
   access-level: "GLOBAL"
   from-source: "SYSTEM"
   delete-local-after-success: true

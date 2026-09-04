@@ -7,6 +7,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.context.annotation.Bean;
@@ -112,6 +113,17 @@ public class DataIngestionAutoImportScheduler {
 					return false;
 				}
 				return true;
+			}
+		});
+        // Lọc file theo extension được phép ingest. File không hợp lệ (vd .DS_Store) bị bỏ qua hoàn toàn
+        // để tránh loop lỗi khi RAG không hỗ trợ loại file đó.
+		filter.addFilter(new AbstractFileListFilter<File>() {
+			@Override
+			public boolean accept(File file) {
+				if (file == null || !file.isFile()) {
+					return false;
+				}
+				return isAllowedExtension(file.getName());
 			}
 		});
         // Lọc file để chỉ lấy file đã ổn định (không còn đang được ghi dữ liệu) và chưa từng được xử lý trước đó, tránh tình trạng file bị xử lý khi đang được ghi dữ liệu hoặc bị xử lý đồng thời
@@ -292,6 +304,33 @@ public class DataIngestionAutoImportScheduler {
     // Kiểm tra nếu auto-ingestion được bật trong cấu hình
 	private boolean isEnabled() {
 		return appProperties.getAutoIngestion() != null && appProperties.getAutoIngestion().isEnabled();
+	}
+
+    // Kiểm tra extension của file có nằm trong danh sách extension được phép ingest hay không (không phân biệt hoa thường).
+    // File không có extension hoặc extension không hợp lệ sẽ bị bỏ qua để tránh loop lỗi với file RAG không hỗ trợ.
+	private boolean isAllowedExtension(String fileName) {
+		if (fileName == null) {
+			return false;
+		}
+		int dotIndex = fileName.lastIndexOf('.');
+		if (dotIndex < 0 || dotIndex == fileName.length() - 1) {
+			return false;
+		}
+		String extension = fileName.substring(dotIndex + 1).toLowerCase();
+		return resolveAllowedExtensions().contains(extension);
+	}
+
+    // Lấy danh sách extension được phép ingest từ cấu hình, nếu để trống/null thì dùng mặc định
+    // (các loại file RAG hỗ trợ: txt, pdf, docx, html, htm, md, csv).
+	private List<String> resolveAllowedExtensions() {
+		if (appProperties.getAutoIngestion() == null || appProperties.getAutoIngestion().getAllowedExtensions() == null
+				|| appProperties.getAutoIngestion().getAllowedExtensions().isEmpty()) {
+			return List.of("txt", "pdf", "docx", "html", "htm", "md", "csv");
+		}
+		return appProperties.getAutoIngestion().getAllowedExtensions().stream()
+				.map(ext -> ext == null ? "" : ext.trim().toLowerCase())
+				.filter(ext -> !ext.isEmpty())
+				.toList();
 	}
 
     // Lấy đường dẫn thư mục đầu vào từ cấu hình, nếu không có thì mặc định là "D:/input"
