@@ -114,7 +114,7 @@ spring:
   data:
     redis:
       password: "${REDIS_PASSWORD:P@ssw0rd}"
-      host: "${REDIS_HOST:192.168.30.74}"
+      host: "${REDIS_HOST:192.168.30.71}"
       port: 6379
       timeout: 60000
       lettuce:
@@ -276,7 +276,7 @@ ingestion:
 minio:
   endpoint: "${MINIO_ENDPOINT:http://192.168.30.71:9000}"
   access-key: "${MINIO_ACCESS_KEY:admin}"
-  secret-key: "${MINIO_SECRET_KEY:password}"
+  secret-key: "${MINIO_SECRET_KEY:P@ssw0rd!@#}"
 
 # ============================================================================
 # INTEGRATION (kết nối các service ngoài: attachment, ingestion...)
