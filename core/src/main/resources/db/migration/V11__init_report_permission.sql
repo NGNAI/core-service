@@ -5,5 +5,6 @@ INSERT INTO public."permission" (id,created_at,created_by,updated_at,updated_by,
 
 -- Assign REPORT:READ to ROOT role
 INSERT INTO public.role_permissions (permission_id, role_id, "scope") VALUES
-    ('a1b2c3d4-0001-4000-8000-000000000001'::uuid, '80a432e5-455a-4232-9a90-9da219a0a543'::uuid, 'ALL')
+    ('a1b2c3d4-0001-4000-8000-000000000001'::uuid, '80a432e5-455a-4232-9a90-9da219a0a543'::uuid, 'ALL'),
+    ('a1b2c3d4-0001-4000-8000-000000000001'::uuid, 'a1b2c3d4-0004-4000-8000-000000000001'::uuid, 'ALL')  -- ADMIN_ORG
 ON CONFLICT (permission_id, role_id) DO NOTHING;

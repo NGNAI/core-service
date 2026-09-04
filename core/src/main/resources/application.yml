@@ -422,7 +422,7 @@ security:
 #   VD cron "0 0 2 * * ?" = chạy lúc 2h sáng mỗi ngày.
 ldap:
   default-org-id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-  default-role-id: ""
+  default-role-id: "a1b2c3d4-0003-4000-8000-000000000001"
   update-on-login: false
   sync:
     enabled: false
