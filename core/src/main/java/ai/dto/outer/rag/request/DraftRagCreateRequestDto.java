@@ -15,7 +15,7 @@ import lombok.experimental.FieldDefaults;
 @Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class RagDraftCreateRequestDto {
+public class DraftRagCreateRequestDto {
 
     @JsonProperty("user_request")
     String user_request;

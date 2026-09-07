@@ -16,9 +16,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ai.AppProperties;
+import ai.dto.outer.rag.request.DraftRagCreateRequestDto;
+import ai.dto.outer.rag.request.DraftRagReviseRequestDto;
+import ai.dto.outer.rag.request.NotebookRagCompletionRequestDto;
 import ai.dto.outer.rag.request.RagCompletionRequestDto;
-import ai.dto.outer.rag.request.RagDraftCreateRequestDto;
-import ai.dto.outer.rag.request.RagDraftReviseRequestDto;
+import ai.dto.outer.rag.request.TopicRagCompletionRequestDto;
 import ai.dto.outer.rag.response.RagDraftDocumentTypeDto;
 import ai.dto.outer.rag.response.RagDraftFormatStandardDto;
 import ai.dto.own.request.DraftChatRequestDto;
@@ -198,10 +200,10 @@ public class RagService {
         // List<TopicSourceResponseDto> attachments =
         // topicSourceService.getAllSources(finalTopicId);
 
-        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
+        TopicRagCompletionRequestDto.Metadata metadata = new TopicRagCompletionRequestDto.Metadata();
         metadata.setUserId(JwtUtil.getUserId());
         metadata.setOrganizationId(JwtUtil.getOrgId());
-        metadata.setTopic_id(finalTopicId);
+        metadata.setTopicId(finalTopicId);
         metadata.setScopes(requestDto.getScopes());
         // metadata.setFileIds(attachments.stream().map(e ->
         // e.getId().toString()).collect(Collectors.toSet()));
@@ -216,7 +218,7 @@ public class RagService {
                 : Collections.emptySet());
         metadata.setSummaries(buildSummaryMetadata(topicEntity));
 
-        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
+        TopicRagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(TopicRagCompletionRequestDto.builder()
                 .messages(historyConversations)
                 .metadata(metadata)
                 .stream(true))
@@ -372,16 +374,16 @@ public class RagService {
                         .type(MessageType.ASSISTANT.getValue())
                         .build());
 
-        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
+        NotebookRagCompletionRequestDto.Metadata metadata = new NotebookRagCompletionRequestDto.Metadata();
         metadata.setUserId(JwtUtil.getUserId());
         metadata.setOrganizationId(JwtUtil.getOrgId());
-        metadata.setNotebook_id(finalNoteBookId);
+        metadata.setNotebookId(finalNoteBookId);
         metadata.setFileIds(requestDto.getSourceIds());
         metadata.setSummaries(buildSummaryMetadata(noteBookEntity));
         metadata.setUserInstruction(noteBookEntity.getInstruction());
         metadata.setScopes(requestDto.getScopes());
 
-        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
+        NotebookRagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(NotebookRagCompletionRequestDto.builder()
                 .messages(historyConversations)
                 .metadata(metadata)
                 .stream(true))
@@ -504,7 +506,7 @@ public class RagService {
                         .type(MessageType.ASSISTANT.getValue())
                         .build());
 
-        RagDraftCreateRequestDto ragDraftCreateRequestDto = RagDraftCreateRequestDto.builder()
+        DraftRagCreateRequestDto draftRagCreateRequestDto = DraftRagCreateRequestDto.builder()
                 .user_request(draftResponse.getTitle())
                 .document_type(draftResponse.getType())
                 .format_standard(draftResponse.getFormatStandard())
@@ -524,7 +526,7 @@ public class RagService {
         StringBuilder draftContent = new StringBuilder();
         StringBuilder sources = new StringBuilder();
 
-        return ragApiService.draftCreate(ragDraftCreateRequestDto)
+        return ragApiService.draftCreate(draftRagCreateRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"draftId\": \"%s\"}", draftResponse.getId()))
                 .startWith(String.format("{\"assistantMessage\": %s}",
@@ -667,7 +669,7 @@ public class RagService {
                         .type(MessageType.ASSISTANT.getValue())
                         .build());
 
-        RagDraftReviseRequestDto ragDraftReviseRequestDto = RagDraftReviseRequestDto.builder()
+        DraftRagReviseRequestDto draftRagReviseRequestDto = DraftRagReviseRequestDto.builder()
                 .session_id(draftEntity.getSessionId())
                 .feedback(requestDto.getMessage())
                 .scopes(requestDto.getScopes())
@@ -681,7 +683,7 @@ public class RagService {
         StringBuilder draftContent = new StringBuilder();
         StringBuilder sources = new StringBuilder();
 
-        return ragApiService.draftRevise(ragDraftReviseRequestDto)
+        return ragApiService.draftRevise(draftRagReviseRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"draftId\": \"%s\"}", draftId))
                 .startWith(String.format("{\"assistantMessage\": %s}",
@@ -1075,20 +1077,24 @@ public class RagService {
     }
 
     /**
-     * Áp dụng cấu hình AI từ system settings vào
-     * {@link RagCompletionRequestDto.RagCompletionRequestDtoBuilder}.
+     * Áp dụng cấu hình AI từ system settings vào một {@code SuperBuilder} builder.
+     * <p>
+     * Generic {@code T extends RagCompletionRequestDtoBuilder<?, ?>, B extends B} cho phép
+     * dùng chung cho base lớp {@link RagCompletionRequestDto} lẫn các subclass
+     * ({@link TopicRagCompletionRequestDto}, {@link NotebookRagCompletionRequestDto})
+     * mà không cần overload, đồng thời giữ đúng kiểu builder trả về.
      * Đọc các settings:
      * <ul>
      * <li>{@code ai.model} — model AI mặc định (ví dụ: gpt-4)</li>
      * <li>{@code ai.temperature} — nhiệt độ sinh (0.0 - 2.0)</li>
      * <li>{@code ai.maxTokens} — số token tối đa mỗi request</li>
      * </ul>
-     * 
-     * @param builder builder của RagCompletionRequestDto
+     *
+     * @param builder builder super-builder của DTO
+     * @param <B> kiểu builder (self-type)
      * @return builder đã được apply AI settings
      */
-    private RagCompletionRequestDto.RagCompletionRequestDtoBuilder applyAiSettings(
-            RagCompletionRequestDto.RagCompletionRequestDtoBuilder builder) {
+    private <B extends RagCompletionRequestDto.RagCompletionRequestDtoBuilder<?, ?>> B applyAiSettings(B builder) {
         String model = systemSettingService.getString("ai.model", "");
         if (!isBlank(model)) {
             builder.model(model);

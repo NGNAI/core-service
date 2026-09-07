@@ -354,14 +354,13 @@ auto-ingestion:
   input-dir: "D:/input"
   processing-dir: "D:/input/.processing"
   failed-dir: "D:/input/.failed"
-  poller-delay-ms: 5000
-  file-stable-seconds: 20
-  max-messages-per-poll: 50
+  poller-delay-ms: 60000
+  file-stable-seconds: 60
+  max-messages-per-poll: 30
   max-retry-attempts: 3
   allowed-extensions:
     - "txt"
     - "pdf"
-    - "doc"
     - "docx"
     - "html"
     - "htm"

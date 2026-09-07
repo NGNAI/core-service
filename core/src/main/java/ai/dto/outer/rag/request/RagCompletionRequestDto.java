@@ -8,14 +8,31 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 
+/**
+ * Base completion request dùng chung cho RAG API.
+ * <p>
+ * Chứa các field chung nhất: messages, stream, model, temperature, maxTokens.
+ * <ul>
+ *   <li>{@link TopicRagCompletionRequestDto} — chat Topic (metadata có topic_id)</li>
+ *   <li>{@link NotebookRagCompletionRequestDto} — chat Notebook (metadata có notebook_id, user_instruction)</li>
+ * </ul>
+ * Class này cũng được dùng trực tiếp cho những completion thuần AI phụ trợ
+ * (title, summary) không cần metadata đặc trưng.
+ * <p>
+ * Thiết kế kế thừa (super builder) giúp mở rộng future-proof: muốn thêm field mới
+ * cho một loại (Topic/Notebook) chỉ cần thêm vào đúng subclass, không phải tạo
+ * thêm class hay sửa payload gửi lên RAG (mọi field giữ nguyên {@code @JsonProperty}).
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Data
-@Builder
+@Getter
+@Setter
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RagCompletionRequestDto {
     List<Message> messages;
@@ -31,7 +48,12 @@ public class RagCompletionRequestDto {
     @JsonProperty("max_tokens")
     Integer maxTokens;
 
-    @Data
+    public RagCompletionRequestDto() {
+        // no-arg cho Jackson
+    }
+
+    @Getter
+    @Setter
     @NoArgsConstructor
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Message {
@@ -39,63 +61,29 @@ public class RagCompletionRequestDto {
         String content;
     }
 
-    @Data
+    /**
+     * Metadata dùng chung. Các field đặc trưng theo loại được khai báo ở subclass
+     * (topic_id ở Topic.Metadata, notebook_id + user_instruction ở Notebook.Metadata).
+     */
+    @Getter
+    @Setter
     @NoArgsConstructor
+    @SuperBuilder
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Metadata {
         @JsonProperty("user_id")
         UUID userId;
-        
+
         @JsonProperty("organization_id")
         UUID organizationId;
 
-        @JsonProperty("topic_id")
-        UUID topic_id;
-
-        @JsonProperty("notebook_id")
-        UUID notebook_id;
-
-        @JsonProperty("draft_id")
-        UUID draft_id;
-
         @JsonProperty("scopes")
         Set<String> scopes;
-        
+
         @JsonProperty("file_ids")
-        Set<String> fileIds=Set.of();
-        
+        Set<String> fileIds = Set.of();
+
         @JsonProperty("summaries")
         String summaries;
-        
-        @JsonProperty("user_instruction")
-        String userInstruction;
-
-        @JsonProperty("draft_settings")
-        DraftSettings draftSettings;
-        @Data
-        @NoArgsConstructor
-        @FieldDefaults(level = AccessLevel.PRIVATE)
-        public static class DraftSettings {
-            @JsonProperty("draft_id")
-            UUID draftId;
-
-            @JsonProperty("type")
-            String type;
-
-            @JsonProperty("presentation_style")
-            String presentationStyle;
-
-            @JsonProperty("language")
-            String language;
-
-            @JsonProperty("title")
-            String title;
-
-            @JsonProperty("detailed_description")
-            String detailedDescription;
-
-            @JsonProperty("generated_content")
-            String generatedContent;
-        }
     }
 }
