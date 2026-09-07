@@ -16,10 +16,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ai.AppProperties;
+import ai.dto.outer.rag.request.DraftRagCreateRequestDto;
+import ai.dto.outer.rag.request.DraftRagReviseRequestDto;
 import ai.dto.outer.rag.request.NotebookRagCompletionRequestDto;
 import ai.dto.outer.rag.request.RagCompletionRequestDto;
-import ai.dto.outer.rag.request.RagDraftCreateRequestDto;
-import ai.dto.outer.rag.request.RagDraftReviseRequestDto;
 import ai.dto.outer.rag.request.TopicRagCompletionRequestDto;
 import ai.dto.outer.rag.response.RagDraftDocumentTypeDto;
 import ai.dto.outer.rag.response.RagDraftFormatStandardDto;
@@ -506,7 +506,7 @@ public class RagService {
                         .type(MessageType.ASSISTANT.getValue())
                         .build());
 
-        RagDraftCreateRequestDto ragDraftCreateRequestDto = RagDraftCreateRequestDto.builder()
+        DraftRagCreateRequestDto draftRagCreateRequestDto = DraftRagCreateRequestDto.builder()
                 .user_request(draftResponse.getTitle())
                 .document_type(draftResponse.getType())
                 .format_standard(draftResponse.getFormatStandard())
@@ -526,7 +526,7 @@ public class RagService {
         StringBuilder draftContent = new StringBuilder();
         StringBuilder sources = new StringBuilder();
 
-        return ragApiService.draftCreate(ragDraftCreateRequestDto)
+        return ragApiService.draftCreate(draftRagCreateRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"draftId\": \"%s\"}", draftResponse.getId()))
                 .startWith(String.format("{\"assistantMessage\": %s}",
@@ -669,7 +669,7 @@ public class RagService {
                         .type(MessageType.ASSISTANT.getValue())
                         .build());
 
-        RagDraftReviseRequestDto ragDraftReviseRequestDto = RagDraftReviseRequestDto.builder()
+        DraftRagReviseRequestDto draftRagReviseRequestDto = DraftRagReviseRequestDto.builder()
                 .session_id(draftEntity.getSessionId())
                 .feedback(requestDto.getMessage())
                 .scopes(requestDto.getScopes())
@@ -683,7 +683,7 @@ public class RagService {
         StringBuilder draftContent = new StringBuilder();
         StringBuilder sources = new StringBuilder();
 
-        return ragApiService.draftRevise(ragDraftReviseRequestDto)
+        return ragApiService.draftRevise(draftRagReviseRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"draftId\": \"%s\"}", draftId))
                 .startWith(String.format("{\"assistantMessage\": %s}",

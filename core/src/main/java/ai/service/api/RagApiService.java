@@ -10,10 +10,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ai.api.RagApiCore;
+import ai.dto.outer.rag.request.DraftRagCreateRequestDto;
+import ai.dto.outer.rag.request.DraftRagReviseRequestDto;
 import ai.dto.outer.rag.request.NotebookRagCompletionRequestDto;
 import ai.dto.outer.rag.request.RagCompletionRequestDto;
-import ai.dto.outer.rag.request.RagDraftCreateRequestDto;
-import ai.dto.outer.rag.request.RagDraftReviseRequestDto;
 import ai.dto.outer.rag.request.RagSourceGuideRequestDto;
 import ai.dto.outer.rag.request.TopicRagCompletionRequestDto;
 import ai.dto.outer.rag.response.RagDraftDocumentTypeDto;
@@ -44,11 +44,11 @@ public class RagApiService {
         return apiCore.post("/v2/notebook/chat/completions", requestDto);
     }
 
-    public Flux<String> draftCreate(RagDraftCreateRequestDto requestDto) throws JsonProcessingException {
+    public Flux<String> draftCreate(DraftRagCreateRequestDto requestDto) throws JsonProcessingException {
         return apiCore.post("/draft/create", requestDto);
     }
 
-    public Flux<String> draftRevise(RagDraftReviseRequestDto requestDto) throws JsonProcessingException {
+    public Flux<String> draftRevise(DraftRagReviseRequestDto requestDto) throws JsonProcessingException {
         return apiCore.post("/draft/revise", requestDto);
     }
 

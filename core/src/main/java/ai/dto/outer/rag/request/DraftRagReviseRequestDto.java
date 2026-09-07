@@ -14,7 +14,7 @@ import lombok.experimental.FieldDefaults;
 @Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class RagDraftReviseRequestDto {
+public class DraftRagReviseRequestDto {
 
     @JsonProperty("session_id")
     String session_id;
