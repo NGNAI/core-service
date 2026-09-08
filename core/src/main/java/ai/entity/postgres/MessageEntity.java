@@ -38,7 +38,7 @@ public class MessageEntity {
     @Column(name = "source", columnDefinition = "TEXT")
     String source;
 
-    @Column(name = "feedback")
+    @Column(name = "feedback", columnDefinition = "TEXT")
     String feedback;
 
     @Column(name = "suggested_replies", columnDefinition = "TEXT")

@@ -64,13 +64,13 @@ public class NoteBookSourceEntity {
     @Column(name = "source_type", nullable = false)
     SourceType sourceType;
 
-    @Column(name = "display_name", nullable = false)
+    @Column(name = "display_name", nullable = false, length = 512)
     String displayName;
 
     @Column(name = "raw_content", columnDefinition = "TEXT", nullable = true)
     String rawContent; // Nội dung thô (dành cho sourceType = TEXT)
 
-    @Column(name = "file_path", nullable = true)
+    @Column(name = "file_path", nullable = true, length = 1024)
     String filePath; // Đường dẫn file gốc (dành cho sourceType = FILE)
 
     @Column(name = "summary", columnDefinition = "TEXT", nullable = true)

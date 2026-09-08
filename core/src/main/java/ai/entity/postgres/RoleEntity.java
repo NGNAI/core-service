@@ -24,10 +24,10 @@ public class RoleEntity {
     @Column(name = "id", updatable = false, nullable = false)
     UUID id;
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, length = 512)
     String name;
 
-    @Column(name = "description")
+    @Column(name = "description", length = 512)
     String description;
 
     @Column(name = "default_assign")

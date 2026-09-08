@@ -35,7 +35,7 @@ public class NoteBookEntity {
     @Column(name = "id", updatable = false, nullable = false)
     UUID id;
 
-    @Column(name = "title", nullable = false)
+    @Column(name = "title", nullable = false, length = 512)
     String title;
 
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")

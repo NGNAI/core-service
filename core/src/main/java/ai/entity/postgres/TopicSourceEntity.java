@@ -64,13 +64,13 @@ public class TopicSourceEntity {
     @Column(name = "source_type", nullable = false)
     SourceType sourceType;
 
-    @Column(name = "display_name", nullable = false)
+    @Column(name = "display_name", nullable = false, length = 512)
     String displayName;
 
     @Column(name = "raw_content", columnDefinition = "TEXT")
     String rawContent;
 
-    @Column(name = "file_path")
+    @Column(name = "file_path", length = 1024)
     String filePath;
 
     @Column(name = "summary", columnDefinition = "TEXT")
