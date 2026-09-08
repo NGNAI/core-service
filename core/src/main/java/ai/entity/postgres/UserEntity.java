@@ -32,19 +32,19 @@ public class UserEntity {
     @Column(name = "password")
     String password;
 
-    @Column(name = "first_name", nullable = false)
+    @Column(name = "first_name", nullable = false, length = 512)
     String firstName;
 
-    @Column(name = "last_name")
+    @Column(name = "last_name", length = 512)
     String lastName;
 
     @Column(name = "gender", nullable = false)
     int gender;
 
-    @Column(name = "email", nullable = false)
+    @Column(name = "email", nullable = false, length = 512)
     String email;
 
-    @Column(name = "phone_number")
+    @Column(name = "phone_number", length = 512)
     String phoneNumber;
 
     @Builder.Default

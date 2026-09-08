@@ -25,22 +25,22 @@ public class PermissionEntity {
     @Column(name = "id", updatable = false, nullable = false)
     UUID id;
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, length = 512)
     String name;
 
-    @Column(name = "description")
+    @Column(name = "description", length = 512)
     String description;
 
-    @Column(name = "code", nullable = false)
+    @Column(name = "code", nullable = false, length = 512)
     String code;
 
-    @Column(name = "resource", nullable = false)
+    @Column(name = "resource", nullable = false, length = 512)
     String resource;
 
-    @Column(name = "action", nullable = false)
+    @Column(name = "action", nullable = false, length = 512)
     String action;
 
-    @Column(name = "target_resource")
+    @Column(name = "target_resource", length = 512)
     String targetResource;
 
     @JdbcTypeCode(SqlTypes.ARRAY)

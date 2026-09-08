@@ -52,7 +52,7 @@ public class DraftEntity {
     @Column(name = "format_standard", nullable = true)
     String formatStandard;
 
-    @Column(name = "title", nullable = false)
+    @Column(name = "title", nullable = false, length = 512)
     String title;
 
     @Column(name = "detailed_description", nullable = true, columnDefinition = "TEXT")

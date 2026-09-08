@@ -29,7 +29,7 @@ public class NoteEntity {
     @Column(name = "id", updatable = false, nullable = false)
     UUID id;
 
-    @Column(name = "title")
+    @Column(name = "title", length = 512)
     String title;
 
     @Column(name = "content", columnDefinition = "TEXT", nullable = false)

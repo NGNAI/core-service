@@ -53,7 +53,7 @@ public class DataIngestionEntity {
     UUID id;
 
     // Tên file hoặc tên folder
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, length = 1024)
     String name;
 
     // Nếu data ingestion này là folder thì trường folder sẽ là true, nếu là file thì trường folder sẽ là false
@@ -69,7 +69,7 @@ public class DataIngestionEntity {
     Long fileSize;
 
     // Đường dẫn lưu file trong MinIO, có thể là đường dẫn tuyệt đối hoặc đường dẫn tương đối tùy theo cách triển khai MinIO
-    @Column(name = "minio_path")
+    @Column(name = "minio_path", length = 1024)
     String minioPath;
 
     // Nếu data ingestion này dùng chung cho cả tổ chức thì trường organization sẽ không null, nếu là dữ liệu cá nhân thì organization sẽ null

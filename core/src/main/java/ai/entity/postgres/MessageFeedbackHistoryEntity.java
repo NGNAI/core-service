@@ -41,10 +41,10 @@ public class MessageFeedbackHistoryEntity {
     @JoinColumn(name = "message_id", nullable = false)
     MessageEntity message;
 
-    @Column(name = "before_feedback")
+    @Column(name = "before_feedback", columnDefinition = "TEXT")
     String beforeFeedback;
 
-    @Column(name = "after_feedback")
+    @Column(name = "after_feedback", columnDefinition = "TEXT")
     String afterFeedback;
 
     @Embedded
