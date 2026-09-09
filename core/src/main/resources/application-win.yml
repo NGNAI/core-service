@@ -127,10 +127,14 @@ jwt:
 otp:
   url: "http://192.168.200.42:16500"
   x-api-key: "kgw5KynWd9MAGht7waCZsFI0eTumLPxLVUEnRVtEXjypXNkpQ3vHEtPvWK5llC4MDf4bvl0BsbedKaGFsnOPJOd8kpaTcW7R04FDsZZMOAwlyKwguh0LVEsi3qQnDJM3BkVeBjH4F2WYga6D3TGqKljEJSl7QyluPpq0+Rp0S+HYx07sp4Wjynvaxb4oRB14"
+  connect-timeout-ms: 30000
+  read-timeout-ms: 180000
 
 # Cấu hình cho RAG (Retrieval-Augmented Generation)
 rag:
   url: "http://192.168.30.75:8002"
+  connect-timeout-ms: 60000
+  read-timeout-ms: 360000
   memory:
     # Số lượng message gần nhất trong topic được đưa vào context
     topic-recent-message-window: 10
@@ -219,3 +223,8 @@ security:
   admin-allowed-usernames:
     - "root"
     - "admin"
+
+# Cấu hình kết nối SSE (Server-Sent Events) realtime
+sse:
+  # Thời gian tối đa một kết nối SSE được duy trì (ms) trước khi tự đóng. Mặc định 30 phút.
+  timeout-ms: 1800000
