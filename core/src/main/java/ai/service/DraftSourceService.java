@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import ai.AppProperties;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
 import ai.dto.own.request.DraftSourcesAddRequestDto;
@@ -29,6 +30,7 @@ import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.DataScope;
+import ai.enums.UploadType;
 import ai.exception.AppException;
 import ai.mapper.DraftSourceMapper;
 import ai.repository.DraftRepository;
@@ -42,7 +44,6 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class DraftSourceService {
-    static final String DRAFT_BUCKET = "knowledgedrafts";
     static final int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
     static final long DEFAULT_INGESTION_WAIT_TIMEOUT_MILLIS = 180_000;
     static final long DEFAULT_INGESTION_POLL_INTERVAL_MILLIS = 2_000;
@@ -54,6 +55,8 @@ public class DraftSourceService {
     IngestionService ingestionService;
     UserService userService;
     OrganizationService organizationService;
+    AppProperties appProperties;
+    UploadConfigService uploadConfigService;
 
     /**
      * Lấy sources cho user flow — <b>có kiểm tra ownership</b>.
@@ -104,6 +107,9 @@ public class DraftSourceService {
         if (validFiles.isEmpty()) {
             throw new AppException(ApiResponseStatus.DRAFT_SOURCE_PAYLOAD_REQUIRED);
         }
+
+        // Rào chắn upload: giới hạn số lượng file mỗi lần upload
+        uploadConfigService.validateFileCount(UploadType.DRAFT, validFiles.size());
 
         int poolSize = Math.min(validFiles.size(), Math.max(1, Runtime.getRuntime().availableProcessors()));
         ExecutorService executorService = Executors.newFixedThreadPool(poolSize);
@@ -163,7 +169,7 @@ public class DraftSourceService {
         DraftSourceEntity source = getSourceEntity(draftId, sourceId);
         validateDownloadableSource(source);
 
-        MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), DRAFT_BUCKET);
+        MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), draftBucket());
         return new DraftSourceDownloadData(resolveFileName(source), objectStream.getContentType(), objectStream.getInputStream(), objectStream.getSize());
     }
 
@@ -183,7 +189,7 @@ public class DraftSourceService {
                 ? DEFAULT_PRESIGNED_EXPIRY_SECONDS
                 : expiresInSeconds;
 
-        String url = minioService.generatePresignedDownloadUrl(source.getFilePath(), effectiveExpiry, DRAFT_BUCKET);
+        String url = minioService.generatePresignedDownloadUrl(source.getFilePath(), effectiveExpiry, draftBucket());
         return DraftSourcePresignedUrlResponseDto.builder()
                 .url(url)
                 .expiresInSeconds(effectiveExpiry)
@@ -194,6 +200,9 @@ public class DraftSourceService {
      * Upload single file and create DraftSourceEntity.
      */
     private DraftSourceResponseDto uploadSingleFileAndAttach(UUID draftId, MultipartFile file, UUID userId) {
+        // Rào chắn upload: giới hạn dung lượng và loại file
+        uploadConfigService.validateFile(UploadType.DRAFT, file);
+
         String originalName = file.getOriginalFilename();
         String displayName = (originalName == null || originalName.isBlank())
                 ? "unnamed-source"
@@ -210,7 +219,7 @@ public class DraftSourceService {
                 file,
                 userId.toString(),
                 draftId.toString(),
-                DRAFT_BUCKET);
+                draftBucket());
 
         DraftEntity draft = draftRepository.findById(draftId)
                 .orElseThrow(() -> new AppException(ApiResponseStatus.DRAFT_ID_NOT_EXISTS));
@@ -249,7 +258,7 @@ public class DraftSourceService {
 
         IngestionUploadResponseDto ingestionResponse;
         // Stream trực tiếp từ MinIO lên ingestion service để tránh load toàn bộ file vào RAM
-        try (MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), DRAFT_BUCKET)) {
+        try (MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), draftBucket())) {
             ingestionResponse = ingestionService.uploadChat(
                     objectStream.getInputStream(),
                     objectStream.getSize(),
@@ -344,6 +353,13 @@ public class DraftSourceService {
     private DraftSourceEntity getSourceEntity(UUID draftId, UUID sourceId) {
         return draftSourceRepository.findByDraftIdAndId(draftId, sourceId)
                 .orElseThrow(() -> new AppException(ApiResponseStatus.DRAFT_SOURCE_NOT_EXISTS));
+    }
+
+    /**
+     * Tên bucket MinIO dùng cho source của Draft — đọc từ cấu hình {@code minio.draft-bucket}.
+     */
+    private String draftBucket() {
+        return appProperties.getMinio().getDraftBucket();
     }
 
     private RuntimeException unwrapCompletionException(CompletionException exception) {

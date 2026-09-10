@@ -293,6 +293,13 @@ public enum ApiResponseStatus {
     FEEDBACK_ALREADY_RESPONDED(1194, "Feedback has already been responded", HttpStatus.CONFLICT),
     FEEDBACK_ID_CAN_NOT_BE_NULL(1195, "Feedback ID cannot be null or empty", HttpStatus.BAD_REQUEST),
     FEEDBACK_NOT_OWNER(1196, "Only the owner can update this feedback", HttpStatus.FORBIDDEN),
+
+    // ========================================================================
+    // UPLOAD CONFIG - 1197..1199
+    // ========================================================================
+    FILE_COUNT_EXCEEDED(1197, "Number of files exceeds the allowed limit", HttpStatus.BAD_REQUEST),
+    TOTAL_SOURCES_EXCEEDED(1198, "Total number of sources exceeds the allowed limit", HttpStatus.BAD_REQUEST),
+    INVALID_UPLOAD_TYPE(1199, "Invalid upload type", HttpStatus.BAD_REQUEST),
     ;
     int code;
     String message;

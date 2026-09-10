@@ -78,6 +78,16 @@ Hướng dẫn cho AI agents làm việc trong repo `core-service`.
 - System settings (admin + public), System health, LDAP import/sync
 - **Share link public** (Topic/Notebook read-only) — xem `docs/share-link-feature.md`
 - **Quick Prompt Template** (prompt mẫu cho chat Topic/NotebookLM — SYSTEM global + USER cá nhân) — xem `docs/prompt-template-feature.md`
+- **Upload config** (rào chắn upload file: số lượng file/lần, dung lượng mỗi file, loại file, tổng source notebook) — xem `docs/upload-config-feature.md`
+
+## Upload config (rào chắn upload file)
+- Cấu hình giới hạn upload theo từng loại (Topic/Notebook/Draft/Data-Ingestion) lưu trong **System Settings DB** (group `UPLOAD`, `isPublic=true`), đọc qua `UploadConfigService` (`ai/service/UploadConfigService.java`) với default fallback hằng số.
+- Keys: `upload.{topic|notebook|draft|dataIngestion}.{maxFileCount|maxFileSizeMb|allowedFileTypes}` + `upload.notebook.maxTotalSources`. **Quy ước: value = 0 → unlimited.**
+- Rào chắn áp dụng trong: `TopicSourceService.uploadSources`, `NoteBookSourceService.addFileSources`, `DraftSourceService.uploadSources`, `DataIngestionService.uploadDataIngestion` (validate count + per-file size/type; notebook thêm validate tổng source).
+- Error codes: `FILE_COUNT_EXCEEDED` (1197), `TOTAL_SOURCES_EXCEEDED` (1198), `INVALID_UPLOAD_TYPE` (1199); tái dùng `FILE_SIZE_EXCEEDED`/`FILE_TYPE_NOT_ALLOWED`.
+- FE đọc config: `GET /user/upload-config/{type}` hoặc `GET /user/upload-config` (JWT authenticated) + `/public/settings/map` (public, `isPublic=true`).
+- Data-Ingestion upload nhận **nhiều file** (`MultipartFile[] files`), trả `List<DataIngestionResponseDto>`.
+- Giới hạn cứng HTTP `spring.servlet.multipart.max-file-size=100MB` vẫn chặn file >100MB trước khi vào controller — nếu muốn unlimited thật sự >100MB phải nâng cấp cấu hình multipart.
 
 ## Monitoring (Prometheus + Grafana + Loki + Alertmanager)
 - Stack chạy qua `monitoring/docker-compose.yml` (app + metrics + logs + alerts)

@@ -282,6 +282,13 @@ public class RagService {
                                     suggestedReplies.append(normalizeJsonArrayText(repliesNode));
                                 }
                             }
+                            // Dự phòng trường fullAnswer bị rỗng, thì sẽ lấy content từ event "done" (nếu có) để update lại fullAnswer
+                            case "done" -> {
+                                if (node.has("content") && fullAnswer.isEmpty()) {
+                                    fullAnswer.setLength(0);
+                                    fullAnswer.append(node.get("content").asText());
+                                }
+                            }
                             default -> {
                                 // "done" và các event khác không cần xử lý
                             }
@@ -446,6 +453,13 @@ public class RagService {
                                 if (repliesNode != null && !repliesNode.isMissingNode()) {
                                     suggestedReplies.setLength(0);
                                     suggestedReplies.append(normalizeJsonArrayText(repliesNode));
+                                }
+                            }
+                            // Dự phòng trường fullAnswer bị rỗng, thì sẽ lấy content từ event "done" (nếu có) để update lại fullAnswer
+                            case "done" -> {
+                                if (node.has("content") && fullAnswer.isEmpty()) {
+                                    fullAnswer.setLength(0);
+                                    fullAnswer.append(node.get("content").asText());
                                 }
                             }
                             default -> {

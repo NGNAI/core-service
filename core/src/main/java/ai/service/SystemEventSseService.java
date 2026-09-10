@@ -10,17 +10,22 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import ai.AppProperties;
 import ai.dto.own.response.SystemSseEventResponseDto;
 import ai.enums.SystemEventSource;
 import ai.enums.SystemEventType;
 import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Service
+@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class SystemEventSseService {
     // FE khi subscribe sẽ tạo một emitter với timeout khá dài (ví dụ 30 phút) để đảm bảo kết nối SSE được duy trì ổn định, tránh tình trạng timeout giữa chừng khi FE đang mở kết nối để nhận sự kiện realtime. Nếu cần thiết, FE có thể chủ động gửi yêu cầu mới để tạo emitter mới sau khi emitter cũ timeout hoặc bị đóng.
     static long DEFAULT_SSE_TIMEOUT_MILLIS = 30L * 60L * 1000L;
+
+    AppProperties appProperties;
 
     // Key của map là orgId:userId để đảm bảo mỗi user trong mỗi org sẽ có một kênh SSE riêng biệt, tránh việc gửi nhầm sự kiện giữa các user khác nhau
     ConcurrentMap<String, CopyOnWriteArrayList<SseEmitter>> emitters = new ConcurrentHashMap<String, CopyOnWriteArrayList<SseEmitter>>();
@@ -33,9 +38,19 @@ public class SystemEventSseService {
      */
     public SseEmitter subscribe(UUID orgId, UUID userId) {
         String key = key(orgId, userId);
-        SseEmitter emitter = new SseEmitter(DEFAULT_SSE_TIMEOUT_MILLIS);
+        long timeoutMs = appProperties.getSse() != null && appProperties.getSse().getTimeoutMs() != null
+                ? appProperties.getSse().getTimeoutMs()
+                : DEFAULT_SSE_TIMEOUT_MILLIS;
+        SseEmitter emitter = new SseEmitter(timeoutMs);
 
         CopyOnWriteArrayList<SseEmitter> keyEmitters = emitters.computeIfAbsent(key, k -> new CopyOnWriteArrayList<SseEmitter>());
+
+        // Đóng các emitter cũ còn tồn tại cho cùng key trước khi tạo mới, tránh tình trạng
+        // nhiều kết nối SSE song song cho cùng orgId:userId khi client reconnect (EventSource tự
+        // mở kết nối mới) dẫn đến sự kiện bị gửi trùng lặp cho đến khi emitter cũ timeout.
+        keyEmitters.forEach(old -> old.complete());
+        keyEmitters.clear();
+
         keyEmitters.add(emitter);
 
         emitter.onCompletion(() -> removeEmitter(key, emitter));

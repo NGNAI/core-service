@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import ai.AppProperties;
 import ai.annotation.Audited;
@@ -42,6 +44,7 @@ import ai.enums.DataSource;
 import ai.enums.IngestionStatus;
 import ai.enums.SystemEventSource;
 import ai.enums.SystemEventType;
+import ai.enums.UploadType;
 import ai.exception.AppException;
 import ai.exception.IngestionServiceException;
 import ai.mapper.DataIngestionMapper;
@@ -70,9 +73,9 @@ public class DataIngestionService {
     UserService userService;
     OrganizationService organizationService;
     SystemEventSseService systemEventSseService;
-    SystemSettingService systemSettingService;
     AppProperties appProperties;
     CacheManager cacheManager;
+    UploadConfigService uploadConfigService;
 
     /**
      * Định nghĩa phương thức để đồng bộ trạng thái ingestion mới nhất cho tất cả data ingestion đang ở trạng thái chưa hoàn thành (không phải COMPLETED hay FAILED), phương thức này sẽ được gọi định kỳ bởi scheduler để đảm bảo trạng thái ingestion luôn được cập nhật mới nhất, tránh trường hợp dữ liệu bị treo ở trạng thái intermediate mãi mãi do lỗi không nhận được callback từ ingestion service hoặc lỗi khi gọi API để lấy trạng thái ingestion. Các trạng thái được đồng bộ gồm: CREATED, EXTRACTING, CHUNKING, EMBEDDING, STORING
@@ -185,36 +188,72 @@ public class DataIngestionService {
      */
     @Audited(action = AuditAction.UPLOAD, resource = AuditResource.DATA_INGESTION, description = "Tải lên dữ liệu ingestion")
     @Transactional(noRollbackFor = AppException.class)
-    public DataIngestionResponseDto uploadDataIngestion(DataIngestionUploadRequestDto requestDto, DataSource fromSource) {
+    public List<DataIngestionResponseDto> uploadDataIngestion(DataIngestionUploadRequestDto requestDto, DataSource fromSource) {
         return uploadDataIngestion(requestDto, JwtUtil.getUserId(), requestDto.getOrganizationId(), fromSource);
     }
 
     /**
-     * Định nghĩa phương thức để upload file và tạo data ingestion mới, phương thức này sẽ được gọi khi người dùng upload file mới thông qua API, phương thức sẽ thực hiện các bước sau: 1) xác thực người dùng và tổ chức từ tham số truyền vào, 2) upload file lên MinIO trước để đảm bảo nếu có lỗi xảy ra khi upload file thì sẽ không tạo bản ghi data ingestion trong database, tránh trường hợp dữ liệu bị lỗi không thể retry được, 3) tạo bản ghi data ingestion mới trong database với thông tin về file đã upload và trạng thái ingestion là PENDING, 4) gọi API của ingestion service để đẩy file đã upload sang ingestion service để xử lý, nếu có lỗi xảy ra khi gọi API của ingestion service hoặc response trả về không hợp lệ thì sẽ cập nhật trạng thái ingestion của data ingestion này thành FAILED để tránh bị treo ở trạng thái PENDING mãi mãi, đồng thời trả về response cho client để client có thể hiển thị thông báo lỗi chính xác
+     * Định nghĩa phương thức để upload một hoặc nhiều file và tạo data ingestion mới, phương thức này sẽ được gọi khi người dùng upload file mới thông qua API, phương thức sẽ thực hiện các bước sau: 1) xác thực người dùng và tổ chức từ tham số truyền vào, 2) kiểm tra số lượng file, kích thước và loại file trước khi upload lên MinIO, 3) upload từng file lên MinIO trước để đảm bảo nếu có lỗi xảy ra khi upload file thì sẽ không tạo bản ghi data ingestion trong database, tránh trường hợp dữ liệu bị lỗi không thể retry được, 4) tạo bản ghi data ingestion mới trong database với thông tin về file đã upload và trạng thái ingestion là PENDING, 5) gọi API của ingestion service để đẩy file đã upload sang ingestion service để xử lý, nếu có lỗi xảy ra khi gọi API của ingestion service hoặc response trả về không hợp lệ thì sẽ cập nhật trạng thái ingestion của data ingestion này thành FAILED để tránh bị treo ở trạng thái PENDING mãi mãi, đồng thời trả về response cho client để client có thể hiển thị thông báo lỗi chính xác
      * @param requestDto
      * @param userId
      * @param organizationId
      * @return
      */
     @Transactional(noRollbackFor = AppException.class)
-    public DataIngestionResponseDto uploadDataIngestion(DataIngestionUploadRequestDto requestDto, UUID userId, UUID organizationId, DataSource fromSource) {
+    public List<DataIngestionResponseDto> uploadDataIngestion(DataIngestionUploadRequestDto requestDto, UUID userId, UUID organizationId, DataSource fromSource) {
         UserEntity user = userService.getEntityById(userId);
         OrganizationEntity organization = organizationService.getEntityById(organizationId);
 
-        // Kiểm tra kích thước và loại file trước khi upload lên MinIO
-        validateUploadFile(requestDto.getFile());
+        MultipartFile[] files = requestDto == null ? null : requestDto.getFiles();
+        List<MultipartFile> validFiles = Arrays.stream(files == null ? new MultipartFile[0] : files)
+                .filter(file -> file != null && !file.isEmpty())
+                .toList();
 
+        if (validFiles.isEmpty()) {
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);
+        }
+
+        // Rào chắn upload: giới hạn số lượng file mỗi lần upload
+        uploadConfigService.validateFileCount(UploadType.DATA_INGESTION, validFiles.size());
+
+        // Kiểm tra kích thước và loại file trước khi upload lên MinIO
+        for (MultipartFile file : validFiles) {
+            uploadConfigService.validateFile(UploadType.DATA_INGESTION, file);
+        }
+
+        List<DataIngestionResponseDto> results = new ArrayList<>();
+        for (MultipartFile file : validFiles) {
+            results.add(uploadSingleDataIngestion(file, requestDto, user, organization, fromSource));
+        }
+        return results;
+    }
+
+    /**
+     * Upload một file lên MinIO, tạo data ingestion và đẩy sang ingestion service.
+     * @param file file cần upload
+     * @param requestDto request chứa thông tin folder, access level, callback
+     * @param user người dùng thực hiện upload
+     * @param organization tổ chức sở hữu
+     * @param fromSource nguồn dữ liệu
+     * @return response data ingestion đã tạo
+     */
+    private DataIngestionResponseDto uploadSingleDataIngestion(
+            MultipartFile file,
+            DataIngestionUploadRequestDto requestDto,
+            UserEntity user,
+            OrganizationEntity organization,
+            DataSource fromSource) {
         // Push lên MinIO trước để tránh trường hợp đã lưu data ingestion vào database nhưng
         // upload file lên MinIO thất bại, dẫn đến dữ liệu bị lỗi không thể retry
         // ingestion được
-        String minioPath = minioService.upload(requestDto.getFile(), user.getUserName(), organization.getName(), fromSource.name().toLowerCase());
+        String minioPath = minioService.upload(file, user.getUserName(), organization.getName(), fromSource.name().toLowerCase());
 
         DataIngestionEntity dataIngestion = new DataIngestionEntity();
-        dataIngestion.setName(requestDto.getFile().getOriginalFilename());
+        dataIngestion.setName(file.getOriginalFilename());
         dataIngestion.setFolder(false);
         dataIngestion.setMinioPath(minioPath);
-        dataIngestion.setFileSize(requestDto.getFile().getSize());
-        dataIngestion.setContentType(requestDto.getFile().getContentType());
+        dataIngestion.setFileSize(file.getSize());
+        dataIngestion.setContentType(file.getContentType());
         dataIngestion.setAccessLevel(requestDto.getAccessLevel());
         dataIngestion.setFromSource(fromSource);
         dataIngestion.setOwner(user);
@@ -236,7 +275,7 @@ public class DataIngestionService {
         try {
             String callbackUrl = resolveCallbackUrl(requestDto.getCallbackUrl());
             IngestionUploadResponseDto ingestionResponse = ingestionService.uploadRag(
-                    requestDto.getFile(),
+                    file,
                     dataIngestion.getId().toString(),
                     user.getId().toString(),
                     user.getUserName(),
@@ -1076,62 +1115,6 @@ public class DataIngestionService {
         }
         String message = exception.getMessage();
         return message == null || message.isBlank() ? null : message;
-    }
-
-    /**
-     * Kiểm tra kích thước và loại file hợp lệ trước khi upload lên MinIO.
-     * Đọc cấu hình từ system settings:
-     * <ul>
-     *   <li>{@code system.maxFileSize} — kích thước tối đa (MB), mặc định 100</li>
-     *   <li>{@code system.allowedFileTypes} — danh sách extension cho phép (phân tách bởi dấu phẩy), rỗng = cho phép tất cả</li>
-     * </ul>
-     * @param file file cần kiểm tra
-     * @throws AppException nếu kích thước vượt giới hạn hoặc loại file không được phép
-     */
-    private void validateUploadFile(org.springframework.web.multipart.MultipartFile file) {
-        if (file == null || file.isEmpty()) return;
-
-        // Kiểm tra kích thước file
-        int maxFileSizeMb = systemSettingService.getInt("system.maxFileSize", 100);
-        long maxFileSizeBytes = (long) maxFileSizeMb * 1024 * 1024;
-        if (file.getSize() > maxFileSizeBytes) {
-            throw new AppException(ApiResponseStatus.FILE_SIZE_EXCEEDED);
-        }
-
-        // Kiểm tra loại file
-        String allowedTypes = systemSettingService.getString("system.allowedFileTypes", "");
-        if (allowedTypes != null && !allowedTypes.isBlank()) {
-            String originalFilename = file.getOriginalFilename();
-            if (originalFilename == null || originalFilename.isBlank()) {
-                throw new AppException(ApiResponseStatus.FILE_TYPE_NOT_ALLOWED);
-            }
-            String extension = extractExtension(originalFilename);
-            if (extension == null || extension.isBlank()) {
-                throw new AppException(ApiResponseStatus.FILE_TYPE_NOT_ALLOWED);
-            }
-            String[] allowedExtensions = allowedTypes.toLowerCase().split("\\s*,\\s*");
-            boolean allowed = false;
-            for (String ext : allowedExtensions) {
-                if (ext.equals(extension.toLowerCase())) {
-                    allowed = true;
-                    break;
-                }
-            }
-            if (!allowed) {
-                throw new AppException(ApiResponseStatus.FILE_TYPE_NOT_ALLOWED);
-            }
-        }
-    }
-
-    /**
-     * Lấy extension (phần mở rộng) từ tên file, không bao gồm dấu chấm.
-     * @param filename tên file gốc
-     * @return extension hoặc null nếu không có
-     */
-    private String extractExtension(String filename) {
-        int lastDot = filename.lastIndexOf('.');
-        if (lastDot < 0 || lastDot == filename.length() - 1) return null;
-        return filename.substring(lastDot + 1);
     }
 
     private DataIngestionEntity getDataIngestionEntity(UUID dataIngestionId) {

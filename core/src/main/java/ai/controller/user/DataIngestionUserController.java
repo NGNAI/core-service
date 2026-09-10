@@ -158,13 +158,13 @@ public class DataIngestionUserController {
                                                 .build());
         }
 
-        @Operation(summary = "Upload data ingestion file", description = "Upload a data ingestion file to MinIO and optionally trigger ingestion")
+        @Operation(summary = "Upload data ingestion file", description = "Upload one or more data ingestion files to MinIO and optionally trigger ingestion")
         @PreAuthorize("@perm.canAccess(#requestDto.organizationId, 'DATASET_' + #requestDto.accessLevel, 'CREATE',null)")
         @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-        ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> upload(
+        ResponseEntity<ApiResponseModel<List<DataIngestionResponseDto>>> upload(
                         @Valid @ModelAttribute DataIngestionUploadRequestDto requestDto) {
                 return ResponseEntity.ok(
-                                ApiResponseModel.<DataIngestionResponseDto>builder()
+                                ApiResponseModel.<List<DataIngestionResponseDto>>builder()
                                                 .message("Upload data ingestion successfully")
                                                 .data(dataIngestionService.uploadDataIngestion(requestDto, DataSource.DOCUMENT))
                                                 .build());

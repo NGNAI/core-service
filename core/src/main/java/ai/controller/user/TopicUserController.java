@@ -65,57 +65,56 @@ public class TopicUserController {
 
     @Operation(summary = "Get topics by user", description = "Retrieve a paginated list of topics for the current user based on filter criteria")
     @GetMapping()
-    ResponseEntity<ApiResponseModel<List<TopicResponseDto>>> getAllByUserId(@Valid @ModelAttribute TopicFilterDto filterDto){
+    ResponseEntity<ApiResponseModel<List<TopicResponseDto>>> getAllByUserId(
+            @Valid @ModelAttribute TopicFilterDto filterDto) {
         CustomPairModel<Long, List<TopicResponseDto>> result = topicService.getAll(filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<TopicResponseDto>>builder()
                         .message("Get list topics successfully")
                         .count(result.getFirst())
                         .data(result.getSecond())
-                        .build()
-        );
+                        .build());
     }
 
     @Operation(summary = "Create topic", description = "Create a new topic with the provided title and optional initial data")
     @PostMapping()
-    ResponseEntity<ApiResponseModel<TopicResponseDto>> create(@Valid @RequestBody TopicCreateRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<TopicResponseDto>> create(@Valid @RequestBody TopicCreateRequestDto requestDto) {
         TopicResponseDto created = topicService.create(requestDto);
-        ragService.asyncUpdateTopicTitle(created.getId(), JwtUtil.getOrgId(), JwtUtil.getUserId(), requestDto.getTitle());
+        ragService.asyncUpdateTopicTitle(created.getId(), JwtUtil.getOrgId(), JwtUtil.getUserId(),
+                requestDto.getTitle());
         return ResponseEntity.ok(
                 ApiResponseModel.<TopicResponseDto>builder()
                         .message("Create topic successfully")
                         .data(created)
-                        .build()
-        );
+                        .build());
     }
 
     @Operation(summary = "Rename topic title", description = "Update the title of an existing topic")
     @PatchMapping("/{topicId}")
-    ResponseEntity<ApiResponseModel<TopicResponseDto>> renameTitle(@PathVariable UUID topicId, @Valid @RequestBody TopicRenameTitleRequestDto requestDto){
+    ResponseEntity<ApiResponseModel<TopicResponseDto>> renameTitle(@PathVariable UUID topicId,
+            @Valid @RequestBody TopicRenameTitleRequestDto requestDto) {
         return ResponseEntity.ok(
                 ApiResponseModel.<TopicResponseDto>builder()
                         .message("Rename topic title successfully")
                         .data(topicService.renameTitle(topicId, requestDto))
-                        .build()
-        );
+                        .build());
     }
 
     @Operation(summary = "Delete topic", description = "Delete a topic by its ID")
     @DeleteMapping("/{topicId}")
-    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID topicId){
+    ResponseEntity<ApiResponseModel<Void>> delete(@PathVariable UUID topicId) {
         topicService.delete(topicId);
 
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Delete topic successfully")
-                        .build()
-        );
+                        .build());
     }
 
-        @Hidden
-        @Operation(summary = "Get topic sources", description = "Retrieve a paginated list of sources attached to a topic")
-        @GetMapping("/{topicId}/sources")
-        ResponseEntity<ApiResponseModel<List<TopicSourceResponseDto>>> getSources(@PathVariable UUID topicId,
+    @Hidden
+    @Operation(summary = "Get topic sources", description = "Retrieve a paginated list of sources attached to a topic")
+    @GetMapping("/{topicId}/sources")
+    ResponseEntity<ApiResponseModel<List<TopicSourceResponseDto>>> getSources(@PathVariable UUID topicId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pair<Long, List<TopicSourceResponseDto>> result = topicSourceService.getSources(topicId, page, size);
@@ -124,8 +123,7 @@ public class TopicUserController {
                         .message("Get list topic sources successfully")
                         .count(result.getFirst())
                         .data(result.getSecond())
-                        .build()
-        );
+                        .build());
     }
 
     @Hidden
@@ -136,8 +134,8 @@ public class TopicUserController {
 
         HttpHeaders headers = new HttpHeaders();
         String contentType = (fileData.contentType() == null || fileData.contentType().isBlank())
-            ? MediaType.APPLICATION_OCTET_STREAM_VALUE
-            : fileData.contentType();
+                ? MediaType.APPLICATION_OCTET_STREAM_VALUE
+                : fileData.contentType();
         headers.setContentType(MediaType.parseMediaType(contentType));
         headers.setContentDisposition(ContentDisposition.attachment().filename(fileData.fileName()).build());
 
@@ -147,33 +145,32 @@ public class TopicUserController {
                 .body(new InputStreamResource(fileData.inputStream()));
     }
 
-        @Hidden
-        @Operation(summary = "Get source download URL", description = "Get a presigned URL to download a source file")
-        @GetMapping("/{topicId}/sources/{sourceId}/download-url")
-        ResponseEntity<ApiResponseModel<TopicSourcePresignedUrlResponseDto>> getDownloadUrl(
+    @Hidden
+    @Operation(summary = "Get source download URL", description = "Get a presigned URL to download a source file")
+    @GetMapping("/{topicId}/sources/{sourceId}/download-url")
+    ResponseEntity<ApiResponseModel<TopicSourcePresignedUrlResponseDto>> getDownloadUrl(
             @PathVariable UUID topicId,
             @PathVariable UUID sourceId,
             @RequestParam(required = false) Integer expiresInSeconds) {
-        TopicSourcePresignedUrlResponseDto downloadUrl = topicSourceService.getSourceDownloadUrl(topicId, sourceId, expiresInSeconds);
+        TopicSourcePresignedUrlResponseDto downloadUrl = topicSourceService.getSourceDownloadUrl(topicId, sourceId,
+                expiresInSeconds);
         return ResponseEntity.ok(
                 ApiResponseModel.<TopicSourcePresignedUrlResponseDto>builder()
                         .message("Get source download URL successfully")
                         .data(downloadUrl)
-                        .build()
-        );
+                        .build());
     }
 
-        @Hidden
-        @Operation(summary = "Add sources to topic", description = "Upload and attach source files to a topic")
-        @PostMapping(value = "/{topicId}/sources", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-        ResponseEntity<ApiResponseModel<List<TopicSourceResponseDto>>> addSources(@PathVariable UUID topicId,
+    @Hidden
+    @Operation(summary = "Add sources to topic", description = "Upload and attach source files to a topic")
+    @PostMapping(value = "/{topicId}/sources", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    ResponseEntity<ApiResponseModel<List<TopicSourceResponseDto>>> addSources(@PathVariable UUID topicId,
             @Valid @ModelAttribute TopicSourcesAddRequestDto requestDto) {
         return ResponseEntity.ok(
                 ApiResponseModel.<List<TopicSourceResponseDto>>builder()
                         .message("Add source to topic successfully")
                         .data(topicSourceService.uploadSources(topicId, requestDto))
-                        .build()
-        );
+                        .build());
     }
 
     @Hidden
@@ -184,33 +181,37 @@ public class TopicUserController {
         return ResponseEntity.ok(
                 ApiResponseModel.<Void>builder()
                         .message("Remove source from topic successfully")
-                        .build()
-        );
+                        .build());
     }
 
     @Operation(summary = "Get messages by topic", description = "Retrieve messages for a topic with pagination and filtering")
     @GetMapping("/{topicId}/messages")
-    ResponseEntity<ApiResponseModel<List<MessageResponseDto>>> getMessageByTopicId(@PathVariable UUID topicId,@Valid @ModelAttribute MessageFilterDto filterDto){
-        CustomPairModel<Long, List<MessageResponseDto>> result = messageService.getAll(topicId, MessageParentType.TOPIC, filterDto);
+    ResponseEntity<ApiResponseModel<List<MessageResponseDto>>> getMessageByTopicId(@PathVariable UUID topicId,
+            @Valid @ModelAttribute MessageFilterDto filterDto) {
+        CustomPairModel<Long, List<MessageResponseDto>> result = messageService.getAll(topicId, MessageParentType.TOPIC,
+                filterDto);
         return ResponseEntity.ok(
                 ApiResponseModel.<List<MessageResponseDto>>builder()
                         .message("Get list message of topic successfully")
                         .count(result.getFirst())
                         .data(result.getSecond())
-                        .build()
-        );
+                        .build());
     }
 
-        @Operation(summary = "Post message to topic", description = "Send a message to a topic, optionally with file attachments, and stream responses")
-        @PostMapping(value = "/{topicId}/messages", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-        public Flux<String> postMessageByTopicIdFlux(
+    @Operation(summary = "Post message to topic", description = "Send a message to a topic, optionally with file attachments, and stream responses")
+    @PostMapping(value = "/{topicId}/messages", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> postMessageByTopicIdFlux(
             @PathVariable UUID topicId,
             @Valid @ModelAttribute TopicCreateConversationRequestDto requestDto) throws JsonProcessingException {
-        // Nếu có file đính kèm thì upload file trước, sau đó mới gọi API chatTopic để đảm bảo khi gọi API chatTopic thì file đã được upload và vector đã sẵn sàng, tránh trường hợp gọi API chatTopic mà file chưa được upload xong hoặc vector chưa sẵn sàng dẫn đến lỗi
+        // Nếu có file đính kèm thì upload file trước, sau đó mới gọi API chatTopic để
+        // đảm bảo khi gọi API chatTopic thì file đã được upload và vector đã sẵn sàng,
+        // tránh trường hợp gọi API chatTopic mà file chưa được upload xong hoặc vector
+        // chưa sẵn sàng dẫn đến lỗi
         List<TopicSourceResponseDto> uploadedSources = null;
         if (requestDto.getFiles() != null && requestDto.getFiles().length > 0) {
             TopicSourcesAddRequestDto sourceRequest = new TopicSourcesAddRequestDto();
             sourceRequest.setFiles(requestDto.getFiles());
+
             uploadedSources = topicSourceService.uploadSourcesAndWaitForVectorReady(topicId, sourceRequest);
             uploadedSources.forEach(uploadedSource -> messageService.createAttachmentMessage(topicId, uploadedSource));
         }
@@ -218,9 +219,9 @@ public class TopicUserController {
         return ragService.chatTopic(topicId, requestDto, uploadedSources);
     }
 
-        @Operation(summary = "Update message feedback", description = "Provide feedback for a message in a topic")
-        @PatchMapping("/{topicId}/messages/{messageId}/feedback")
-        ResponseEntity<ApiResponseModel<MessageResponseDto>> updateMessageFeedback(
+    @Operation(summary = "Update message feedback", description = "Provide feedback for a message in a topic")
+    @PatchMapping("/{topicId}/messages/{messageId}/feedback")
+    ResponseEntity<ApiResponseModel<MessageResponseDto>> updateMessageFeedback(
             @PathVariable UUID topicId,
             @PathVariable UUID messageId,
             @Valid @RequestBody MessageFeedbackRequestDto requestDto) {
@@ -230,24 +231,24 @@ public class TopicUserController {
                         .data(messageService.updateTopicMessageFeedback(
                                 topicId,
                                 messageId,
-                        requestDto.getFeedback()))
+                                requestDto.getFeedback()))
                         .build());
     }
 
     @Operation(summary = "Get message feedback history", description = "Retrieve feedback history for a message in a topic")
-                    @GetMapping("/{topicId}/messages/{messageId}/feedback/history")
-                    ResponseEntity<ApiResponseModel<List<MessageFeedbackHistoryResponseDto>>> getMessageFeedbackHistory(
-                        @PathVariable UUID topicId,
-                        @PathVariable UUID messageId,
-                        @RequestParam(defaultValue = "0") int pageNumber,
-                        @RequestParam(defaultValue = "20") int pageSize) {
-                    CustomPairModel<Long, List<MessageFeedbackHistoryResponseDto>> result = messageService
-                        .getTopicMessageFeedbackHistory(topicId, messageId, pageNumber, pageSize);
-                    return ResponseEntity.ok(
-                        ApiResponseModel.<List<MessageFeedbackHistoryResponseDto>>builder()
-                            .message("Get topic message feedback history successfully")
-                            .count(result.getFirst())
-                            .data(result.getSecond())
-                            .build());
-                    }
+    @GetMapping("/{topicId}/messages/{messageId}/feedback/history")
+    ResponseEntity<ApiResponseModel<List<MessageFeedbackHistoryResponseDto>>> getMessageFeedbackHistory(
+            @PathVariable UUID topicId,
+            @PathVariable UUID messageId,
+            @RequestParam(defaultValue = "0") int pageNumber,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        CustomPairModel<Long, List<MessageFeedbackHistoryResponseDto>> result = messageService
+                .getTopicMessageFeedbackHistory(topicId, messageId, pageNumber, pageSize);
+        return ResponseEntity.ok(
+                ApiResponseModel.<List<MessageFeedbackHistoryResponseDto>>builder()
+                        .message("Get topic message feedback history successfully")
+                        .count(result.getFirst())
+                        .data(result.getSecond())
+                        .build());
+    }
 }

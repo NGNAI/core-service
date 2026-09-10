@@ -27,6 +27,7 @@ public class AppProperties {
     Ldap ldap;
     Security security;
     Share share;
+    Sse sse;
 
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -42,6 +43,10 @@ public class AppProperties {
         String xApiKey;
         /** Customer code mặc định gửi lên OTP Service (VD: "ngn") */
         String customerCode;
+        /** Timeout kết nối TCP tới OTP Service (ms). Mặc định 5000. */
+        Long connectTimeoutMs;
+        /** Timeout chờ response từ OTP Service (ms). Mặc định 30000. */
+        Long readTimeoutMs;
     }
 
     @Data
@@ -49,6 +54,10 @@ public class AppProperties {
     public static class Rag {
         String url;
         Memory memory;
+        /** Timeout kết nối TCP tới RAG Service (ms). Mặc định 10000. */
+        Long connectTimeoutMs;
+        /** Timeout chờ response headers từ RAG Service (ms). Mặc định 180000. */
+        Long readTimeoutMs;
     }
 
     @Data
@@ -72,6 +81,12 @@ public class AppProperties {
         String endpoint;
         String accessKey;
         String secretKey;
+        /** Tên bucket chứa source của Topic (VD: knowledgetopics) */
+        String topicBucket;
+        /** Tên bucket chứa source của Notebook (VD: notebookllm) */
+        String notebookBucket;
+        /** Tên bucket chứa source của Draft (VD: knowledgedrafts) */
+        String draftBucket;
     }
 
     @Data
@@ -255,5 +270,18 @@ public class AppProperties {
          * Mặc định 32 byte (~43 ký tự). Không nên nhỏ hơn 16.
          */
         Integer tokenLength;
+    }
+
+    /**
+     * Cấu hình kết nối SSE (Server-Sent Events) realtime.
+     */
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Sse {
+        /**
+         * Thời gian tối đa một kết nối SSE được duy trì (ms) trước khi tự đóng.
+         * Mặc định 30 phút (30 * 60 * 1000).
+         */
+        Long timeoutMs;
     }
 }

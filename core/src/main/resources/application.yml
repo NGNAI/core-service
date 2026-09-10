@@ -236,15 +236,21 @@ jwt:
 # - otp.url      : địa chỉ của OTP service.
 # - x-api-key    : khóa API để gọi OTP service. Production đặt env OTP_API_KEY riêng.
 # - customer-code: mã khách hàng đăng ký bên OTP service (ở đây "ngn").
+# - connect-timeout-ms: timeout kết nối TCP (ms). Mặc định 30000.
+# - read-timeout-ms   : timeout chờ response (ms). Mặc định 180000.
 otp:
   url: "${OTP_URL:http://192.168.200.42:16500}"
   x-api-key: "${OTP_API_KEY:kgw5KynWd9MAGht7waCZsFI0eTumLPxLVUEnRVtEXjypXNkpQ3vHEtPvWK5llC4MDf4bvl0BsbedKaGFsnOPJOd8kpaTcW7R04FDsZZMOAwlyKwguh0LVEsi3qQnDJM3BkVeBjH4F2WYga6D3TGqKljEJSl7QyluPpq0+Rp0S+HYx07sp4Wjynvaxb4oRB14}"
   customer-code: "ngn"
+  connect-timeout-ms: 30000
+  read-timeout-ms: 180000
 
 # ============================================================================
 # RAG SERVICE (Retrieval-Augmented Generation - chat topic/notebook)
 # ============================================================================
 # - rag.url: địa chỉ service RAG xử lý embedding/truy vấn.
+# - connect-timeout-ms: timeout kết nối TCP (ms). Mặc định 60000.
+# - read-timeout-ms   : timeout chờ response headers (ms). Mặc định 360000.
 # - memory.*: điều chỉnh số message đưa vào context cho mỗi lượt chat:
 #   - topic-recent-message-window: số message recent nhất của Topic đưa vào ngữ cảnh.
 #   - note-book-recent-message-window: số message recent nhất của Notebook đưa vào ngữ cảnh.
@@ -252,6 +258,8 @@ otp:
 #   - min-messages-to-compress: ngưỡng để nén hội thoại cũ khi quá dài.
 rag:
   url: "http://192.168.30.75:8002"
+  connect-timeout-ms: 60000
+  read-timeout-ms: 360000
   memory:
     topic-recent-message-window: 10
     note-book-recent-message-window: 14
@@ -273,10 +281,15 @@ ingestion:
 # - MINIO_ENDPOINT: URL dịch vụ MinIO.
 # - MINIO_ACCESS_KEY / MINIO_SECRET_KEY: thông tin đăng nhập.
 #   Production đặt env riêng; default chỉ cho môi trường dev.
+# - MINIO_TOPIC_BUCKET / MINIO_NOTEBOOK_BUCKET / MINIO_DRAFT_BUCKET: tên bucket
+#   chứa source tương ứng. Nếu bucket chưa tồn tại, app sẽ tự tạo lúc khởi động.
 minio:
   endpoint: "${MINIO_ENDPOINT:http://192.168.30.71:9000}"
   access-key: "${MINIO_ACCESS_KEY:admin}"
   secret-key: "${MINIO_SECRET_KEY:P@ssw0rd!@#}"
+  topic-bucket: "${MINIO_TOPIC_BUCKET:knowledgetopics}"
+  notebook-bucket: "${MINIO_NOTEBOOK_BUCKET:notebookllm}"
+  draft-bucket: "${MINIO_DRAFT_BUCKET:knowledgedrafts}"
 
 # ============================================================================
 # INTEGRATION (kết nối các service ngoài: attachment, ingestion...)
@@ -445,6 +458,14 @@ share:
   default-expiry-days:
   max-expiry-days: 365
   token-length: 32
+
+# ============================================================================
+# SSE (Server-Sent Events) - kết nối realtime
+# ============================================================================
+# - timeout-ms: thời gian tối đa một kết nối SSE được duy trì (ms) trước khi tự đóng.
+#   Mặc định 30 phút (1800000). FE có thể chủ động mở kết nối mới sau khi emitter cũ timeout.
+sse:
+  timeout-ms: 1800000
 
 # ============================================================================
 # SPRINGDOC / SWAGGER UI (tài liệu API)
