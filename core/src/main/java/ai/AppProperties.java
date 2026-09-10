@@ -81,6 +81,12 @@ public class AppProperties {
         String endpoint;
         String accessKey;
         String secretKey;
+        /** Tên bucket chứa source của Topic (VD: knowledgetopics) */
+        String topicBucket;
+        /** Tên bucket chứa source của Notebook (VD: notebookllm) */
+        String notebookBucket;
+        /** Tên bucket chứa source của Draft (VD: knowledgedrafts) */
+        String draftBucket;
     }
 
     @Data

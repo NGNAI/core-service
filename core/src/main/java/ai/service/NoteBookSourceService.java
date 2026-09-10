@@ -59,7 +59,6 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 public class NoteBookSourceService {
-    static final String NOTEBOOK_BUCKET = "notebookllm";
     static final int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
     static final int SOURCE_GUIDE_SYNC_BATCH_SIZE = 50;
 
@@ -70,10 +69,10 @@ public class NoteBookSourceService {
     MinioService minioService;
     IngestionService ingestionService;
     RagApiService ragApiService;
+    AppProperties appProperties;
     SystemEventSseService systemEventSseService;
     OrganizationService organizationService;
     UserService userService;
-    AppProperties appProperties;
 
     /**
      * Lấy danh sách source của notebook theo page. Kết quả trả về bao gồm tổng số lượng source và list source theo page yêu cầu
@@ -300,7 +299,7 @@ public class NoteBookSourceService {
         validateDownloadableSource(source);
 
         // Stream trực tiếp từ MinIO để tránh load toàn bộ file vào RAM khi tải file lớn
-        MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), NOTEBOOK_BUCKET);
+        MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), notebookBucket());
         return new NoteBookSourceDownloadData(resolveFileName(source), objectStream.getContentType(), objectStream.getInputStream(), objectStream.getSize());
     }
 
@@ -327,7 +326,7 @@ public class NoteBookSourceService {
                 ? DEFAULT_PRESIGNED_EXPIRY_SECONDS
                 : expiresInSeconds;
 
-        String url = minioService.generatePresignedDownloadUrl(source.getFilePath(), effectiveExpiry, NOTEBOOK_BUCKET);
+        String url = minioService.generatePresignedDownloadUrl(source.getFilePath(), effectiveExpiry, notebookBucket());
         return NoteBookSourcePresignedUrlResponseDto.builder()
                 .url(url)
                 .expiresInSeconds(effectiveExpiry)
@@ -448,7 +447,7 @@ public class NoteBookSourceService {
             IngestionUploadResponseDto ingestionResponse;
             if (source.getFilePath() != null && !source.getFilePath().isBlank()) {
                 // Stream trực tiếp từ MinIO lên ingestion service để tránh load toàn bộ file vào RAM với file lớn
-                try (MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), NOTEBOOK_BUCKET)) {
+                try (MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), notebookBucket())) {
                     ingestionResponse = ingestionService.uploadNoteBook(
                             objectStream.getInputStream(),
                             objectStream.getSize(),
@@ -681,7 +680,7 @@ public class NoteBookSourceService {
         try {
             if (source.getFilePath() != null
                     && !source.getFilePath().isBlank()) {
-                minioService.delete(source.getFilePath(), NOTEBOOK_BUCKET);
+                minioService.delete(source.getFilePath(), notebookBucket());
             }
 
             if (source.getJobId() != null) {
@@ -990,7 +989,7 @@ public class NoteBookSourceService {
                 file,
                 userId.toString(),
                 noteBookId.toString(),
-                NOTEBOOK_BUCKET);
+                notebookBucket());
 
         NoteBookEntity noteBook = noteBookService.getEntityById(noteBookId);
         NoteBookSourceEntity entity = NoteBookSourceEntity.builder()
@@ -1127,6 +1126,13 @@ public class NoteBookSourceService {
     }
 
     /**
+     * Tên bucket MinIO dùng cho source của Notebook — đọc từ cấu hình {@code minio.notebook-bucket}.
+     */
+    private String notebookBucket() {
+        return appProperties.getMinio().getNotebookBucket();
+    }
+
+    /**
      * Xử lý upload một chuỗi văn bản dưới dạng file và tạo source notebook tương ứng. Phương thức này sẽ được gọi khi người dùng muốn thêm một chuỗi văn bản làm nguồn dữ liệu cho notebook. Hệ thống sẽ tạo một file tạm thời chứa nội dung của chuỗi văn bản, sau đó thực hiện upload file này lên MinIO, cuối cùng tạo một bản ghi NoteBookSourceEntity với thông tin liên quan đến file đã upload và gửi source notebook mới tạo lên ingestion service để xử lý embedding. Kết quả trả về là đường dẫn của file đã được upload trên MinIO, sau đó sẽ được lưu vào trường filePath của NoteBookSourceEntity để sử dụng làm payload khi gửi lên ingestion service.
      * @param noteBookId
      * @param userId
@@ -1164,7 +1170,7 @@ public class NoteBookSourceService {
                         MediaType.TEXT_PLAIN_VALUE,
                         userId.toString(),
                         noteBookId.toString(),
-                        NOTEBOOK_BUCKET);
+                        notebookBucket());
             }
         } catch (IOException exception) {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);

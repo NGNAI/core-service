@@ -152,7 +152,10 @@ ingestion:
 minio:
   endpoint: "http://192.168.30.71:9000"
   access-key: "admin"
-  secret-key: "password"
+  secret-key: "P@ssw0rd!@#"
+  topic-bucket: "knowledgetopics"
+  notebook-bucket: "notebookllm"
+  draft-bucket: "knowledgedrafts"
 
 # Cấu hình cho các API cho việc tích hợp với các service khác (attachment service, ingestion service, v.v.)
 integration:

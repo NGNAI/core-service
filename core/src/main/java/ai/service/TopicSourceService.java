@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import ai.AppProperties;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.outer.ingestion.response.IngestionUploadResponseDto;
 import ai.dto.own.request.TopicSourcesAddRequestDto;
@@ -40,7 +41,6 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Service
 public class TopicSourceService {
-    static final String TOPIC_BUCKET = "knowledgetopics";
     static final int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
     static final long DEFAULT_INGESTION_WAIT_TIMEOUT_MILLIS = 180_000;
     static final long DEFAULT_INGESTION_POLL_INTERVAL_MILLIS = 2_000;
@@ -52,6 +52,7 @@ public class TopicSourceService {
     IngestionService ingestionService;
     UserService userService;
     OrganizationService organizationService;
+    AppProperties appProperties;
 
     
     public Pair<Long, List<TopicSourceResponseDto>> getSources(UUID topicId, int page, int size) {
@@ -154,7 +155,7 @@ public class TopicSourceService {
         validateDownloadableSource(source);
 
         // Stream trực tiếp từ MinIO để tránh load toàn bộ file vào RAM khi tải file lớn
-        MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), TOPIC_BUCKET);
+        MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), topicBucket());
         return new TopicSourceDownloadData(resolveFileName(source), objectStream.getContentType(), objectStream.getInputStream(), objectStream.getSize());
     }
 
@@ -174,7 +175,7 @@ public class TopicSourceService {
                 ? DEFAULT_PRESIGNED_EXPIRY_SECONDS
                 : expiresInSeconds;
 
-        String url = minioService.generatePresignedDownloadUrl(source.getFilePath(), effectiveExpiry, TOPIC_BUCKET);
+        String url = minioService.generatePresignedDownloadUrl(source.getFilePath(), effectiveExpiry, topicBucket());
         return TopicSourcePresignedUrlResponseDto.builder()
                 .url(url)
                 .expiresInSeconds(effectiveExpiry)
@@ -205,7 +206,7 @@ public class TopicSourceService {
                 file,
                 userId.toString(),
                 topicId.toString(),
-                TOPIC_BUCKET);
+                topicBucket());
 
         TopicEntity topic = topicService.getEntityById(topicId);
         TopicSourceEntity entity = TopicSourceEntity.builder()
@@ -225,6 +226,13 @@ public class TopicSourceService {
     private TopicSourceEntity getSourceEntity(UUID topicId, UUID sourceId) {
         return topicSourceRepository.findByTopicIdAndId(topicId, sourceId)
                 .orElseThrow(() -> new AppException(ApiResponseStatus.TOPIC_SOURCE_NOT_EXISTS));
+    }
+
+    /**
+     * Tên bucket MinIO dùng cho source của Topic — đọc từ cấu hình {@code minio.topic-bucket}.
+     */
+    private String topicBucket() {
+        return appProperties.getMinio().getTopicBucket();
     }
 
     /**
@@ -251,7 +259,7 @@ public class TopicSourceService {
 
         IngestionUploadResponseDto ingestionResponse;
         // Stream trực tiếp từ MinIO lên ingestion service để tránh load toàn bộ file vào RAM
-        try (MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), TOPIC_BUCKET)) {
+        try (MinioService.MinioObjectStream objectStream = minioService.getObjectStream(source.getFilePath(), topicBucket())) {
             ingestionResponse = ingestionService.uploadChat(
                     objectStream.getInputStream(),
                     objectStream.getSize(),

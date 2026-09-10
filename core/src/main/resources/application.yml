@@ -281,10 +281,15 @@ ingestion:
 # - MINIO_ENDPOINT: URL dịch vụ MinIO.
 # - MINIO_ACCESS_KEY / MINIO_SECRET_KEY: thông tin đăng nhập.
 #   Production đặt env riêng; default chỉ cho môi trường dev.
+# - MINIO_TOPIC_BUCKET / MINIO_NOTEBOOK_BUCKET / MINIO_DRAFT_BUCKET: tên bucket
+#   chứa source tương ứng. Nếu bucket chưa tồn tại, app sẽ tự tạo lúc khởi động.
 minio:
   endpoint: "${MINIO_ENDPOINT:http://192.168.30.71:9000}"
   access-key: "${MINIO_ACCESS_KEY:admin}"
   secret-key: "${MINIO_SECRET_KEY:P@ssw0rd!@#}"
+  topic-bucket: "${MINIO_TOPIC_BUCKET:knowledgetopics}"
+  notebook-bucket: "${MINIO_NOTEBOOK_BUCKET:notebookllm}"
+  draft-bucket: "${MINIO_DRAFT_BUCKET:knowledgedrafts}"
 
 # ============================================================================
 # INTEGRATION (kết nối các service ngoài: attachment, ingestion...)

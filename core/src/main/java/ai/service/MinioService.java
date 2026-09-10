@@ -8,9 +8,11 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import ai.AppProperties;
 import ai.enums.ApiResponseStatus;
 import ai.exception.AppException;
 import io.minio.BucketExistsArgs;
@@ -36,6 +38,45 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class MinioService {
     MinioClient minioClient;
+    AppProperties appProperties;
+
+    /**
+     * Tự tạo tất cả bucket đang cấu hình trong application.yml nếu chưa tồn tại.
+     * Được gọi lúc start-up để tránh lỗi khi bucket chưa được tạo trước (vd production).
+     */
+    @PostConstruct
+    public void init() {
+        try {
+            ensureConfiguredBuckets();
+        } catch (Exception exception) {
+            // Không chặn app khởi động nếu MinIO tạm thời chưa reachable —
+            // ensureBucket vẫn chạy lại trong từng upload/đọc.
+            log.warn("Không thể tự tạo MinIO buckets lúc khởi động: {}", exception.getMessage());
+        }
+    }
+
+    /**
+     * Tự tạo tất cả bucket đang cấu hình trong application.yml nếu chưa tồn tại.
+     * Được gọi lúc start-up để tránh lỗi khi bucket chưa được tạo trước (vd production).
+     */
+    public void ensureConfiguredBuckets() {
+        AppProperties.Minio minio = appProperties.getMinio();
+        ensureBucketQuietly(minio.getTopicBucket());
+        ensureBucketQuietly(minio.getNotebookBucket());
+        ensureBucketQuietly(minio.getDraftBucket());
+    }
+
+    private void ensureBucketQuietly(String bucket) {
+        if (bucket == null || bucket.isBlank()) {
+            return;
+        }
+        try {
+            ensureBucket(bucket);
+            log.info("MinIO bucket ready: {}", bucket);
+        } catch (Exception exception) {
+            log.error("Không thể tự tạo MinIO bucket '{}' — sẽ thử lại khi upload", bucket, exception);
+        }
+    }
 
     /**
      * Tải file MultipartFile lên Minio.
@@ -217,11 +258,22 @@ public class MinioService {
 
     /**
      * Đảm bảo bucket tồn tại.
+     * An toàn với race condition: nếu 2 luồng (vd khởi động + upload) cùng tạo bucket,
+     * luồng chạy sau sẽ bắt được lỗi BucketAlreadyOwnedByYou và bỏ qua.
      */
     private void ensureBucket(String bucket) throws Exception {
         boolean exists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build());
         if (!exists) {
-            minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
+            try {
+                minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
+            } catch (io.minio.errors.ErrorResponseException exception) {
+                if ("BucketAlreadyOwnedByYou".equals(exception.errorResponse().code())) {
+                    // Bucket vừa được luồng khác tạo — không phải lỗi.
+                    log.debug("MinIO bucket '{}' vừa được tạo bởi luồng khác, bỏ qua", bucket);
+                } else {
+                    throw exception;
+                }
+            }
         }
     }
 
