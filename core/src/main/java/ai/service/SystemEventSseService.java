@@ -44,6 +44,13 @@ public class SystemEventSseService {
         SseEmitter emitter = new SseEmitter(timeoutMs);
 
         CopyOnWriteArrayList<SseEmitter> keyEmitters = emitters.computeIfAbsent(key, k -> new CopyOnWriteArrayList<SseEmitter>());
+
+        // Đóng các emitter cũ còn tồn tại cho cùng key trước khi tạo mới, tránh tình trạng
+        // nhiều kết nối SSE song song cho cùng orgId:userId khi client reconnect (EventSource tự
+        // mở kết nối mới) dẫn đến sự kiện bị gửi trùng lặp cho đến khi emitter cũ timeout.
+        keyEmitters.forEach(old -> old.complete());
+        keyEmitters.clear();
+
         keyEmitters.add(emitter);
 
         emitter.onCompletion(() -> removeEmitter(key, emitter));

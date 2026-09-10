@@ -11,6 +11,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
 import ai.dto.own.response.ForbiddenResponseDto;
 import ai.dto.own.response.UnauthorizedResponseDto;
@@ -21,6 +22,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
+    /**
+     * Kết nối SSE (Server-Sent Events) bị timeout là hành vi bình thường khi không có sự kiện
+     * trong khoảng thời gian cấu hình (sse.timeout-ms). Không log ERROR và không cố trả về JSON
+     * vì response đã được khai báo là text/event-stream (không có converter cho ApiResponseModel).
+     */
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    private void handlingAsyncRequestTimeout(AsyncRequestTimeoutException exception){
+        log.debug("SSE connection timed out: {}", exception.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     private ResponseEntity<ApiResponseModel<Void>> handlingException(Exception exception){
         log.error("Unexpected exception occurred!",exception);
