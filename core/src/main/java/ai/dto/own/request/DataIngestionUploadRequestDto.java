@@ -17,9 +17,9 @@ import lombok.experimental.FieldDefaults;
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class DataIngestionUploadRequestDto {
-    @Schema(description = "File cần upload, hỗ trợ tất cả các định dạng file. Kích thước tối đa phụ thuộc vào cấu hình MinIO của hệ thống")
+    @Schema(description = "Danh sách file cần upload, hỗ trợ tất cả các định dạng file. Kích thước tối đa phụ thuộc vào cấu hình upload của hệ thống")
     @NotNull(message = InputValidateKey.DATA_INGESTION_FILE_REQUIRED)
-    MultipartFile file=null;
+    MultipartFile[] files=null;
     
     @Schema(description = "ID của thư mục cha, nếu muốn upload vào một thư mục cụ thể nào đó. Nếu không cung cấp, file sẽ được upload vào root")
     UUID folderId=null;

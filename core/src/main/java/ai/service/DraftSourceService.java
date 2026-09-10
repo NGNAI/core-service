@@ -30,6 +30,7 @@ import ai.entity.postgres.OrganizationEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.DataScope;
+import ai.enums.UploadType;
 import ai.exception.AppException;
 import ai.mapper.DraftSourceMapper;
 import ai.repository.DraftRepository;
@@ -55,6 +56,7 @@ public class DraftSourceService {
     UserService userService;
     OrganizationService organizationService;
     AppProperties appProperties;
+    UploadConfigService uploadConfigService;
 
     /**
      * Lấy sources cho user flow — <b>có kiểm tra ownership</b>.
@@ -105,6 +107,9 @@ public class DraftSourceService {
         if (validFiles.isEmpty()) {
             throw new AppException(ApiResponseStatus.DRAFT_SOURCE_PAYLOAD_REQUIRED);
         }
+
+        // Rào chắn upload: giới hạn số lượng file mỗi lần upload
+        uploadConfigService.validateFileCount(UploadType.DRAFT, validFiles.size());
 
         int poolSize = Math.min(validFiles.size(), Math.max(1, Runtime.getRuntime().availableProcessors()));
         ExecutorService executorService = Executors.newFixedThreadPool(poolSize);
@@ -195,6 +200,9 @@ public class DraftSourceService {
      * Upload single file and create DraftSourceEntity.
      */
     private DraftSourceResponseDto uploadSingleFileAndAttach(UUID draftId, MultipartFile file, UUID userId) {
+        // Rào chắn upload: giới hạn dung lượng và loại file
+        uploadConfigService.validateFile(UploadType.DRAFT, file);
+
         String originalName = file.getOriginalFilename();
         String displayName = (originalName == null || originalName.isBlank())
                 ? "unnamed-source"

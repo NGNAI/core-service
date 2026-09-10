@@ -29,6 +29,7 @@ import ai.entity.postgres.TopicSourceEntity;
 import ai.entity.postgres.UserEntity;
 import ai.enums.ApiResponseStatus;
 import ai.enums.DataScope;
+import ai.enums.UploadType;
 import ai.exception.AppException;
 import ai.mapper.TopicSourceMapper;
 import ai.repository.TopicSourceRepository;
@@ -53,6 +54,7 @@ public class TopicSourceService {
     UserService userService;
     OrganizationService organizationService;
     AppProperties appProperties;
+    UploadConfigService uploadConfigService;
 
     
     public Pair<Long, List<TopicSourceResponseDto>> getSources(UUID topicId, int page, int size) {
@@ -93,6 +95,9 @@ public class TopicSourceService {
         if (validFiles.isEmpty()) {
             throw new AppException(ApiResponseStatus.TOPIC_SOURCE_PAYLOAD_REQUIRED);
         }
+
+        // Rào chắn upload: giới hạn số lượng file mỗi lần upload
+        uploadConfigService.validateFileCount(UploadType.TOPIC, validFiles.size());
 
         int poolSize = Math.min(validFiles.size(), Math.max(1, Runtime.getRuntime().availableProcessors()));
         ExecutorService executorService = Executors.newFixedThreadPool(poolSize);
@@ -190,6 +195,9 @@ public class TopicSourceService {
      * @return
      */
     private TopicSourceResponseDto uploadSingleFileAndAttach(UUID topicId, MultipartFile file, UUID userId) {
+        // Rào chắn upload: giới hạn dung lượng và loại file
+        uploadConfigService.validateFile(UploadType.TOPIC, file);
+
         String originalName = file.getOriginalFilename();
         String displayName = (originalName == null || originalName.isBlank())
                 ? "unnamed-source"

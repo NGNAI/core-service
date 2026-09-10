@@ -43,6 +43,7 @@ import ai.enums.DataIngestionDeleteStatus;
 import ai.enums.DataScope;
 import ai.enums.SystemEventSource;
 import ai.enums.SystemEventType;
+import ai.enums.UploadType;
 import ai.exception.AppException;
 import ai.mapper.NoteBookSourceMapper;
 import ai.model.CustomPairModel;
@@ -73,6 +74,7 @@ public class NoteBookSourceService {
     SystemEventSseService systemEventSseService;
     OrganizationService organizationService;
     UserService userService;
+    UploadConfigService uploadConfigService;
 
     /**
      * Lấy danh sách source của notebook theo page. Kết quả trả về bao gồm tổng số lượng source và list source theo page yêu cầu
@@ -121,6 +123,11 @@ public class NoteBookSourceService {
             throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_PAYLOAD_REQUIRED);
         }
 
+        // Rào chắn upload: giới hạn số lượng file mỗi lần upload + tổng số source của notebook
+        uploadConfigService.validateFileCount(UploadType.NOTEBOOK, validFiles.size());
+        long currentSourceCount = noteBookSourceRepository.countByNoteBookId(noteBookId);
+        uploadConfigService.validateTotalSources(UploadType.NOTEBOOK, currentSourceCount, validFiles.size());
+
         int poolSize = Math.min(validFiles.size(), Math.max(1, Runtime.getRuntime().availableProcessors()));
         ExecutorService executorService = Executors.newFixedThreadPool(poolSize);
 
@@ -154,6 +161,10 @@ public class NoteBookSourceService {
         UUID userId = JwtUtil.getUserId();
         UUID orgId = JwtUtil.getOrgId();
         noteBookService.validateNoteBookOfUser(noteBookId, userId);
+
+        // Rào chắn upload: giới hạn tổng số source của notebook
+        long currentSourceCount = noteBookSourceRepository.countByNoteBookId(noteBookId);
+        uploadConfigService.validateTotalSources(UploadType.NOTEBOOK, currentSourceCount, 1);
 
         String textContent = normalizeText(requestDto.getTextContent());
         String textDisplayName = normalizeText(requestDto.getDisplayName());
@@ -209,9 +220,16 @@ public class NoteBookSourceService {
         UUID orgId = JwtUtil.getOrgId();
         noteBookService.validateNoteBookOfUser(noteBookId, userId);
 
-        return requestDto.getNoteIds().stream()
+        List<UUID> noteIds = requestDto.getNoteIds().stream()
                 .filter(java.util.Objects::nonNull)
                 .distinct()
+                .toList();
+
+        // Rào chắn upload: giới hạn tổng số source của notebook
+        long currentSourceCount = noteBookSourceRepository.countByNoteBookId(noteBookId);
+        uploadConfigService.validateTotalSources(UploadType.NOTEBOOK, currentSourceCount, noteIds.size());
+
+        return noteIds.stream()
                 .map(noteId -> createNoteSource(noteBookId, noteId, userId, orgId))
                 .toList();
     }
@@ -973,6 +991,9 @@ public class NoteBookSourceService {
      * @return
      */
     private NoteBookSourceResponseDto uploadSingleFileAndAttach(UUID noteBookId, MultipartFile file, UUID userId, UUID orgId) {
+        // Rào chắn upload: giới hạn dung lượng và loại file
+        uploadConfigService.validateFile(UploadType.NOTEBOOK, file);
+
         String originalName = file.getOriginalFilename();
         String displayName = (originalName == null || originalName.isBlank())
                 ? "unnamed-source"
