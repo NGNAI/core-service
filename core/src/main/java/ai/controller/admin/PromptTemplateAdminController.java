@@ -23,6 +23,7 @@ import ai.dto.own.response.PromptTemplateResponseDto;
 import ai.enums.PromptType;
 import ai.model.ApiResponseModel;
 import ai.model.CustomPairModel;
+import ai.security.AdminAccessGuard;
 import ai.service.PromptTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,6 +46,18 @@ import lombok.experimental.FieldDefaults;
 public class PromptTemplateAdminController {
 
     PromptTemplateService promptTemplateService;
+    AdminAccessGuard adminAccessGuard;
+
+    @Operation(summary = "Check access", description = "Kiểm tra token hiện tại có quyền truy cập Prompt Template admin APIs (dựa trên danh sách username được phép cấu hình trong hệ thống)")
+    @GetMapping("/access")
+    ResponseEntity<ApiResponseModel<Boolean>> checkAccess() {
+        return ResponseEntity.ok(
+                ApiResponseModel.<Boolean>builder()
+                        .message("Check access successfully")
+                        .data(adminAccessGuard.isAllowed())
+                        .build()
+        );
+    }
 
     @Operation(summary = "Get prompt types", description = "Lấy danh sách loại prompt khả dụng (TOPIC / NOTEBOOK / BOTH)")
     @GetMapping("/types")

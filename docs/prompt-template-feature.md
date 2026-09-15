@@ -37,6 +37,7 @@ Có 2 nguồn prompt:
 - `PUT /{id}` — cập nhật prompt bất kỳ (kể cả của user, trong org của admin).
 - `DELETE /{id}` — xóa prompt bất kỳ.
 - `GET /types` — danh sách PromptType.
+- `GET /access` — kiểm tra token hiện tại có quyền truy cập admin APIs (trả `Boolean`, không cần `@PreAuthorize`).
 
 ### Dùng chung (`/category`)
 - `GET /category/prompt-types` — danh sách PromptType (TOPIC / NOTEBOOK / BOTH) cho mọi authenticated user.
