@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import ai.AppProperties;
+import ai.annotation.Audited;
 import ai.constant.NotebookSourceSummaryConfig;
 import ai.dto.outer.ingestion.response.IngestionStatusResponseDto;
 import ai.dto.outer.ingestion.response.IngestionSummaryResponseDto;
@@ -39,6 +40,8 @@ import ai.entity.postgres.NoteBookEntity;
 import ai.entity.postgres.NoteBookSourceEntity;
 import ai.entity.postgres.NoteEntity;
 import ai.enums.ApiResponseStatus;
+import ai.enums.AuditAction;
+import ai.enums.AuditResource;
 import ai.enums.DataIngestionDeleteStatus;
 import ai.enums.DataScope;
 import ai.enums.SystemEventSource;
@@ -49,6 +52,7 @@ import ai.mapper.NoteBookSourceMapper;
 import ai.model.CustomPairModel;
 import ai.repository.NoteBookSourceRepository;
 import ai.service.api.RagApiService;
+import ai.util.AiTextSanitizer;
 import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -62,6 +66,10 @@ import lombok.extern.slf4j.Slf4j;
 public class NoteBookSourceService {
     static final int DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
     static final int SOURCE_GUIDE_SYNC_BATCH_SIZE = 50;
+    /** Ngôn ngữ mặc định cho summary source-guide khi chưa cấu hình {@code system.language}. */
+    static final String DEFAULT_SUMMARY_LANGUAGE = "vi";
+    /** Độ dài tối đa của chuỗi lỗi lưu vào {@code summary_error} (tránh ghi payload khổng lồ vào DB). */
+    static final int MAX_SUMMARY_ERROR_LENGTH = 1000;
 
     NoteBookSourceRepository noteBookSourceRepository;
     NoteBookSourceMapper noteBookSourceMapper;
@@ -75,6 +83,7 @@ public class NoteBookSourceService {
     OrganizationService organizationService;
     UserService userService;
     UploadConfigService uploadConfigService;
+    SystemSettingService systemSettingService;
 
     /**
      * Lấy danh sách source của notebook theo page. Kết quả trả về bao gồm tổng số lượng source và list source theo page yêu cầu
@@ -572,6 +581,74 @@ public class NoteBookSourceService {
     }
 
     /**
+     * Yêu cầu sinh lại summary (source-guide) cho một source notebook.
+     * <p>
+     * Dùng khi summary trước đó {@code FAILED} (cạn retry) hoặc user muốn làm mới nội dung.
+     * Reset bộ đếm retry về 0, đánh dấu PROCESSING rồi trigger lại POST; nếu RAG service
+     * lỗi ngay lần này, scheduler sẽ tiếp tục retry theo cấu hình.
+     * <p>
+     * Cần {@code forceRegenerate = true} khi source đã có summary — bảo RAG service
+     * ghi đè kết quả cũ thay vì trả về kết quả cache.
+     *
+     * @param noteBookId id notebook chứa source
+     * @param sourceId   id source cần sinh lại summary
+     * @return source sau khi đã reset trạng thái và trigger
+     */
+    @Audited(action = AuditAction.UPDATE, resource = AuditResource.NOTEBOOK_SOURCE,
+            resourceIdExpression = "#arg1", description = "Regenerate source guide summary: {1}")
+    @Transactional
+    public NoteBookSourceResponseDto regenerateSourceGuide(UUID noteBookId, UUID sourceId) {
+        if (!NotebookSourceSummaryConfig.USE_RAG_SOURCE_GUIDE) {
+            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_NOT_EXISTS);
+        }
+
+        NoteBookSourceEntity source = noteBookSourceRepository.findByNoteBookIdAndId(noteBookId, sourceId)
+                .orElseThrow(() -> new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_NOT_EXISTS));
+
+        if (DataIngestionDeleteStatus.PENDING_DELETE.equals(resolveDeleteStatus(source))) {
+            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_DELETE_IN_PROGRESS);
+        }
+
+        // Source chưa hoàn thành embedding thì chưa đủ dữ liệu để sinh summary
+        if (!NoteBookSourceEntity.VectorStatus.COMPLETED.equals(source.getVectorStatus())) {
+            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_NOT_COMPLETED);
+        }
+
+        // Reset trạng thái: coi như một chu kỳ sinh summary mới
+        boolean hasExistingSummary = source.getSummary() != null && !source.getSummary().isBlank();
+        source.setSummaryStatus(NoteBookSourceEntity.SummaryStatus.PROCESSING);
+        source.setSummaryRetryCount(0);
+        source.setSummaryError(null);
+        source = noteBookSourceRepository.save(source);
+
+        try {
+            RagSourceGuideRequestDto requestDto = RagSourceGuideRequestDto.builder()
+                    .fileId(source.getId().toString())
+                    .notebookId(source.getNoteBook() == null ? null : source.getNoteBook().getId().toString())
+                    .organizationId(source.getOrganizationId() == null ? null : source.getOrganizationId().toString())
+                    .scopes(List.of("personal"))
+                    .userId(source.getOwnerId() == null ? null : source.getOwnerId().toString())
+                    // Đã có summary thì bắt buộc RAG service sinh lại thay vì trả cache
+                    .forceRegenerate(hasExistingSummary)
+                    .language(resolveSummaryLanguage())
+                    .generationInstruction(resolveSummaryGenerationInstruction())
+                    .callbackUrl(resolveSourceGuideCallbackUrl())
+                    .build();
+
+            RagSourceGuideResponseDto response = ragApiService.triggerSourceGuide(requestDto);
+            log.info("Re-triggered source guide for notebook source ID: {}, status={}",
+                    source.getId(), response == null ? null : response.getStatus());
+        } catch (Exception exception) {
+            log.error("Failed to regenerate source guide for notebook source ID: {}", source.getId(), exception);
+            registerSummaryFailure(source,
+                    "Regenerate source-guide thất bại: " + exception.getMessage(),
+                    maxSummaryRetryAttempts());
+        }
+
+        return noteBookSourceMapper.entityToResponseDto(source);
+    }
+
+    /**
      * Xử lý callback trạng thái source-guide (NotebookLM) từ RAG service sau khi trigger sinh summary.
      * Chỉ lưu summary vào NoteBookSourceEntity khi status = completed và summary không rỗng.
      * Các status khác (failed / processing / not_found) chỉ được log để theo dõi.
@@ -600,15 +677,29 @@ public class NoteBookSourceService {
 
         String status = callbackDto.getStatus();
         if ("completed".equalsIgnoreCase(status)) {
-            String summary = normalizeText(callbackDto.getSummary());
-            if (summary != null) {
-                source.setSummary(summary);
+            if (applySourceGuideSummary(source, callbackDto.getSummary())) {
                 source = noteBookSourceRepository.save(source);
                 publishStatusEvent(source, source.getVectorStatus());
                 log.info("Saved source guide summary for notebook source ID: {}", source.getId());
+            } else {
+                // RAG service báo completed nhưng summary rỗng → coi như một lần thất bại
+                // để bộ đếm retry tiến dần và không kẹt ở PROCESSING vĩnh viễn.
+                registerSummaryFailure(source, "Callback status=completed nhưng summary rỗng",
+                        maxSummaryRetryAttempts());
+                source = noteBookSourceRepository.findById(source.getId()).orElse(source);
             }
+        } else if ("failed".equalsIgnoreCase(status)) {
+            // Callback báo lỗi → tăng retry để scheduler biết dừng sau khi cạn số lần thử.
+            // Nếu không tăng retry thì source kẹt ở PROCESSING, scheduler poll vô hạn.
+            registerSummaryFailure(source, buildSummaryError(status, callbackDto.getError()),
+                    maxSummaryRetryAttempts());
+            log.warn("Source guide callback FAILED for notebook source ID: {}, retryCount={}, error={}",
+                    source.getId(), source.getSummaryRetryCount(), callbackDto.getError());
         } else {
-            log.warn("Source guide callback for notebook source ID: {} status={}, error={}",
+            // processing / status khác: chỉ ghi nhận lỗi để debug, không tăng retry
+            source.setSummaryError(buildSummaryError(status, callbackDto.getError()));
+            source = noteBookSourceRepository.save(source);
+            log.debug("Source guide callback for notebook source ID: {} status={}, error={}",
                     source.getId(), status, callbackDto.getError());
         }
 
@@ -618,6 +709,11 @@ public class NoteBookSourceService {
     /**
      * Scheduler recovery cho source-guide: GET kết quả source-guide của các source COMPLETED nhưng chưa có summary
      * (callback có thể bị mất/trễ). Chỉ lưu summary khi status = completed và summary không rỗng.
+     * <p>
+     * Có giới hạn retry ({@link NotebookSourceSummaryConfig}) để tránh poll vô hạn với source
+     * mà RAG service không bao giờ sinh được summary. Khi guide trả về {@code not_found}
+     * (RAG service đã mất state, thường do trigger trước đó thất bại) thì re-trigger POST
+     * thay vì tiếp tục GET vô ích.
      */
     @Transactional
     public void syncCompletedSourceGuides() {
@@ -625,8 +721,9 @@ public class NoteBookSourceService {
             return;
         }
 
+        int maxRetry = maxSummaryRetryAttempts();
         List<NoteBookSourceEntity> sources = noteBookSourceRepository.findCompletedWithoutSummary(
-                PageRequest.of(0, SOURCE_GUIDE_SYNC_BATCH_SIZE));
+                maxRetry, PageRequest.of(0, SOURCE_GUIDE_SYNC_BATCH_SIZE));
         if (sources.isEmpty()) {
             return;
         }
@@ -638,16 +735,24 @@ public class NoteBookSourceService {
                         source.getId().toString(),
                         source.getNoteBook() == null ? null : source.getNoteBook().getId().toString());
                 if (response == null) {
+                    registerSummaryFailure(source, "RAG service trả về response rỗng", maxRetry);
                     continue;
                 }
 
                 if ("completed".equalsIgnoreCase(response.getStatus())) {
-                    String summary = normalizeText(response.getSummary());
-                    if (summary != null) {
-                        source.setSummary(summary);
+                    if (applySourceGuideSummary(source, response.getSummary())) {
                         noteBookSourceRepository.save(source);
                         publishStatusEvent(source, source.getVectorStatus());
                         log.info("Synced source guide summary for notebook source ID: {}", source.getId());
+                    } else {
+                        registerSummaryFailure(source, "Summary rỗng dù status=completed", maxRetry);
+                    }
+                } else if ("not_found".equalsIgnoreCase(response.getStatus())) {
+                    // RAG service không còn state của source-guide → trigger lại thay vì poll vô ích
+                    log.info("Source guide not found for notebook source ID: {}, re-triggering", source.getId());
+                    registerSummaryFailure(source, "RAG service không còn source-guide (not_found)", maxRetry);
+                    if (!isSummaryRetryExhausted(source, maxRetry)) {
+                        triggerSourceGuideForSource(source);
                     }
                 } else {
                     log.debug("Source guide not ready for notebook source ID: {}, status={}",
@@ -655,8 +760,87 @@ public class NoteBookSourceService {
                 }
             } catch (Exception exception) {
                 log.error("Failed to sync source guide for notebook source ID: {}", source.getId(), exception);
+                registerSummaryFailure(source, exception.getMessage(), maxRetry);
             }
         }
+    }
+
+    /**
+     * Áp dụng summary vào source: làm sạch văn bản trước khi lưu (loại bỏ khối suy luận
+     * {@code <thinking>}, tiền tố "Summary:", câu dẫn... mà reasoning model hay thêm vào),
+     * đánh dấu COMPLETED và xóa lỗi/retry cũ.
+     *
+     * @param source  entity source cần cập nhật
+     * @param rawSummary summary thô từ RAG service
+     * @return {@code true} nếu summary hợp lệ và đã được gán; {@code false} nếu rỗng
+     */
+    private boolean applySourceGuideSummary(NoteBookSourceEntity source, String rawSummary) {
+        String summary = AiTextSanitizer.sanitize(rawSummary, false);
+        if (summary == null) {
+            return false;
+        }
+
+        source.setSummary(summary);
+        source.setSummaryStatus(NoteBookSourceEntity.SummaryStatus.COMPLETED);
+        source.setSummaryRetryCount(0);
+        source.setSummaryError(null);
+        return true;
+    }
+
+    /**
+     * Ghi nhận một lần thất bại khi sinh summary: tăng bộ đếm retry và đánh dấu FAILED
+     * khi đã vượt giới hạn (dừng poll vô hạn, giữ lại lý do để debug).
+     *
+     * @param source   entity source
+     * @param error    thông báo lỗi gần nhất
+     * @param maxRetry số lần thử tối đa
+     */
+    private void registerSummaryFailure(NoteBookSourceEntity source, String error, int maxRetry) {
+        int retryCount = (source.getSummaryRetryCount() == null ? 0 : source.getSummaryRetryCount()) + 1;
+        source.setSummaryRetryCount(retryCount);
+        source.setSummaryStatus(NoteBookSourceEntity.SummaryStatus.PROCESSING);
+        source.setSummaryError(truncateError(error));
+
+        if (retryCount >= maxRetry) {
+            source.setSummaryStatus(NoteBookSourceEntity.SummaryStatus.FAILED);
+            log.warn("Source guide summary for notebook source ID: {} marked FAILED after {} attempts",
+                    source.getId(), retryCount);
+        }
+
+        noteBookSourceRepository.save(source);
+    }
+
+    /**
+     * Kiểm tra source đã cạn số lần retry sinh summary hay chưa.
+     */
+    private boolean isSummaryRetryExhausted(NoteBookSourceEntity source, int maxRetry) {
+        int retryCount = source.getSummaryRetryCount() == null ? 0 : source.getSummaryRetryCount();
+        return retryCount >= maxRetry;
+    }
+
+    /**
+     * Ghép thông báo lỗi từ RAG service thành chuỗi ngắn gọn để lưu vào
+     * {@code summary_error} (chặn ghi payload khổng lồ vào DB).
+     */
+    private String truncateError(String error) {
+        if (error == null || error.isBlank()) {
+            return null;
+        }
+        String normalized = error.replaceAll("\\s+", " ").trim();
+        return normalized.length() > MAX_SUMMARY_ERROR_LENGTH
+                ? normalized.substring(0, MAX_SUMMARY_ERROR_LENGTH) + "..."
+                : normalized;
+    }
+
+    /**
+     * Tạo thông báo lỗi từ status/error của RAG service khi callback báo thất bại.
+     */
+    private String buildSummaryError(String status, String error) {
+        String prefix = status == null ? "unknown" : status;
+        if (error == null || error.isBlank()) {
+            return truncateError("status=" + prefix);
+        }
+        return truncateError("status=" + prefix + " - " + error);
     }
 
     /**
@@ -751,13 +935,21 @@ public class NoteBookSourceService {
         if (NoteBookSourceEntity.VectorStatus.COMPLETED.equals(resolvedStatus)
                 && (source.getSummary() == null || source.getSummary().isBlank())) {
             if (NotebookSourceSummaryConfig.USE_RAG_SOURCE_GUIDE) {
-                // Cách mới: trigger source-guide (NotebookLM) bất đồng bộ — summary sẽ về qua webhook callback
-                triggerSourceGuideForSource(source);
+                // Cách mới: trigger source-guide (NotebookLM) bất đồng bộ — summary sẽ về qua webhook callback.
+                // Chỉ trigger khi chưa có lần thử nào (tránh spam RAG service ở mỗi lần poll status);
+                // trường hợp trigger lỗi sẽ do scheduler syncCompletedSourceGuides xử lý retry.
+                if (source.getSummaryStatus() == null) {
+                    source.setSummaryStatus(NoteBookSourceEntity.SummaryStatus.PROCESSING);
+                    source.setSummaryError(null);
+                    shouldSave = true;
+                    triggerSourceGuideForSource(source);
+                }
             } else {
                 // Cách cũ: lấy summary đồng bộ từ ingestion service /summarize
                 String summary = fetchNotebookSourceSummary(source.getId());
                 if (summary != null) {
                     source.setSummary(summary);
+                    source.setSummaryStatus(NoteBookSourceEntity.SummaryStatus.COMPLETED);
                     shouldSave = true;
                 }
             }
@@ -1086,14 +1278,19 @@ public class NoteBookSourceService {
     }
 
     /**
-     * Lấy tóm tắt (summary) của source notebook từ ingestion service sau khi hoàn thành xử lý embedding. Phương thức này sẽ được gọi sau khi nhận được trạng thái COMPLETED từ ingestion service, nhằm mục đích lấy tóm tắt đã được tạo ra trong quá trình xử lý embedding để lưu vào trường summary của NoteBookSourceEntity. Nếu không lấy được tóm tắt hoặc có lỗi xảy ra trong quá trình gọi ingestion service, phương thức sẽ trả về null để đảm bảo hệ thống vẫn hoạt động ổn định mà không bị lỗi do việc không có tóm tắt.
+     * Lấy tóm tắt (summary) của source notebook từ ingestion service sau khi hoàn thành xử lý embedding. Phương thức này sẽ được gọi sau khi nhận được trạng thái COMPLETED từ ingestion service, nhằm mục đích lấy tóm tắt đã được tạo ra trong quá trình xử lý embedding để lưu vào trường summary của NoteBookSourceEntity. Nếu không lấy được tóm tắt hoặc có lỗi xảy ra trong quá trình gọi ingestion service, phương thức sẽ trả về null để đảm bảo hệ thống vẫn hoạt động ổn định mà không bị lỗi do ngoại lệ không mong muốn.
+     * <p>
+     * Kết quả được làm sạch bằng {@link AiTextSanitizer#sanitize(String, boolean)} —
+     * dù là mode cũ ingestion {@code /summarize} thì model phía sau vẫn có thể trả về
+     * khối suy luận hoặc nhãn "Summary:".
      * @param sourceId
      * @return
      */
     private String fetchNotebookSourceSummary(UUID sourceId) {
         try {
             IngestionSummaryResponseDto summaryResponse = ingestionService.getIngestionSummary(sourceId.toString());
-            return normalizeText(summaryResponse == null ? null : summaryResponse.getSummary());
+            return AiTextSanitizer.sanitize(
+                    summaryResponse == null ? null : summaryResponse.getSummary(), false);
         } catch (Exception exception) {
             log.error("Failed to fetch ingestion summary for notebook source ID: {}", sourceId, exception);
             return null;
@@ -1102,9 +1299,18 @@ public class NoteBookSourceService {
 
     /**
      * Chế độ mới: trigger source-guide (NotebookLM) để RAG service sinh summary bất đồng bộ.
-     * Kết quả sẽ được RAG service callback về webhook /sources/source-guide/webhook/status.
+     * Kết quả sẽ được RAG service callback về webhook /sources/source-guide/status.
      * Nếu trigger lỗi, scheduler syncCompletedSourceGuides (dùng GET) sẽ lấy lại sau.
-     * @param source
+     * <p>
+     * Request gửi kèm {@code generation_instruction} để neo chất lượng summary cho các
+     * model nhỏ ({@code gpt-oss-20b}): chỉ dẫn rõ ngôn ngữ đầu ra và cấu trúc mong muốn,
+     * thay vì để model tự suy diễn (nguyên nhân phổ biến khiến summary lẫn phần suy luận
+     * hoặc trả về tiếng Anh trong khi tài liệu là tiếng Việt).
+     * <p>
+     * Chỉ dẫn đọc từ System Setting {@code ai.sourceGuide.generationInstruction} — admin
+     * chỉnh được qua UI mà không cần deploy lại.
+     *
+     * @param source source cần sinh summary (đã được set summaryStatus trước khi gọi)
      */
     private void triggerSourceGuideForSource(NoteBookSourceEntity source) {
         try {
@@ -1115,6 +1321,8 @@ public class NoteBookSourceService {
                     .scopes(List.of("personal"))
                     .userId(source.getOwnerId() == null ? null : source.getOwnerId().toString())
                     .forceRegenerate(false)
+                    .language(resolveSummaryLanguage())
+                    .generationInstruction(resolveSummaryGenerationInstruction())
                     .callbackUrl(resolveSourceGuideCallbackUrl())
                     .build();
 
@@ -1123,7 +1331,47 @@ public class NoteBookSourceService {
                     source.getId(), response == null ? null : response.getStatus());
         } catch (Exception exception) {
             log.error("Failed to trigger source guide for notebook source ID: {}", source.getId(), exception);
+            registerSummaryFailure(source,
+                    "Trigger source-guide thất bại: " + exception.getMessage(),
+                    maxSummaryRetryAttempts());
         }
+    }
+
+    /**
+     * Ngôn ngữ mong muốn cho summary source-guide. Đọc từ system setting
+     * {@code system.language} (mặc định "vi") để summary khớp ngôn ngữ giao diện hệ thống,
+     * tránh model trả về tiếng Anh cho tài liệu tiếng Việt.
+     */
+    private String resolveSummaryLanguage() {
+        String language = systemSettingService.getString("system.language", DEFAULT_SUMMARY_LANGUAGE);
+        return (language == null || language.isBlank()) ? DEFAULT_SUMMARY_LANGUAGE : language.trim();
+    }
+
+    /**
+     * Chỉ dẫn sinh summary đọc từ System Setting, fallback về giá trị mặc định trong
+     * {@link NotebookSourceSummaryConfig} khi setting chưa có hoặc rỗng.
+     */
+    private String resolveSummaryGenerationInstruction() {
+        String instruction = systemSettingService.getString(
+                NotebookSourceSummaryConfig.KEY_SUMMARY_GENERATION_INSTRUCTION,
+                NotebookSourceSummaryConfig.DEFAULT_SUMMARY_GENERATION_INSTRUCTION);
+        return (instruction == null || instruction.isBlank())
+                ? NotebookSourceSummaryConfig.DEFAULT_SUMMARY_GENERATION_INSTRUCTION
+                : instruction.trim();
+    }
+
+    /**
+     * Số lần thử sinh summary tối đa, đọc từ System Setting
+     * {@code ai.sourceGuide.maxRetryAttempts}, fallback {@link NotebookSourceSummaryConfig#DEFAULT_MAX_SUMMARY_RETRY_ATTEMPTS}.
+     * Giá trị &lt;= 0 hoặc không parse được → dùng mặc định.
+     */
+    private int maxSummaryRetryAttempts() {
+        int configured = systemSettingService.getInt(
+                NotebookSourceSummaryConfig.KEY_MAX_SUMMARY_RETRY_ATTEMPTS,
+                NotebookSourceSummaryConfig.DEFAULT_MAX_SUMMARY_RETRY_ATTEMPTS);
+        return configured > 0
+                ? configured
+                : NotebookSourceSummaryConfig.DEFAULT_MAX_SUMMARY_RETRY_ATTEMPTS;
     }
 
     /**

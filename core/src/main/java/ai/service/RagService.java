@@ -1,7 +1,10 @@
 package ai.service;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ai.AppProperties;
+import ai.constant.AiPromptTemplates;
 import ai.dto.outer.rag.request.DraftRagCreateRequestDto;
 import ai.dto.outer.rag.request.DraftRagReviseRequestDto;
 import ai.dto.outer.rag.request.NotebookRagCompletionRequestDto;
@@ -46,6 +50,7 @@ import ai.enums.SystemEventSource;
 import ai.enums.SystemEventType;
 import ai.enums.TopicType;
 import ai.service.api.RagApiService;
+import ai.util.AiTextSanitizer;
 import ai.util.JwtUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -62,6 +67,22 @@ public class RagService {
     static final int DEFAULT_TOPIC_RECENT_MESSAGE_WINDOW = 10;
     static final int DEFAULT_NOTEBOOK_RECENT_MESSAGE_WINDOW = 14;
     static final int DEFAULT_MIN_MESSAGES_TO_COMPRESS = 4;
+
+    /** Ngân sách ký tự tối đa của input đưa vào prompt sinh tiêu đề. */
+    static final int DEFAULT_TITLE_MAX_INPUT_CHARS = 2000;
+    /** Ngân sách ký tự tối đa của block hội thoại đưa vào prompt nén summary. */
+    static final int DEFAULT_SUMMARY_MAX_INPUT_CHARS = 12000;
+    /** Ngân sách từ tối đa của summary đầu ra (chặn summary phình to). */
+    static final int DEFAULT_SUMMARY_MAX_WORDS = 300;
+    /** Giới hạn ký tự cho từng tin nhắn khi ghép block hội thoại. */
+    static final int DEFAULT_MESSAGE_MAX_CHARS = 1500;
+    /** Temperature tất định cho tác vụ phụ trợ (sinh tiêu đề, nén summary). */
+    static final double DETERMINISTIC_TEMPERATURE = 0.2;
+
+    /** Số ký tự xấp xỉ cho 1 từ khi quy đổi ngân sách từ → ký tự (clamp output). */
+    static final int APPROX_CHARS_PER_WORD = 7;
+    /** Số từ tối đa của tiêu đề (clamp cứng, prompt đã yêu cầu 4–10 từ). */
+    static final int TITLE_MAX_WORDS = 15;
 
     /** Giới hạn vòng reasoning khi tạo draft (theo text_drafting_guide, default 8, min 1, max 20) */
     static final int DRAFT_CREATE_MAX_ITERATIONS = 8;
@@ -229,14 +250,12 @@ public class RagService {
         StringBuilder source = new StringBuilder();
         StringBuilder suggestedReplies = new StringBuilder();
 
-        System.out.println(new ObjectMapper().writeValueAsString(ragCompletionRequestDto));
-
         return ragApiService.topicChat(ragCompletionRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"topicId\": \"%s\"}", topicId))
                 // Trả thêm về dto assistant message luôn
                 .startWith(String.format("{\"assistantMessage\": %s}",
-                        new ObjectMapper().writeValueAsString(assistantMessage)))
+                        objectMapper.writeValueAsString(assistantMessage)))
                 .doOnNext(raw -> {
                     try {
                         JsonNode node = objectMapper.readTree(raw);
@@ -401,14 +420,12 @@ public class RagService {
         StringBuilder reasoningSteps = new StringBuilder();
         StringBuilder suggestedReplies = new StringBuilder();
 
-        System.out.println(new ObjectMapper().writeValueAsString(ragCompletionRequestDto));
-
         return ragApiService.noteBookChat(ragCompletionRequestDto)
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"noteBookId\": \"%s\"}", noteBookId))
                 // Trả thêm về dto assistant message luôn
                 .startWith(String.format("{\"assistantMessage\": %s}",
-                        new ObjectMapper().writeValueAsString(assistantMessage)))
+                        objectMapper.writeValueAsString(assistantMessage)))
                 .doOnNext(raw -> {
                     try {
                         JsonNode node = objectMapper.readTree(raw);
@@ -544,7 +561,7 @@ public class RagService {
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"draftId\": \"%s\"}", draftResponse.getId()))
                 .startWith(String.format("{\"assistantMessage\": %s}",
-                        new ObjectMapper().writeValueAsString(assistantMessage)))
+                        objectMapper.writeValueAsString(assistantMessage)))
                 .doOnNext(raw -> {
                     try {
                         JsonNode node = objectMapper.readTree(raw);
@@ -638,10 +655,9 @@ public class RagService {
                         Mono.fromCallable(() -> {
                             assistantMessage.setContent(questionForUser.toString());
                             assistantMessage.setSource(sources.toString());
-                            log.info("assistantMessage before sending: {}", assistantMessage);
                             return String.format(
                                     "{\"updatedAssistantMessage\": %s}",
-                                    new ObjectMapper().writeValueAsString(assistantMessage));
+                                    objectMapper.writeValueAsString(assistantMessage));
                         }).flatMapMany(Flux::just))
                 .doOnError(e -> {
                     log.error("Error during draft chat streaming", e);
@@ -701,7 +717,7 @@ public class RagService {
                 .startWith(String.format("{\"messageId\": \"%s\"}", assistantMessage.getId()))
                 .startWith(String.format("{\"draftId\": \"%s\"}", draftId))
                 .startWith(String.format("{\"assistantMessage\": %s}",
-                        new ObjectMapper().writeValueAsString(assistantMessage)))
+                        objectMapper.writeValueAsString(assistantMessage)))
                 .doOnNext(raw -> {
                     try {
                         JsonNode node = objectMapper.readTree(raw);
@@ -785,10 +801,9 @@ public class RagService {
                         Mono.fromCallable(() -> {
                             assistantMessage.setContent(questionForUser.toString());
                             assistantMessage.setSource(sources.toString());
-                            log.info("assistantMessage before sending: {}", assistantMessage);
                             return String.format(
                                     "{\"updatedAssistantMessage\": %s}",
-                                    new ObjectMapper().writeValueAsString(assistantMessage));
+                                    objectMapper.writeValueAsString(assistantMessage));
                         }).flatMapMany(Flux::just))
                 .doOnError(e -> log.error("Error during draft chat streaming", e))
                 .doFinally(signalType -> log.info("Draft chat streaming completed with signal: {}", signalType));
@@ -832,17 +847,17 @@ public class RagService {
 
                 int summarizeUntilIndex = topicMessages.size() - recentWindow;
                 List<MessageResponseDto> messagesToSummarize = topicMessages.subList(0, summarizeUntilIndex);
-                UUID lastSummarizedMessageId = messagesToSummarize.get(messagesToSummarize.size() - 1).getId();
 
-                String updatedSummary = generalSummaryOfTopic(
+                SummaryResult result = summarize(
                         topicEntity.getConversationSummary(),
-                        messagesToSummarize);
+                        messagesToSummarize,
+                        AiPromptTemplates::topicSummaryPrompt);
 
-                if (updatedSummary == null || updatedSummary.isBlank()) {
+                if (result == null) {
                     return;
                 }
 
-                topicService.updateConversationSummaryInternal(topicId, updatedSummary, lastSummarizedMessageId);
+                topicService.updateConversationSummaryInternal(topicId, result.summary(), result.checkpointMessageId());
             } catch (JsonProcessingException | RuntimeException e) {
                 log.error("Failed to generate conversation summary for topic {}", topicId, e);
             }
@@ -864,17 +879,17 @@ public class RagService {
 
                 int summarizeUntilIndex = noteBookMessages.size() - recentWindow;
                 List<MessageResponseDto> messagesToSummarize = noteBookMessages.subList(0, summarizeUntilIndex);
-                UUID lastSummarizedMessageId = messagesToSummarize.get(messagesToSummarize.size() - 1).getId();
 
-                String updatedSummary = generalSummaryOfNoteBook(
+                SummaryResult result = summarize(
                         noteBookEntity.getConversationSummary(),
-                        messagesToSummarize);
+                        messagesToSummarize,
+                        AiPromptTemplates::noteBookSummaryPrompt);
 
-                if (updatedSummary == null || updatedSummary.isBlank()) {
+                if (result == null) {
                     return;
                 }
 
-                noteBookService.updateConversationSummaryInternal(noteBookId, updatedSummary, lastSummarizedMessageId);
+                noteBookService.updateConversationSummaryInternal(noteBookId, result.summary(), result.checkpointMessageId());
             } catch (JsonProcessingException | RuntimeException e) {
                 log.error("Failed to generate conversation summary for notebook {}", noteBookId, e);
             }
@@ -882,133 +897,304 @@ public class RagService {
     }
 
     /**
-     * Generate title for note based on content
-     * 
-     * @param input
-     * @return
-     * @throws JsonProcessingException
+     * Nén một lô tin nhắn thành summary mới và xác định checkpoint đi kèm.
+     * <p>
+     * Checkpoint là id của tin nhắn <b>cuối cùng thực sự được đưa vào prompt</b>. Khi tổng
+     * nội dung vượt ngân sách {@code ai.summary.maxInputChars}, các tin nhắn cũ nhất bị lược
+     * bớt; nếu vẫn tiến checkpoint tới tin nhắn cuối của cả lô thì phần bị lược sẽ mất ngữ
+     * cảnh vĩnh viễn. Vì vậy checkpoint chỉ tiến tới tin nhắn cuối của đoạn còn lại.
+     *
+     * @param existingSummary  summary hiện có (có thể null/rỗng)
+     * @param messages         các tin nhắn mới cần hấp thụ
+     * @param promptBuilder    hàm tạo prompt theo loại hội thoại (Topic/Notebook)
+     * @return {@link SummaryResult} hoặc {@code null} nếu model không trả về nội dung
+     * @throws JsonProcessingException lỗi parse response từ RAG service
      */
-    public String generalTitleOfNote(String input) throws JsonProcessingException {
-        String prompt = "Act as a professional content editor. Your task is to generate a concise and descriptive title for a note based on the content provided below. "
-                + "The title should accurately reflect the main topic or theme of the note while adhering to the following constraints:"
-                + "### Constraints:"
-                + "- Language: The title MUST be in the same language as the content."
-                + "- Length: Maximum 6-10 words."
-                + "- Format: Return ONLY the raw title text. Do not include quotes, punctuation at the end, or prefixes like \"Title:\"."
-                + "- Tone: Professional and neutral."
-                + "### Note Content: " + input + ""
-                + "### Generated Title: ";
+    private SummaryResult summarize(String existingSummary, List<MessageResponseDto> messages,
+            PromptBuilder promptBuilder) throws JsonProcessingException {
+        if (messages == null || messages.isEmpty()) {
+            return null;
+        }
 
-        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
-        metadata.setUserId(UUID.randomUUID());
-        metadata.setOrganizationId(UUID.randomUUID());
-        metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
+        ConversationBlock block = buildConversationBlock(messages);
+        // Không có nội dung nào để hấp thụ (mọi tin nhắn đều rỗng) → bỏ qua, giữ nguyên
+        // checkpoint và summary cũ thay vì gọi model vô ích rồi ghi checkpoint null.
+        if (block.lastMessageId() == null) {
+            return null;
+        }
 
-        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
-                .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
-                .stream(false))
-                .metadata(metadata)
-                .build();
+        String prompt = promptBuilder.build(normalizeExistingSummary(existingSummary), block.text(), summaryMaxWords());
 
-        return generateString(ragCompletionRequestDto);
+        String summary = generateSanitizedString(buildSimpleCompletionRequest(prompt), false, summaryMaxWords());
+        if (summary == null) {
+            return null;
+        }
+
+        return new SummaryResult(summary, block.lastMessageId());
+    }
+
+    /** Hàm tạo prompt cho loại hội thoại tương ứng. */
+    @FunctionalInterface
+    private interface PromptBuilder {
+        String build(String existingSummary, String messageBlock, int targetWords);
     }
 
     /**
-     * Generate title for topic based on user's input
-     * 
-     * @param input
-     * @return
-     * @throws JsonProcessingException
+     * Kết quả nén hội thoại: nội dung summary mới và checkpoint tương ứng.
+     *
+     * @param summary            nội dung summary đã làm sạch
+     * @param checkpointMessageId id tin nhắn cuối cùng đã được hấp thụ
+     */
+    private record SummaryResult(String summary, UUID checkpointMessageId) {
+    }
+
+    /**
+     * Block hội thoại đã chuẩn hóa để đưa vào prompt.
+     *
+     * @param text          nội dung block
+     * @param lastMessageId id tin nhắn cuối cùng có mặt trong block ({@code null} nếu rỗng)
+     */
+    private record ConversationBlock(String text, UUID lastMessageId) {
+    }
+
+    /**
+     * Sinh tiêu đề cho note dựa trên nội dung.
+     * <p>
+     * Input được cắt ngắn theo {@code ai.title.maxInputChars} (mặc định
+     * {@value #DEFAULT_TITLE_MAX_INPUT_CHARS} ký tự) để tránh gửi toàn bộ nội dung dài
+     * lên model nhỏ, giúp giảm độ trễ và tránh nhiễu. Kết quả được làm sạch
+     * (bỏ dấu nháy, tiền tố "Title:", khối suy luận) trước khi trả về.
+     *
+     * @param input nội dung note
+     * @return tiêu đề đã làm sạch, hoặc {@code null} nếu model không trả về nội dung
+     * @throws JsonProcessingException lỗi parse response từ RAG service
+     */
+    public String generalTitleOfNote(String input) throws JsonProcessingException {
+        String prompt = AiPromptTemplates.titlePrompt(
+                "một ghi chú",
+                "tiêu đề PHẢI cùng ngôn ngữ với nội dung ghi chú.",
+                truncateForPrompt(input, titleMaxInputChars()));
+
+        return generateSanitizedString(buildSimpleCompletionRequest(prompt), true, TITLE_MAX_WORDS);
+    }
+
+    /**
+     * Sinh tiêu đề cho topic chat dựa trên câu hỏi đầu tiên của người dùng.
+     * <p>
+     * Input được cắt ngắn theo {@code ai.title.maxInputChars}. Kết quả được làm sạch
+     * (bỏ dấu nháy, tiền tố "Title:", khối suy luận) trước khi trả về.
+     *
+     * @param input nội dung người dùng nhập
+     * @return tiêu đề đã làm sạch, hoặc {@code null} nếu model không trả về nội dung
+     * @throws JsonProcessingException lỗi parse response từ RAG service
      */
     public String generalTitleOfTopic(String input) throws JsonProcessingException {
-        String prompt = "Act as a professional content editor. Your task is to generate a concise and descriptive title for a chat conversation based on the user's initial input provided below. "
-                + "The title should accurately reflect the main topic or theme of the conversation while adhering to the following constraints:"
-                + "### Constraints:"
-                + "- Language: The title MUST be in the same language as the user's input."
-                + "- Length: Maximum 6-10 words."
-                + "- Format: Return ONLY the raw title text. Do not include quotes, punctuation at the end, or prefixes like \"Title:\"."
-                + "- Tone: Professional and neutral."
-                + "### User Input: " + input + ""
-                + "### Generated Title: ";
+        String prompt = AiPromptTemplates.titlePrompt(
+                "một cuộc hội thoại chat",
+                "tiêu đề PHẢI cùng ngôn ngữ với nội dung người dùng nhập.",
+                truncateForPrompt(input, titleMaxInputChars()));
 
-        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
-        metadata.setUserId(UUID.randomUUID());
-        metadata.setOrganizationId(UUID.randomUUID());
-        metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
-        
-        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
-                .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
-                .stream(false))
-                .metadata(metadata)
-                .build();
-
-        return generateString(ragCompletionRequestDto);
+        return generateSanitizedString(buildSimpleCompletionRequest(prompt), true, TITLE_MAX_WORDS);
     }
 
+    /**
+     * Nén hội thoại Topic thành rolling summary.
+     * <p>
+     * Tin nhắn được chuẩn hóa (bỏ khối JSON lồng như source/reasoning của message
+     * assistant) và cắt theo ngân sách ký tự {@code ai.summary.maxInputChars} để tránh
+     * đẩy payload khổng lồ lên model nhỏ. Prompt yêu cầu trả về DUY NHẤT nội dung
+     * summary (không kèm phần suy luận) — cần thiết cho các reasoning model như
+     * {@code gpt-oss-20b}.
+     *
+     * @param existingSummary summary hiện có (có thể null/rỗng)
+     * @param messages        các tin nhắn mới cần hấp thụ
+     * @return summary đã làm sạch, hoặc {@code null} nếu model không trả về nội dung
+     * @throws JsonProcessingException lỗi parse response từ RAG service
+     */
     public String generalSummaryOfTopic(String existingSummary, List<MessageResponseDto> messages)
             throws JsonProcessingException {
-        StringBuilder prompt = new StringBuilder();
-        prompt.append(
-                "Act as a conversation memory compressor for Topic chat. Update a long-running topic summary so future turns retain important context. ");
-        prompt.append(
-                "Write in the same language as the conversation. Keep only durable facts, decisions, constraints, user preferences, named entities, unresolved questions, and progress state. ");
-        prompt.append(
-                "Do not include greetings, filler, duplicated wording, or markdown bullets unless they are essential. Return only the updated summary text.\n\n");
-        prompt.append("Existing summary:\n");
-        prompt.append(isBlank(existingSummary) ? "(none)" : existingSummary);
-        prompt.append("\n\nNew messages to absorb:\n");
-
-        for (MessageResponseDto message : messages) {
-            prompt.append(message.getType()).append(": ").append(message.getContent()).append('\n');
-        }
-
-        prompt.append("\nUpdated summary:");
-
-        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
-        metadata.setUserId(UUID.randomUUID());
-        metadata.setOrganizationId(UUID.randomUUID());
-        metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
-
-        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
-                .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt.toString())))
-                .stream(false))
-                .metadata(metadata)
-                .build();
-
-        return generateString(ragCompletionRequestDto);
+        SummaryResult result = summarize(existingSummary, messages, AiPromptTemplates::topicSummaryPrompt);
+        return result == null ? null : result.summary();
     }
 
+    /**
+     * Nén hội thoại Notebook thành rolling summary.
+     * <p>
+     * Cùng cơ chế với {@link #generalSummaryOfTopic(String, List)} nhưng ưu tiên các
+     * thông tin đặc thù NotebookLM (yêu cầu, kế hoạch, tham chiếu tài liệu nguồn).
+     *
+     * @param existingSummary summary hiện có (có thể null/rỗng)
+     * @param messages        các tin nhắn mới cần hấp thụ
+     * @return summary đã làm sạch, hoặc {@code null} nếu model không trả về nội dung
+     * @throws JsonProcessingException lỗi parse response từ RAG service
+     */
     public String generalSummaryOfNoteBook(String existingSummary, List<MessageResponseDto> messages)
             throws JsonProcessingException {
-        StringBuilder prompt = new StringBuilder();
-        prompt.append(
-                "Act as a conversation memory compressor for Notebook chat. Update the notebook conversation summary for long-term memory. ");
-        prompt.append(
-                "Write in the same language as the conversation. Prioritize: requirements, tasks, plans, assumptions, decisions, unresolved action items, and key references from exchanged content. ");
-        prompt.append(
-                "Do not include greetings, filler, duplicated wording, or markdown bullets unless essential. Return only the updated summary text.\n\n");
-        prompt.append("Existing summary:\n");
-        prompt.append(isBlank(existingSummary) ? "(none)" : existingSummary);
-        prompt.append("\n\nNew messages to absorb:\n");
+        SummaryResult result = summarize(existingSummary, messages, AiPromptTemplates::noteBookSummaryPrompt);
+        return result == null ? null : result.summary();
+    }
 
-        for (MessageResponseDto message : messages) {
-            prompt.append(message.getType()).append(": ").append(message.getContent()).append('\n');
-        }
-
-        prompt.append("\nUpdated summary:");
-
+    /**
+     * Tạo request completion "thuần AI" (không metadata đặc trưng) cho các tác vụ
+     * phụ trợ như sinh tiêu đề / nén hội thoại.
+     * <p>
+     * Dùng UUID ngẫu nhiên cho {@code user_id}/{@code organization_id} vì đây là tác vụ
+     * nội bộ, không truy vấn dữ liệu theo quyền của người dùng (scopes chỉ gồm
+     * {@code personal}). Các request này cũng không stream.
+     *
+     * @param prompt prompt hoàn chỉnh
+     * @return request DTO đã áp dụng AI settings
+     */
+    private RagCompletionRequestDto buildSimpleCompletionRequest(String prompt) {
         RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
         metadata.setUserId(UUID.randomUUID());
         metadata.setOrganizationId(UUID.randomUUID());
         metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
 
-        RagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(RagCompletionRequestDto.builder()
-                .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt.toString())))
-                .stream(false))
+        return applyAiSettings(RagCompletionRequestDto.builder()
+                .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
+                .stream(false), false)
                 .metadata(metadata)
                 .build();
+    }
 
-        return generateString(ragCompletionRequestDto);
+    /**
+     * Gọi {@link #generateString(RagCompletionRequestDto)} rồi làm sạch kết quả.
+     * <p>
+     * Chặn độ dài đầu ra là rào chắn cuối cùng chống việc model nhỏ phình to output:
+     * tiêu đề quá dài làm vỡ layout, summary phình to dần sẽ lấp đầy ngân sách input
+     * của các lần nén sau. Giới hạn ký tự tính từ số từ xấp xỉ (một từ tiếng Việt/Anh
+     * trung bình khoảng {@value #APPROX_CHARS_PER_WORD} ký tự).
+     *
+     * @param requestDto        request completion
+     * @param collapseToOneLine true nếu kết quả phải là một dòng (dùng cho tiêu đề)
+     * @param maxWords          số từ tối đa (0 = không giới hạn)
+     * @return nội dung đã làm sạch, hoặc {@code null} nếu rỗng
+     */
+    private String generateSanitizedString(RagCompletionRequestDto requestDto, boolean collapseToOneLine, int maxWords) {
+        String raw = generateString(requestDto);
+        if (raw == null) {
+            return null;
+        }
+
+        int maxChars = maxWords > 0 ? maxWords * APPROX_CHARS_PER_WORD : 0;
+        return AiTextSanitizer.sanitize(raw, collapseToOneLine, maxChars);
+    }
+
+    /**
+     * Overload không giới hạn độ dài (dùng cho các tác vụ không cần clamp).
+     */
+    private String generateSanitizedString(RagCompletionRequestDto requestDto, boolean collapseToOneLine) {
+        return generateSanitizedString(requestDto, collapseToOneLine, 0);
+    }
+
+    /**
+     * Cắt ngắn nội dung đầu vào theo ngân sách ký tự trước khi đưa vào prompt.
+     *
+     * @param value     nội dung gốc
+     * @param maxLength số ký tự tối đa (nếu &lt;= 0 thì bỏ qua giới hạn)
+     * @return nội dung đã cắt
+     */
+    private String truncateForPrompt(String value, int maxLength) {
+        return AiTextSanitizer.truncate(value, maxLength);
+    }
+
+    /**
+     * Chuẩn hóa summary cũ trước khi đưa vào prompt; trả về placeholder khi chưa có.
+     */
+    private String normalizeExistingSummary(String existingSummary) {
+        if (isBlank(existingSummary)) {
+            return AiPromptTemplates.NO_EXISTING_SUMMARY;
+        }
+        return existingSummary.replaceAll("\\s+", " ").trim();
+    }
+
+    /**
+     * Ghép các tin nhắn mới thành block text dạng {@code Role: nội dung} để đưa vào prompt.
+     * <p>
+     * Áp dụng hai biện pháp bảo vệ cần thiết cho model nhỏ:
+     * <ul>
+     *   <li><b>Cắt ngắn từng tin nhắn</b> ({@value #DEFAULT_MESSAGE_MAX_CHARS} ký tự) —
+     *       nội dung assistant có thể chứa JSON source/reasoning rất dài.</li>
+     *   <li><b>Cắt bớt tin nhắn cũ nhất</b> khi tổng block vượt ngân sách
+     *       {@code ai.summary.maxInputChars}, nhưng giữ lại các tin nhắn gần nhất vì
+     *       chúng mang ngữ cảnh mới nhất.</li>
+     * </ul>
+     *
+     * @param messages danh sách tin nhắn mới
+     * @return block text đã chuẩn hóa
+     */
+    private ConversationBlock buildConversationBlock(List<MessageResponseDto> messages) {
+        if (messages == null || messages.isEmpty()) {
+            return new ConversationBlock(AiPromptTemplates.NO_MESSAGES, null);
+        }
+
+        int budget = summaryMaxInputChars();
+        int perMessageLimit = Math.min(DEFAULT_MESSAGE_MAX_CHARS,
+                budget > 0 ? Math.max(1, budget / messages.size()) : DEFAULT_MESSAGE_MAX_CHARS);
+
+        List<MessageResponseDto> prepared = new ArrayList<>(messages.size());
+        List<String> lines = new ArrayList<>(messages.size());
+        for (MessageResponseDto message : messages) {
+            String content = message.getContent() == null ? "" : message.getContent().trim();
+            if (content.isEmpty()) {
+                continue;
+            }
+            if (content.length() > perMessageLimit) {
+                content = content.substring(0, perMessageLimit) + "...(lược bớt)";
+            }
+            prepared.add(message);
+            lines.add(toDisplayRole(message.getType()) + ": " + content);
+        }
+
+        if (lines.isEmpty()) {
+            return new ConversationBlock(AiPromptTemplates.NO_MESSAGES, null);
+        }
+
+        // Duyệt từ cuối về đầu để ưu tiên tin nhắn gần nhất khi vượt ngân sách
+        Deque<String> kept = new ArrayDeque<>();
+        int used = 0;
+        int keptCount = 0;
+        for (int i = lines.size() - 1; i >= 0; i--) {
+            String line = lines.get(i);
+            int cost = line.length() + 1;
+            if (budget > 0 && used + cost > budget && !kept.isEmpty()) {
+                break;
+            }
+            kept.addFirst(line);
+            used += cost;
+            keptCount++;
+        }
+
+        boolean truncated = keptCount < lines.size();
+        // Tin nhắn cuối cùng thực sự được đưa vào prompt → dùng làm checkpoint để phần bị
+        // lược bớt sẽ được tóm tắt ở lần chạy sau, không bị mất ngữ cảnh vĩnh viễn.
+        UUID lastMessageId = prepared.get(keptCount - 1).getId();
+
+        StringBuilder block = new StringBuilder();
+        if (truncated) {
+            block.append("...(một số tin nhắn cũ đã được lược bớt)\n");
+        }
+        block.append(String.join("\n", kept));
+        return new ConversationBlock(block.toString(), lastMessageId);
+    }
+
+    /**
+     * Chuyển {@code type} thô của message sang nhãn hiển thị thân thiện để model
+     * phân biệt được vai trò người dùng và trợ lý.
+     * <p>
+     * Trước đây prompt dùng thẳng giá trị thô ({@code "user"} / {@code "assistant"})
+     * gây khó hiểu cho các model nhỏ; nhãn {@code User}/{@code Assistant} rõ ràng hơn.
+     */
+    private String toDisplayRole(String type) {
+        if (type == null) {
+            return "Unknown";
+        }
+        return switch (type.trim().toLowerCase()) {
+            case "user" -> "User";
+            case "assistant" -> "Assistant";
+            default -> type;
+        };
     }
 
     private String buildSummaryMetadata(TopicEntity topicEntity) {
@@ -1090,6 +1276,40 @@ public class RagService {
         return configured;
     }
 
+    /** Ngân sách ký tự input cho prompt sinh tiêu đề (setting {@code ai.title.maxInputChars}). */
+    private int titleMaxInputChars() {
+        return readPositiveConfig(systemSettingService.getString("ai.title.maxInputChars", null),
+                DEFAULT_TITLE_MAX_INPUT_CHARS);
+    }
+
+    /** Ngân sách ký tự input cho prompt nén summary (setting {@code ai.summary.maxInputChars}). */
+    private int summaryMaxInputChars() {
+        return readPositiveConfig(systemSettingService.getString("ai.summary.maxInputChars", null),
+                DEFAULT_SUMMARY_MAX_INPUT_CHARS);
+    }
+
+    /** Ngân sách từ cho summary đầu ra (setting {@code ai.summary.maxWords}). */
+    private int summaryMaxWords() {
+        return readPositiveConfig(systemSettingService.getString("ai.summary.maxWords", null),
+                DEFAULT_SUMMARY_MAX_WORDS);
+    }
+
+    /**
+     * Đọc cấu hình số nguyên dạng chuỗi; trả về mặc định nếu null/không parse được/&lt;= 0.
+     */
+    private int readPositiveConfig(String configured, int defaultValue) {
+        if (isBlank(configured)) {
+            return defaultValue;
+        }
+        try {
+            int parsed = Integer.parseInt(configured.trim());
+            return parsed > 0 ? parsed : defaultValue;
+        } catch (NumberFormatException exception) {
+            log.warn("Giá trị cấu hình không hợp lệ '{}', sử dụng mặc định {}", configured, defaultValue);
+            return defaultValue;
+        }
+    }
+
     /**
      * Áp dụng cấu hình AI từ system settings vào một {@code SuperBuilder} builder.
      * <p>
@@ -1109,21 +1329,44 @@ public class RagService {
      * @return builder đã được apply AI settings
      */
     private <B extends RagCompletionRequestDto.RagCompletionRequestDtoBuilder<?, ?>> B applyAiSettings(B builder) {
+        return applyAiSettings(builder, true);
+    }
+
+    /**
+     * Áp dụng cấu hình AI từ system settings vào builder, có thể bỏ qua temperature.
+     * <p>
+     * Các tác vụ phụ trợ cần kết quả <b>tất định</b> (sinh tiêu đề, nén summary) nên
+     * không dùng temperature của chat: temperature cao khiến model nhỏ sinh tiêu đề
+     * lan man, thêm lời dẫn hoặc bịa chi tiết. Vì vậy các tác vụ này override
+     * temperature về {@value #DETERMINISTIC_TEMPERATURE} và chặn phần suy luận dài;
+     * {@code ai.model} và {@code ai.maxTokens} vẫn được áp dụng bình thường.
+     *
+     * @param builder            builder super-builder của DTO
+     * @param applyConfiguredTemperature {@code false} để force temperature tất định
+     * @param <B>                kiểu builder (self-type)
+     * @return builder đã được apply AI settings
+     */
+    private <B extends RagCompletionRequestDto.RagCompletionRequestDtoBuilder<?, ?>> B applyAiSettings(
+            B builder, boolean applyConfiguredTemperature) {
         String model = systemSettingService.getString("ai.model", "");
         if (!isBlank(model)) {
             builder.model(model);
         }
-        double temperature = systemSettingService.getDouble("ai.temperature", -1);
-        if (temperature >= 0) {
-            builder.temperature(temperature);
+        if (applyConfiguredTemperature) {
+            double temperature = systemSettingService.getDouble("ai.temperature", -1);
+            if (temperature >= 0) {
+                builder.temperature(temperature);
+            }
+        } else {
+            builder.temperature(DETERMINISTIC_TEMPERATURE);
         }
         int maxTokens = systemSettingService.getInt("ai.maxTokens", -1);
         if (maxTokens > 0) {
             builder.maxTokens(maxTokens);
         }
 
-        log.info("Applied AI settings: model={}, temperature={}, maxTokens={}", model, temperature, maxTokens);
-        log.info("RagCompletionRequestDto builder: {}", builder);
+        log.info("Applied AI settings: model={}, temperatureApplied={}, maxTokens={}",
+                model, applyConfiguredTemperature, maxTokens);
 
         return builder;
     }

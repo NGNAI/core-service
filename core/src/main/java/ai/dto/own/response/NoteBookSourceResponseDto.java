@@ -24,6 +24,11 @@ public class NoteBookSourceResponseDto extends AuditResponseDto {
     String rawContent;
     String filePath;
     String summary;
+    /**
+     * Trạng thái sinh summary (source-guide NotebookLM): PROCESSING / COMPLETED / FAILED.
+     * FE dùng để hiển thị spinner hoặc cảnh báo thay vì hiển thị vùng summary trống.
+     */
+    NoteBookSourceEntity.SummaryStatus summaryStatus;
     String metadata;
     NoteBookSourceEntity.VectorStatus vectorStatus;
     UUID jobId;

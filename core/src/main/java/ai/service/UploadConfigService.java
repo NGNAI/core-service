@@ -146,7 +146,7 @@ public class UploadConfigService {
             String[] allowedExtensions = allowedTypes.toLowerCase(Locale.ROOT).split("\\s*,\\s*");
             boolean allowed = false;
             for (String ext : allowedExtensions) {
-                if (ext.equals(extension.toLowerCase(Locale.ROOT))) {
+                if (ext.trim().equals(extension.trim().toLowerCase(Locale.ROOT))) {
                     allowed = true;
                     break;
                 }

@@ -49,13 +49,28 @@ public interface NoteBookSourceRepository extends JpaRepository<NoteBookSourceEn
         """)
         List<NoteBookSourceEntity> findSourcesForIngestionMaintenance(@Param("maxRetry") int maxRetry);
 
+    /**
+     * Tìm các source COMPLETED nhưng chưa có summary, còn trong giới hạn retry.
+     * <p>
+     * Loại trừ source đã đánh dấu {@code summaryStatus = FAILED} hoặc đã vượt
+     * {@code maxRetry} lần thử, để scheduler không poll vô hạn với source mà RAG service
+     * không bao giờ sinh được source-guide (vd source tạo trước khi bật tính năng).
+     *
+     * @param maxRetry số lần thử tối đa cho phép
+     * @param pageable giới hạn batch
+     * @return danh sách source cần đồng bộ summary
+     */
     @Query("""
             SELECT ns FROM NoteBookSourceEntity ns
             WHERE ns.deleteStatus = ai.enums.DataIngestionDeleteStatus.ACTIVE
                 AND ns.vectorStatus = ai.entity.postgres.NoteBookSourceEntity.VectorStatus.COMPLETED
                 AND (ns.summary IS NULL OR ns.summary = '')
+                AND (ns.summaryStatus IS NULL
+                    OR (ns.summaryStatus = ai.entity.postgres.NoteBookSourceEntity.SummaryStatus.PROCESSING
+                        AND (ns.summaryRetryCount IS NULL OR ns.summaryRetryCount < :maxRetry)))
+            ORDER BY ns.audit.createdAt ASC
             """)
-    List<NoteBookSourceEntity> findCompletedWithoutSummary(Pageable pageable);
+    List<NoteBookSourceEntity> findCompletedWithoutSummary(@Param("maxRetry") int maxRetry, Pageable pageable);
 
     @Query("SELECT COUNT(ns) FROM NoteBookSourceEntity ns WHERE ns.noteBook.id = :noteBookId")
     long countByNoteBookId(UUID noteBookId);

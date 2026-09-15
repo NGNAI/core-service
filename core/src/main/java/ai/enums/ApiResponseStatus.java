@@ -114,6 +114,7 @@ public enum ApiResponseStatus {
     NOTEBOOK_SOURCE_JOB_ID_NOT_EXISTS(1068, "Notebook source job id not exists", HttpStatus.BAD_REQUEST),
     NOTEBOOK_SOURCE_DELETE_IN_PROGRESS(1069, "Notebook source deletion is in progress", HttpStatus.CONFLICT),
     NOTEBOOK_SOURCE_DELETE_FAILED(1070, "Notebook source delete failed", HttpStatus.BAD_REQUEST),
+    NOTEBOOK_SOURCE_NOT_COMPLETED(1200, "Notebook source has not completed vector processing yet", HttpStatus.CONFLICT),
 
     // ========================================================================
     // NOTE - 1071..1081

@@ -40,6 +40,21 @@ public class RagSourceGuideRequestDto {
     @JsonProperty("force_regenerate")
     boolean forceRegenerate;
 
+    /**
+     * Ngôn ngữ mong muốn của summary (vd {@code "vi"}, {@code "en"}).
+     * Giúp model không trả về sai ngôn ngữ khi tài liệu nguồn đa ngôn ngữ.
+     */
+    @JsonProperty("language")
+    String language;
+
+    /**
+     * Chỉ dẫn sinh nội dung dành cho model (tone, cấu trúc, độ dài, những gì cần/không cần đưa vào).
+     * Đây là cách neo chất lượng summary cho các model nhỏ như {@code gpt-oss-20b}
+     * thay vì để model tự suy diễn định dạng đầu ra.
+     */
+    @JsonProperty("generation_instruction")
+    String generationInstruction;
+
     /** URL để RAG service callback kết quả source-guide về core-service */
     @JsonProperty("callback_url")
     String callbackUrl;

@@ -276,6 +276,19 @@ public class NoteBookUserController {
                         .build());
     }
 
+    @Operation(summary = "Regenerate notebook source guide summary",
+            description = "Yêu cầu sinh lại summary (source-guide) cho một source notebook. Dùng khi summary trước đó FAILED (cạn retry) hoặc muốn làm mới nội dung. Source chưa hoàn thành embedding sẽ bị từ chối.")
+    @PostMapping("/{noteBookId}/sources/{sourceId}/source-guide/regenerate")
+    ResponseEntity<ApiResponseModel<NoteBookSourceResponseDto>> regenerateSourceGuide(
+            @PathVariable UUID noteBookId,
+            @PathVariable UUID sourceId) {
+        return ResponseEntity.ok(
+                ApiResponseModel.<NoteBookSourceResponseDto>builder()
+                        .message("Regenerate source guide summary successfully")
+                        .data(noteBookSourceService.regenerateSourceGuide(noteBookId, sourceId))
+                        .build());
+    }
+
     @Operation(summary = "Receive notebook source ingestion callback status", description = "Webhook endpoint để ingestion service callback trạng thái embedding notebook source")
     @PostMapping(value = "/sources/ingestion/webhook/status", consumes = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<ApiResponseModel<NoteBookSourceJobStatusResponseDto>> ingestionWebhookStatus(
