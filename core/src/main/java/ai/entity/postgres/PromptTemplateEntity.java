@@ -37,7 +37,8 @@ import lombok.experimental.FieldDefaults;
  *   <li>{@code scope = SYSTEM} — admin tạo, dùng chung cho tất cả org (global), {@code owner = null}, {@code organization = null}.</li>
  *   <li>{@code scope = USER} — người dùng tự tạo, gắn với {@code owner} (user) và {@code organization} (org của user).</li>
  * </ul>
- * {@code promptType} xác định prompt dùng cho loại chatbot nào (TOPIC / NOTEBOOK / BOTH).
+ * {@code promptType} xác định prompt dùng cho loại chatbot nào (TOPIC / NOTEBOOK).
+ * Prompt dùng chung cho cả hai thì tạo 2 record riêng biệt.
  */
 @Getter
 @Setter
@@ -73,7 +74,7 @@ public class PromptTemplateEntity {
     String content;
 
     /**
-     * Loại chatbot mà prompt phục vụ: TOPIC / NOTEBOOK / BOTH.
+     * Loại chatbot mà prompt phục vụ: TOPIC / NOTEBOOK.
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "prompt_type", nullable = false, length = 32)

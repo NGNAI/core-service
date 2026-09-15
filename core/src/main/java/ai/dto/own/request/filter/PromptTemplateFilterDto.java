@@ -30,7 +30,7 @@ public class PromptTemplateFilterDto extends PageableFilterDto {
     @Schema(description = "Tìm theo keyword trong title hoặc content")
     String keyword;
 
-    @Schema(description = "Lọc theo loại chatbot: TOPIC / NOTEBOOK / BOTH")
+    @Schema(description = "Lọc theo loại chatbot: TOPIC / NOTEBOOK")
     PromptType promptType;
 
     @Schema(description = "Lọc theo phạm vi: SYSTEM / USER (chủ yếu cho admin)")

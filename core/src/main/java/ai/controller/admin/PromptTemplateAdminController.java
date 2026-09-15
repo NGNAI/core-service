@@ -59,7 +59,7 @@ public class PromptTemplateAdminController {
         );
     }
 
-    @Operation(summary = "Get prompt types", description = "Lấy danh sách loại prompt khả dụng (TOPIC / NOTEBOOK / BOTH)")
+    @Operation(summary = "Get prompt types", description = "Lấy danh sách loại prompt khả dụng (TOPIC / NOTEBOOK)")
     @GetMapping("/types")
     @PreAuthorize("@adminAccessGuard.isAllowed()")
     ResponseEntity<ApiResponseModel<List<PromptType>>> types() {

@@ -26,7 +26,7 @@ public class PromptTemplateUpdateRequestDto {
     @Schema(description = "Nội dung prompt")
     String content;
 
-    @Schema(description = "Loại chatbot: TOPIC / NOTEBOOK / BOTH")
+    @Schema(description = "Loại chatbot: TOPIC / NOTEBOOK")
     PromptType promptType;
 
     @Schema(description = "Thứ tự hiển thị")
