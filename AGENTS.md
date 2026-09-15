@@ -79,6 +79,16 @@ Hướng dẫn cho AI agents làm việc trong repo `core-service`.
 - **Share link public** (Topic/Notebook read-only) — xem `docs/share-link-feature.md`
 - **Quick Prompt Template** (prompt mẫu cho chat Topic/NotebookLM — SYSTEM global + USER cá nhân) — xem `docs/prompt-template-feature.md`
 - **Upload config** (rào chắn upload file: số lượng file/lần, dung lượng mỗi file, loại file, tổng source notebook) — xem `docs/upload-config-feature.md`
+- **Tối ưu prompt AI** (sinh tiêu đề, rolling summary, source-guide summary — chống reasoning model trả kèm phần suy luận/sai ngôn ngữ) — xem `docs/ai-prompt-optimization.md`
+
+## Prompt AI & sinh văn bản
+- Prompt tập trung tại `ai/constant/AiPromptTemplates.java` (tiêu đề, rolling summary); source-guide instruction ở `NotebookSourceSummaryConfig`.
+- Làm sạch output LLM bằng `ai/util/AiTextSanitizer.java` (bỏ `<thinking>`, nhãn `Title:`/`Summary:`, câu dẫn, dấu nháy, đuôi bịa thêm) — **luôn sanitize trước khi lưu DB**.
+- Ngân sách input/output đọc từ System Settings: `ai.title.maxInputChars` (2000), `ai.summary.maxInputChars` (12000), `ai.summary.maxWords` (300).
+- Tác vụ phụ trợ force `temperature = 0.2` (tất định) thay vì dùng `ai.temperature` của chat.
+- Rolling summary: checkpoint chỉ tiến tới tin nhắn cuối **thực sự** được đưa vào prompt (phần bị cắt theo ngân sách sẽ được tóm tắt ở lần chạy sau).
+- Source-guide summary có vòng đời `PROCESSING → COMPLETED/FAILED` (cột `summary_status`, `summary_retry_count`, `summary_error`, migration `V32`); tối đa 5 lần retry (setting `ai.sourceGuide.maxRetryAttempts`) rồi dừng để tránh poll vô hạn; GET trả `not_found` thì re-trigger POST; callback `failed`/summary rỗng đều tăng retry; API regenerate `POST /user/notebooks/{noteBookId}/sources/{sourceId}/source-guide/regenerate` reset retry và force regenerate.
+- Clamp độ dài đầu ra LLM: title 15 từ (~105 ký tự), summary theo `ai.summary.maxWords` × ~7 ký tự/từ — cắt tại ranh giới từ, chống summary phình to dần.
 
 ## Upload config (rào chắn upload file)
 - Cấu hình giới hạn upload theo từng loại (Topic/Notebook/Draft/Data-Ingestion) lưu trong **System Settings DB** (group `UPLOAD`, `isPublic=true`), đọc qua `UploadConfigService` (`ai/service/UploadConfigService.java`) với default fallback hằng số.

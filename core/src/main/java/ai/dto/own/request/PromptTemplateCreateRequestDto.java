@@ -29,7 +29,7 @@ public class PromptTemplateCreateRequestDto {
     @NotBlank(message = "PROMPT_TEMPLATE_CONTENT_CAN_NOT_BE_NULL_OR_EMPTY")
     String content;
 
-    @Schema(description = "Loại chatbot mà prompt phục vụ: TOPIC / NOTEBOOK / BOTH", example = "TOPIC")
+    @Schema(description = "Loại chatbot mà prompt phục vụ: TOPIC / NOTEBOOK. Muốn dùng chung cả hai thì tạo 2 prompt riêng.", example = "TOPIC")
     @NotNull(message = "PROMPT_TEMPLATE_TYPE_CAN_NOT_BE_NULL_OR_EMPTY")
     PromptType promptType;
 

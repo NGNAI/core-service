@@ -47,6 +47,16 @@ public class NoteBookSourceEntity {
         FAILED
     }
 
+    /**
+     * Trạng thái sinh source-guide summary (NotebookLM).
+     * Dùng để scheduler biết source nào cần retry và khi nào nên dừng (tránh poll vô hạn).
+     */
+    public static enum SummaryStatus {
+        PROCESSING, // Đã trigger, đang chờ RAG service sinh summary
+        COMPLETED, // Đã có summary
+        FAILED // Sinh summary thất bại quá số lần cho phép
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", nullable = false, updatable = false)
@@ -75,6 +85,23 @@ public class NoteBookSourceEntity {
 
     @Column(name = "summary", columnDefinition = "TEXT", nullable = true)
     String summary;
+
+    /**
+     * Trạng thái sinh summary (source-guide NotebookLM). NULL = chưa từng trigger.
+     * Xem {@link SummaryStatus}.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "summary_status", length = 32, nullable = true)
+    SummaryStatus summaryStatus;
+
+    /** Số lần thử sinh summary thất bại liên tiếp, dùng để giới hạn retry trong scheduler. */
+    @Builder.Default
+    @Column(name = "summary_retry_count")
+    Integer summaryRetryCount = 0;
+
+    /** Thông báo lỗi gần nhất khi sinh summary (từ RAG service), phục vụ debug. */
+    @Column(name = "summary_error", columnDefinition = "TEXT", nullable = true)
+    String summaryError;
 
     // Metadata bổ sung dạng JSON string (tag, nhãn, v.v.)
     @Column(name = "metadata", columnDefinition = "TEXT", nullable = true)

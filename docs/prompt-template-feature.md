@@ -14,9 +14,12 @@ Có 2 nguồn prompt:
 
 | Giá trị  | Ý nghĩa                                  |
 |----------|------------------------------------------|
-| `TOPIC`  | Chỉ dùng cho chat với Topic.             |
-| `NOTEBOOK` | Chỉ dùng cho chat với NotebookLM.      |
-| `BOTH`   | Dùng được cho cả Topic lẫn NotebookLM.   |
+| `TOPIC`  | Dùng cho chat với Topic.                 |
+| `NOTEBOOK` | Dùng cho chat với NotebookLM.          |
+
+> **Mỗi prompt chỉ thuộc đúng 1 loại.** Prompt dùng chung cho cả Topic lẫn Notebook thì tạo **2 record riêng** (1 `TOPIC` + 1 `NOTEBOOK`) với cùng `content`.
+>
+> Trước đây có giá trị gộp `BOTH` nhưng đã **bỏ** vì: (1) lọc `promptType=TOPIC` sẽ làm mất luôn prompt `BOTH` do logic dùng `equal`; (2) không mở rộng được — nếu thêm loại chatbot thứ 3 thì `BOTH` không còn nghĩa "dùng cho tất cả". Migration `V34` tách dữ liệu `BOTH` cũ thành 2 record tương ứng.
 
 ## Luồng truy cập
 
@@ -40,7 +43,7 @@ Có 2 nguồn prompt:
 - `GET /access` — kiểm tra token hiện tại có quyền truy cập admin APIs (trả `Boolean`, không cần `@PreAuthorize`).
 
 ### Dùng chung (`/category`)
-- `GET /category/prompt-types` — danh sách PromptType (TOPIC / NOTEBOOK / BOTH) cho mọi authenticated user.
+- `GET /category/prompt-types` — danh sách PromptType (TOPIC / NOTEBOOK) cho mọi authenticated user.
 
 ## Quy tắc nghiệp vụ
 
@@ -72,3 +75,5 @@ Có 2 nguồn prompt:
 ## Seed data
 
 Migration `V22` chèn sẵn **15 system prompt** (5 TOPIC, 5 NOTEBOOK, 5 BOTH) bằng UUID cố định + `ON CONFLICT DO NOTHING` (idempotent), để luôn có mẫu khi deploy.
+
+> Migration `V34` đã tách 5 prompt `BOTH` đó thành 5 `TOPIC` + 5 `NOTEBOOK` (giữ nguyên nội dung). `V22` giữ nguyên giá trị lịch sử, `V34` là bước migrate dữ liệu.

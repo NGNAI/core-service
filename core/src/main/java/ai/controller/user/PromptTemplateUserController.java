@@ -45,7 +45,7 @@ public class PromptTemplateUserController {
 
     PromptTemplateService promptTemplateService;
 
-    @Operation(summary = "Get prompt types", description = "Lấy danh sách loại prompt khả dụng (TOPIC / NOTEBOOK / BOTH)")
+    @Operation(summary = "Get prompt types", description = "Lấy danh sách loại prompt khả dụng (TOPIC / NOTEBOOK)")
     @GetMapping("/types")
     ResponseEntity<ApiResponseModel<List<PromptType>>> types() {
         return ResponseEntity.ok(
