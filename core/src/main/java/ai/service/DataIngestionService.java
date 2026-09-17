@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -107,17 +109,151 @@ public class DataIngestionService {
     private void syncSingleIngestionStatus(DataIngestionEntity dataIngestion) {
         if (dataIngestion.getJobId() == null) {
             log.warn("Data ingestion has non-final status but no jobId, marking FAILED. id={}", dataIngestion.getId());
-            if (!IngestionStatus.FAILED.equals(dataIngestion.getIngestionStatus())) {
-                dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
-                dataIngestionRepository.save(dataIngestion);
-            }
-            evictDataIngestionDetailsCache(dataIngestion.getId());
+            markSyncFailed(dataIngestion, "Data ingestion không có jobId dù trạng thái chưa final");
             return;
         }
 
-        IngestionStatusResponseDto statusResponse = ingestionService.getJobStatus(dataIngestion.getJobId());
+        IngestionStatusResponseDto statusResponse;
+        try {
+            statusResponse = ingestionService.getJobStatus(dataIngestion.getJobId());
+        } catch (IngestionServiceException exception) {
+            handleSyncFailure(dataIngestion, exception);
+            return;
+        }
+
+        // Đọc trạng thái thành công → reset bộ đếm lỗi liên tiếp (nếu trước đó có lỗi tạm thời)
+        resetSyncFailureCount(dataIngestion);
+
+        // Chốt dự phòng cuối: nếu RAG trả về mãi một trạng thái non-final (không bao giờ final),
+        // đánh dấu FAILED sau khi vượt max-status-stale-minutes để dừng poll vô hạn.
+        if (isStaleNonFinal(dataIngestion, statusResponse)) {
+            markSyncFailed(dataIngestion, "Ingestion job kẹt ở trạng thái trung gian quá lâu");
+            return;
+        }
+
         updateStatusAndBuildResponse(dataIngestion, statusResponse, true);
         evictDataIngestionDetailsCache(dataIngestion.getId());
+    }
+
+    /**
+     * Xử lý khi đồng bộ trạng thái ingestion thất bại. Phân biệt 2 loại lỗi:
+     * <ul>
+     *   <li><b>Lỗi vĩnh viễn (404 — job không tồn tại trên RAG):</b> poll lại chắc chắn vẫn thất bại
+     *       → đánh dấu FAILED ngay để dừng vòng lặp vô hạn.</li>
+     *   <li><b>Lỗi tạm thời (timeout, mất kết nối, 5xx):</b> tăng bộ đếm lỗi liên tiếp;
+     *       chỉ đánh dấu FAILED khi vượt ngưỡng {@code maintenance.max-status-sync-failures},
+     *       còn lại giữ nguyên trạng thái để lần scheduler sau thử lại.</li>
+     * </ul>
+     *
+     * @param dataIngestion entity đang đồng bộ
+     * @param exception     ngoại lệ từ ingestion service
+     */
+    private void handleSyncFailure(DataIngestionEntity dataIngestion, IngestionServiceException exception) {
+        if (exception.isNotFound()) {
+            log.warn("Ingestion job not found on RAG service, marking data ingestion FAILED to stop polling. id={}, jobId={}",
+                    dataIngestion.getId(), dataIngestion.getJobId());
+            markSyncFailed(dataIngestion, resolveIngestionError(exception));
+            return;
+        }
+
+        int failures = incrementSyncFailureCount(dataIngestion);
+        int maxFailures = resolveMaxStatusSyncFailures();
+        if (failures >= maxFailures) {
+            log.warn("Ingestion status sync failed {} consecutive times (>= {}), marking data ingestion FAILED. id={}, jobId={}",
+                    failures, maxFailures, dataIngestion.getId(), dataIngestion.getJobId());
+            markSyncFailed(dataIngestion, resolveIngestionError(exception));
+            return;
+        }
+
+        log.warn("Ingestion status sync failed ({}/{}) for data ingestion id={}, jobId={}, will retry. error={}",
+                failures, maxFailures, dataIngestion.getId(), dataIngestion.getJobId(), exception.getMessage());
+        dataIngestionRepository.save(dataIngestion);
+        evictDataIngestionDetailsCache(dataIngestion.getId());
+    }
+
+    /**
+     * Đánh dấu data ingestion là FAILED (kèm lý do) để dừng mọi vòng poll tiếp theo,
+     * đồng thời phát event SSE cho client biết và xóa cache chi tiết.
+     */
+    private void markSyncFailed(DataIngestionEntity dataIngestion, String reason) {
+        if (IngestionStatus.FAILED.equals(dataIngestion.getIngestionStatus())) {
+            return;
+        }
+
+        dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
+        dataIngestion.setIngestionError(reason);
+        dataIngestionRepository.save(dataIngestion);
+        evictDataIngestionDetailsCache(dataIngestion.getId());
+
+        if (dataIngestion.getOwner() != null && dataIngestion.getOrganization() != null) {
+            systemEventSseService.publish(
+                    dataIngestion.getOrganization().getId(),
+                    dataIngestion.getOwner().getId(),
+                    SystemEventType.DATA_INGESTION_FAILED,
+                    SystemEventSource.DATA_INGESTION,
+                    dataIngestionMapper.entityToResponseDto(dataIngestion));
+        }
+    }
+
+    /**
+     * Kiểm tra job có đang kẹt ở trạng thái non-final quá lâu hay không.
+     * Dựa trên thời điểm cập nhật cuối của record: nếu trạng thái trả về vẫn non-final và
+     * record không được cập nhật trong khoảng {@code maintenance.max-status-stale-minutes}
+     * thì coi như job treo (RAG không bao giờ chuyển final).
+     */
+    private boolean isStaleNonFinal(DataIngestionEntity dataIngestion, IngestionStatusResponseDto statusResponse) {
+        IngestionStatus resolvedStatus = resolveStatus(
+                statusResponse == null ? null : statusResponse.getStatus(),
+                dataIngestion.getIngestionStatus());
+        if (IngestionStatus.COMPLETED.equals(resolvedStatus) || IngestionStatus.FAILED.equals(resolvedStatus)) {
+            return false;
+        }
+
+        Instant updatedAt = dataIngestion.getAudit() == null ? null : dataIngestion.getAudit().getUpdatedAt();
+        if (updatedAt == null) {
+            return false;
+        }
+
+        long staleMinutes = resolveMaxStatusStaleMinutes();
+        return updatedAt.plus(Duration.ofMinutes(staleMinutes)).isBefore(Instant.now());
+    }
+
+    /**
+     * Lấy ngưỡng số lần đồng bộ trạng thái thất bại liên tiếp tối đa (mặc định 5).
+     */
+    private int resolveMaxStatusSyncFailures() {
+        if (appProperties.getMaintenance() == null
+                || appProperties.getMaintenance().getMaxStatusSyncFailures() == null
+                || appProperties.getMaintenance().getMaxStatusSyncFailures() <= 0) {
+            return 5;
+        }
+        return appProperties.getMaintenance().getMaxStatusSyncFailures();
+    }
+
+    /**
+     * Lấy ngưỡng thời gian kẹt trạng thái trung gian tối đa, tính bằng phút (mặc định 180).
+     */
+    private int resolveMaxStatusStaleMinutes() {
+        if (appProperties.getMaintenance() == null
+                || appProperties.getMaintenance().getMaxStatusStaleMinutes() == null
+                || appProperties.getMaintenance().getMaxStatusStaleMinutes() <= 0) {
+            return 180;
+        }
+        return appProperties.getMaintenance().getMaxStatusStaleMinutes();
+    }
+
+    private int incrementSyncFailureCount(DataIngestionEntity dataIngestion) {
+        int count = (dataIngestion.getStatusSyncFailureCount() == null ? 0 : dataIngestion.getStatusSyncFailureCount()) + 1;
+        dataIngestion.setStatusSyncFailureCount(count);
+        return count;
+    }
+
+    private void resetSyncFailureCount(DataIngestionEntity dataIngestion) {
+        int current = dataIngestion.getStatusSyncFailureCount() == null ? 0 : dataIngestion.getStatusSyncFailureCount();
+        if (current != 0) {
+            dataIngestion.setStatusSyncFailureCount(0);
+            dataIngestionRepository.save(dataIngestion);
+        }
     }
 
     /**

@@ -391,9 +391,18 @@ auto-ingestion:
 #   (data ingestion + notebook source) khi xóa thất bại.
 # - max-dispatch-retries: số lần thử gửi lại source notebook lên ingestion tối đa.
 #   Nếu vượt -> chuyển trạng thái thất bại để xử lý thủ công.
+# - max-status-sync-failures: số lần đồng bộ trạng thái ingestion/vector thất bại
+#   LIÊN TIẾP tối đa trước khi scheduler đánh dấu FAILED. Áp dụng cho lỗi TẠM THỜI
+#   (timeout, mất kết nối, 5xx). Lỗi 404 (job không tồn tại trên RAG) là vĩnh viễn
+#   nên được xử lý ngay, không đếm. Đặt 0 hoặc âm để dùng mặc định 5.
+# - max-status-stale-minutes: thời gian tối đa (phút) một job được phép kẹt ở trạng
+#   thái trung gian trước khi scheduler đánh dấu FAILED — chặn trường hợp RAG trả về
+#   mãi một trạng thái non-final. Đặt 0 hoặc âm để dùng mặc định 180 phút.
 maintenance:
   max-delete-retries: 5
   max-dispatch-retries: 5
+  max-status-sync-failures: 5
+  max-status-stale-minutes: 180
 
 # ============================================================================
 # SECURITY (cấu hình bổ sung ngoài RBAC)
