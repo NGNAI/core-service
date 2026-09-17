@@ -301,6 +301,15 @@ public enum ApiResponseStatus {
     FILE_COUNT_EXCEEDED(1197, "Number of files exceeds the allowed limit", HttpStatus.BAD_REQUEST),
     TOTAL_SOURCES_EXCEEDED(1198, "Total number of sources exceeds the allowed limit", HttpStatus.BAD_REQUEST),
     INVALID_UPLOAD_TYPE(1199, "Invalid upload type", HttpStatus.BAD_REQUEST),
+
+    // ========================================================================
+    // INGESTION MAINTENANCE - 1201..1205
+    // Dùng cho luồng scheduler đồng bộ trạng thái ingestion (fallback khi RAG mất job
+    // hoặc job kẹt ở trạng thái trung gian quá lâu) — tránh poll vô hạn.
+    // ========================================================================
+    INGESTION_JOB_NOT_FOUND(1201, "Ingestion job not found on ingestion service", HttpStatus.NOT_FOUND),
+    INGESTION_STATUS_STALE(1202, "Ingestion job has been stuck in a non-final status for too long", HttpStatus.CONFLICT),
+    INGESTION_STATUS_SYNC_EXHAUSTED(1203, "Ingestion status sync exceeded the maximum number of attempts", HttpStatus.CONFLICT),
     ;
     int code;
     String message;

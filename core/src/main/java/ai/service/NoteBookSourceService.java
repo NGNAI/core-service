@@ -6,6 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -48,6 +50,7 @@ import ai.enums.SystemEventSource;
 import ai.enums.SystemEventType;
 import ai.enums.UploadType;
 import ai.exception.AppException;
+import ai.exception.IngestionServiceException;
 import ai.mapper.NoteBookSourceMapper;
 import ai.model.CustomPairModel;
 import ai.repository.NoteBookSourceRepository;
@@ -377,13 +380,129 @@ public class NoteBookSourceService {
                     return;
                 }
 
-                IngestionStatusResponseDto statusResponse = ingestionService.getJobStatus(source.getJobId());
+                IngestionStatusResponseDto statusResponse;
+                try {
+                    statusResponse = ingestionService.getJobStatus(source.getJobId());
+                } catch (IngestionServiceException exception) {
+                    handleVectorSyncFailure(source, exception);
+                    return;
+                }
+
+                // Đọc trạng thái thành công → reset bộ đếm lỗi liên tiếp (nếu trước đó có lỗi tạm thời)
+                resetVectorSyncFailureCount(source);
+
+                // Chốt dự phòng cuối: RAG trả về mãi trạng thái non-final → đánh dấu FAILED
+                // sau khi vượt max-status-stale-minutes để dừng poll vô hạn.
+                if (isStaleVectorNonFinal(source, statusResponse)) {
+                    markVectorSyncFailed(source, "Ingestion job kẹt ở trạng thái trung gian quá lâu");
+                    return;
+                }
+
                 updateStatusAndBuildResponse(source, statusResponse, true);
             } catch (Exception exception) {
                 log.error("Error syncing notebook source with ID: {}", source.getId(), exception);
             }
         });
         log.info("Finished syncing notebook source vector statuses.");
+    }
+
+    /**
+     * Xử lý khi đồng bộ trạng thái vector thất bại. Phân biệt 2 loại lỗi:
+     * <ul>
+     *   <li><b>Lỗi vĩnh viễn (404 — job không tồn tại trên RAG):</b> poll lại chắc chắn vẫn thất bại
+     *       → đánh dấu FAILED ngay để dừng vòng lặp vô hạn.</li>
+     *   <li><b>Lỗi tạm thời (timeout, mất kết nối, 5xx):</b> tăng bộ đếm lỗi liên tiếp;
+     *       chỉ đánh dấu FAILED khi vượt ngưỡng {@code maintenance.max-status-sync-failures},
+     *       còn lại giữ nguyên để lần scheduler sau thử lại.</li>
+     * </ul>
+     */
+    private void handleVectorSyncFailure(NoteBookSourceEntity source, IngestionServiceException exception) {
+        if (exception.isNotFound()) {
+            log.warn("Ingestion job not found on RAG service, marking notebook source FAILED to stop polling. id={}, jobId={}",
+                    source.getId(), source.getJobId());
+            markVectorSyncFailed(source, exception.getErrorBody());
+            return;
+        }
+
+        int failures = (source.getStatusSyncFailureCount() == null ? 0 : source.getStatusSyncFailureCount()) + 1;
+        source.setStatusSyncFailureCount(failures);
+        int maxFailures = resolveMaxStatusSyncFailures();
+        if (failures >= maxFailures) {
+            log.warn("Vector status sync failed {} consecutive times (>= {}), marking notebook source FAILED. id={}, jobId={}",
+                    failures, maxFailures, source.getId(), source.getJobId());
+            markVectorSyncFailed(source, exception.getErrorBody());
+            return;
+        }
+
+        log.warn("Vector status sync failed ({}/{}) for notebook source id={}, jobId={}, will retry. error={}",
+                failures, maxFailures, source.getId(), source.getJobId(), exception.getMessage());
+        noteBookSourceRepository.save(source);
+    }
+
+    /**
+     * Đánh dấu source là FAILED (kèm lý do) để dừng mọi vòng poll tiếp theo và phát event SSE.
+     */
+    private void markVectorSyncFailed(NoteBookSourceEntity source, String reason) {
+        if (NoteBookSourceEntity.VectorStatus.FAILED.equals(source.getVectorStatus())) {
+            return;
+        }
+
+        source.setVectorStatus(NoteBookSourceEntity.VectorStatus.FAILED);
+        source = noteBookSourceRepository.save(source);
+        publishStatusEvent(source, NoteBookSourceEntity.VectorStatus.FAILED);
+        log.warn("Notebook source marked FAILED due to status sync failure. id={}, reason={}", source.getId(), reason);
+    }
+
+    /**
+     * Kiểm tra source có đang kẹt ở trạng thái vector non-final quá lâu hay không.
+     */
+    private boolean isStaleVectorNonFinal(NoteBookSourceEntity source, IngestionStatusResponseDto statusResponse) {
+        NoteBookSourceEntity.VectorStatus resolvedStatus = resolveVectorStatus(
+                statusResponse == null ? null : statusResponse.getStatus(),
+                source.getVectorStatus());
+        if (NoteBookSourceEntity.VectorStatus.COMPLETED.equals(resolvedStatus)
+                || NoteBookSourceEntity.VectorStatus.FAILED.equals(resolvedStatus)) {
+            return false;
+        }
+
+        Instant updatedAt = source.getAudit() == null ? null : source.getAudit().getUpdatedAt();
+        if (updatedAt == null) {
+            return false;
+        }
+
+        return updatedAt.plus(Duration.ofMinutes(resolveMaxStatusStaleMinutes())).isBefore(Instant.now());
+    }
+
+    /**
+     * Lấy ngưỡng số lần đồng bộ trạng thái thất bại liên tiếp tối đa (mặc định 5).
+     */
+    private int resolveMaxStatusSyncFailures() {
+        if (appProperties.getMaintenance() == null
+                || appProperties.getMaintenance().getMaxStatusSyncFailures() == null
+                || appProperties.getMaintenance().getMaxStatusSyncFailures() <= 0) {
+            return 5;
+        }
+        return appProperties.getMaintenance().getMaxStatusSyncFailures();
+    }
+
+    /**
+     * Lấy ngưỡng thời gian kẹt trạng thái trung gian tối đa, tính bằng phút (mặc định 180).
+     */
+    private int resolveMaxStatusStaleMinutes() {
+        if (appProperties.getMaintenance() == null
+                || appProperties.getMaintenance().getMaxStatusStaleMinutes() == null
+                || appProperties.getMaintenance().getMaxStatusStaleMinutes() <= 0) {
+            return 180;
+        }
+        return appProperties.getMaintenance().getMaxStatusStaleMinutes();
+    }
+
+    private void resetVectorSyncFailureCount(NoteBookSourceEntity source) {
+        int current = source.getStatusSyncFailureCount() == null ? 0 : source.getStatusSyncFailureCount();
+        if (current != 0) {
+            source.setStatusSyncFailureCount(0);
+            noteBookSourceRepository.save(source);
+        }
     }
 
     /**
@@ -549,6 +668,55 @@ public class NoteBookSourceService {
 
         IngestionStatusResponseDto statusResponse = ingestionService.getJobStatus(source.getJobId());
         return updateStatusAndBuildResponse(source, statusResponse, true);
+    }
+
+    /**
+     * Retry thủ công cho một source notebook đã FAILED.
+     * <p>
+     * Dùng cho trường hợp dự phòng: job trên ingestion service (RAG) không còn tồn tại (404)
+     * hoặc service lỗi liên tục khiến scheduler đánh dấu source FAILED để dừng poll vô hạn.
+     * Phương thức này reset toàn bộ bộ đếm (dispatch/status sync/summary) rồi gửi lại source
+     * lên ingestion service từ đầu.
+     *
+     * @param noteBookId notebook chứa source
+     * @param sourceId   source cần retry
+     * @return source sau khi gửi lại lên ingestion service
+     */
+    @Audited(action = AuditAction.INGEST, resource = AuditResource.NOTEBOOK_SOURCE, resourceIdExpression = "#arg1", description = "Thử lại ingest source notebook: {0}")
+    @Transactional(noRollbackFor = AppException.class)
+    public NoteBookSourceResponseDto retrySourceIngestion(UUID noteBookId, UUID sourceId) {
+        noteBookService.validateNoteBookOfUser(noteBookId, JwtUtil.getUserId());
+        NoteBookSourceEntity source = getSourceEntity(noteBookId, sourceId);
+
+        if (DataIngestionDeleteStatus.PENDING_DELETE.equals(resolveDeleteStatus(source))) {
+            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_DELETE_IN_PROGRESS);
+        }
+
+        // Chỉ cho phép retry khi source đang FAILED (tránh giẫm lên job đang chạy bình thường)
+        if (!NoteBookSourceEntity.VectorStatus.FAILED.equals(source.getVectorStatus())) {
+            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_NOT_COMPLETED);
+        }
+
+        // Reset toàn bộ dấu vết của lần thất bại trước: jobId cũ không còn giá trị trên RAG,
+        // bộ đếm retry phải về 0 để scheduler tiếp tục theo dõi source này.
+        source.setJobId(null);
+        source.setDispatchRetryCount(0);
+        source.setStatusSyncFailureCount(0);
+        source.setVectorStatus(NoteBookSourceEntity.VectorStatus.CREATED);
+        source.setSummaryProcessingStartedAt(null);
+        source = noteBookSourceRepository.save(source);
+
+        if (source.getFilePath() != null && !source.getFilePath().isBlank()) {
+            // Source dạng file: đẩy lại từ MinIO lên RAG
+            return dispatchSourceForIngestion(source);
+        }
+
+        // Source dạng TEXT/NOTE: nội dung nằm trong rawContent, dispatchSourceForIngestion
+        // cũng xử lý được nhưng cần đảm bảo rawContent còn nguyên.
+        if (source.getRawContent() == null || source.getRawContent().isBlank()) {
+            throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_PAYLOAD_REQUIRED);
+        }
+        return dispatchSourceForIngestion(source);
     }
 
     /**
@@ -754,6 +922,20 @@ public class NoteBookSourceService {
                     if (!isSummaryRetryExhausted(source, maxRetry)) {
                         triggerSourceGuideForSource(source);
                     }
+                } else if ("failed".equalsIgnoreCase(response.getStatus())) {
+                    // RAG báo sinh source-guide thất bại → tăng retry để bộ đếm tiến dần và
+                    // dừng sau maxRetry. Nếu chỉ log debug như trước thì source kẹt ở PROCESSING
+                    // và scheduler GET lại mãi mỗi phút (vòng lặp vô hạn, xem log thực tế).
+                    registerSummaryFailure(source,
+                            buildSummaryError(response.getStatus(), response.getError()),
+                            maxRetry);
+                    log.warn("Source guide FAILED for notebook source ID: {}, retryCount={}, error={}",
+                            source.getId(), source.getSummaryRetryCount(), response.getError());
+                } else if (isSummaryProcessingStale(source)) {
+                    // RAG trả về "processing" mãi không hoàn thành → chốt chặn dừng poll vô hạn.
+                    registerSummaryFailure(source, "Source guide kẹt ở trạng thái processing quá lâu", maxRetry);
+                    log.warn("Source guide processing stale for notebook source ID: {}, marked FAILED. startedAt={}",
+                            source.getId(), source.getSummaryProcessingStartedAt());
                 } else {
                     log.debug("Source guide not ready for notebook source ID: {}, status={}",
                             source.getId(), response.getStatus());
@@ -784,6 +966,7 @@ public class NoteBookSourceService {
         source.setSummaryStatus(NoteBookSourceEntity.SummaryStatus.COMPLETED);
         source.setSummaryRetryCount(0);
         source.setSummaryError(null);
+        source.setSummaryProcessingStartedAt(null);
         return true;
     }
 
@@ -800,6 +983,11 @@ public class NoteBookSourceService {
         source.setSummaryRetryCount(retryCount);
         source.setSummaryStatus(NoteBookSourceEntity.SummaryStatus.PROCESSING);
         source.setSummaryError(truncateError(error));
+        // Chỉ gán mốc bắt đầu chờ lần đầu, không reset mỗi lần retry — nếu không, chốt chặn
+        // stale (dựa trên mốc này) sẽ không bao giờ đạt ngưỡng.
+        if (source.getSummaryProcessingStartedAt() == null) {
+            source.setSummaryProcessingStartedAt(Instant.now());
+        }
 
         if (retryCount >= maxRetry) {
             source.setSummaryStatus(NoteBookSourceEntity.SummaryStatus.FAILED);
@@ -808,6 +996,25 @@ public class NoteBookSourceService {
         }
 
         noteBookSourceRepository.save(source);
+    }
+
+    /**
+     * Kiểm tra source-guide có đang kẹt ở trạng thái chờ (PROCESSING) quá lâu hay không.
+     * Trường hợp RAG trả về mãi {@code processing} (không failed, không not_found) thì bộ đếm
+     * retry không tăng, khiến source bị GET lại mỗi phút vô thời hạn. Chốt chặn này dựa trên
+     * mốc {@code summary_processing_started_at} để dừng hẳn sau ngưỡng cấu hình.
+     *
+     * @param source entity source đang chờ summary
+     * @return {@code true} nếu đã chờ quá lâu
+     */
+    private boolean isSummaryProcessingStale(NoteBookSourceEntity source) {
+        Instant startedAt = source.getSummaryProcessingStartedAt();
+        if (startedAt == null) {
+            return false;
+        }
+
+        long staleMinutes = resolveMaxStatusStaleMinutes();
+        return startedAt.plus(Duration.ofMinutes(staleMinutes)).isBefore(Instant.now());
     }
 
     /**
@@ -941,6 +1148,9 @@ public class NoteBookSourceService {
                 if (source.getSummaryStatus() == null) {
                     source.setSummaryStatus(NoteBookSourceEntity.SummaryStatus.PROCESSING);
                     source.setSummaryError(null);
+                    // Ghi mốc bắt đầu chờ để chốt chặn stale trong syncCompletedSourceGuides
+                    // có thể dừng poll nếu RAG mãi không trả kết quả final.
+                    source.setSummaryProcessingStartedAt(Instant.now());
                     shouldSave = true;
                     triggerSourceGuideForSource(source);
                 }

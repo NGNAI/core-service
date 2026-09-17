@@ -289,6 +289,19 @@ public class NoteBookUserController {
                         .build());
     }
 
+    @Operation(summary = "Retry notebook source ingestion",
+            description = "Gửi lại source notebook lên ingestion service (RAG) khi source đang FAILED — dùng cho trường hợp dự phòng job không còn tồn tại trên RAG (404) hoặc RAG lỗi liên tục khiến scheduler đánh dấu FAILED để dừng poll. Reset toàn bộ bộ đếm retry và đẩy lại source từ đầu.")
+    @PostMapping("/{noteBookId}/sources/{sourceId}/ingestion/retry")
+    ResponseEntity<ApiResponseModel<NoteBookSourceResponseDto>> retrySourceIngestion(
+            @PathVariable UUID noteBookId,
+            @PathVariable UUID sourceId) {
+        return ResponseEntity.ok(
+                ApiResponseModel.<NoteBookSourceResponseDto>builder()
+                        .message("Retry notebook source ingestion successfully")
+                        .data(noteBookSourceService.retrySourceIngestion(noteBookId, sourceId))
+                        .build());
+    }
+
     @Operation(summary = "Receive notebook source ingestion callback status", description = "Webhook endpoint để ingestion service callback trạng thái embedding notebook source")
     @PostMapping(value = "/sources/ingestion/webhook/status", consumes = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<ApiResponseModel<NoteBookSourceJobStatusResponseDto>> ingestionWebhookStatus(

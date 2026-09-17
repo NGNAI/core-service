@@ -173,6 +173,23 @@ public class AppProperties {
          * Để trống hoặc <= 0 thì dùng mặc định 5.
          */
         Integer maxDispatchRetries;
+
+        /**
+         * Số lần đồng bộ trạng thái ingestion/vector thất bại liên tiếp tối đa trước khi
+         * scheduler đánh dấu FAILED để dừng poll vô hạn.
+         * Áp dụng khi ingestion service (RAG) lỗi TẠM THỜI (timeout, mất kết nối, 5xx).
+         * Riêng lỗi 404 (job không tồn tại) là lỗi vĩnh viễn nên được xử lý ngay, không đếm.
+         * Để trống hoặc <= 0 thì dùng mặc định 5.
+         */
+        Integer maxStatusSyncFailures;
+
+        /**
+         * Thời gian tối đa (phút) một ingestion job được phép kẹt ở trạng thái trung gian
+         * trước khi scheduler đánh dấu FAILED. Bảo vệ trường hợp RAG trả về mãi một trạng thái
+         * non-final (vd luôn "processing") mà không bao giờ chuyển final.
+         * Để trống hoặc <= 0 thì dùng mặc định 180 phút (3 giờ).
+         */
+        Integer maxStatusStaleMinutes;
     }
 
     /**

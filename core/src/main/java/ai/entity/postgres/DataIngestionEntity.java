@@ -117,6 +117,13 @@ public class DataIngestionEntity {
     @Column(name = "retry_count")
     Integer retryCount = 0;
 
+    // Số lần đồng bộ trạng thái ingestion thất bại LIÊN TIẾP (lỗi tạm thời: timeout, mất kết nối, 5xx).
+    // Reset về 0 khi đọc được trạng thái thành công. Vượt ngưỡng maintenance.max-status-sync-failures
+    // thì scheduler đánh dấu FAILED để dừng poll vô hạn và cho phép người dùng retry thủ công.
+    @Builder.Default
+    @Column(name = "status_sync_failure_count")
+    Integer statusSyncFailureCount = 0;
+
     // Thông báo lỗi từ ingestion service (RAG) khi lần ingest gần nhất thất bại,
     // lưu nguyên body response dạng string (vd: {"detail": "File too large ..."})
     // để tiện tra cứu nguyên nhân lỗi khi debug mà không cần xem log

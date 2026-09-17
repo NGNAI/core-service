@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -103,6 +104,14 @@ public class NoteBookSourceEntity {
     @Column(name = "summary_error", columnDefinition = "TEXT", nullable = true)
     String summaryError;
 
+    /**
+     * Thời điểm bắt đầu chờ RAG sinh source-guide (khi summary_status chuyển sang PROCESSING).
+     * Dùng để chặn poll vô hạn khi guide mãi không hoàn thành — khác {@code audit.updatedAt}
+     * vì updatedAt bị làm mới mỗi lần ghi record.
+     */
+    @Column(name = "summary_processing_started_at")
+    Instant summaryProcessingStartedAt;
+
     // Metadata bổ sung dạng JSON string (tag, nhãn, v.v.)
     @Column(name = "metadata", columnDefinition = "TEXT", nullable = true)
     String metadata;
@@ -134,6 +143,13 @@ public class NoteBookSourceEntity {
     @Builder.Default
     @Column(name = "delete_retry_count")
     Integer deleteRetryCount = 0;
+
+    // Số lần đồng bộ trạng thái vector thất bại LIÊN TIẾP (lỗi tạm thời: timeout, mất kết nối, 5xx).
+    // Reset về 0 khi đọc được trạng thái thành công. Vượt ngưỡng maintenance.max-status-sync-failures
+    // thì scheduler đánh dấu FAILED để dừng poll vô hạn và cho phép người dùng retry thủ công.
+    @Builder.Default
+    @Column(name = "status_sync_failure_count")
+    Integer statusSyncFailureCount = 0;
 
     @Builder.Default
     @Embedded

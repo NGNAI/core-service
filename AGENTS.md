@@ -55,6 +55,7 @@ Hướng dẫn cho AI agents làm việc trong repo `core-service`.
 - **Delete queue:** `deleteStatus` (ACTIVE/PENDING_DELETE/DELETE_FAILED) + scheduler retry
 - **Auto-ingestion retry:** `DataIngestionAutoImportScheduler` quét thư mục input → move sang `.processing` → `ingestLocalFile` → move về input (retry) hoặc sang `.failed` (dừng hẳn). Khi đẩy RAG FAILED, record FAILED cũ được **tái sử dụng** (tìm theo `name + parent + owner + org + fromSource + accessLevel`) để **tránh trùng lắp DB record**; retry đếm qua `retryCount` trong entity, giới hạn bởi config `auto-ingestion.max-retry-attempts` (mặc định 3, đặt 0 để không retry).
 - **Auto-ingestion allowed extensions:** file có extension không nằm trong `auto-ingestion.allowed-extensions` (mặc định txt/pdf/docx/html/htm/md/csv) bị **bỏ qua hoàn toàn ngay trong filter** (không move, không tạo record DB, không gọi RAG) để tránh loop lỗi với file RAG không hỗ trợ (vd `.DS_Store`).
+- **Ingestion status sync fallback (chống poll vô hạn):** scheduler đồng bộ trạng thái (mỗi phút) phân loại lỗi từ `getJobStatus`: **404 job not found** → đánh dấu `FAILED` **ngay** (lỗi vĩnh viễn); lỗi tạm thời liên tiếp ≥ `maintenance.max-status-sync-failures` (5) → `FAILED`; job kẹt non-final > `maintenance.max-status-stale-minutes` (180) → `FAILED`. Bộ đếm `statusSyncFailureCount` reset khi đọc status thành công. Retry thủ công: `POST /user/data-ingestion/{id}/ingestion/retry` và `POST /user/notebooks/{noteBookId}/sources/{sourceId}/ingestion/retry`. Source-guide cũng có chốt tương tự qua `summary_processing_started_at`. Xem `docs/ingestion-status-fallback.md`.
 
 ## Secrets & cấu hình môi trường
 - `application.yml` dùng placeholder `${ENV_VAR:default}` cho secrets: `DB_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET_KEY`, `OTP_API_KEY`, `MINIO_ACCESS_KEY/SECRET_KEY`, `ATTACHMENT_API_KEY`, `DATA_INGESTION_API_KEY`, callback secrets, `LOKI_PASSWORD`, `ACTUATOR_USER_PASSWORD`.
@@ -80,6 +81,7 @@ Hướng dẫn cho AI agents làm việc trong repo `core-service`.
 - **Quick Prompt Template** (prompt mẫu cho chat Topic/NotebookLM — SYSTEM global + USER cá nhân) — xem `docs/prompt-template-feature.md`
 - **Upload config** (rào chắn upload file: số lượng file/lần, dung lượng mỗi file, loại file, tổng source notebook) — xem `docs/upload-config-feature.md`
 - **Tối ưu prompt AI** (sinh tiêu đề, rolling summary, source-guide summary — chống reasoning model trả kèm phần suy luận/sai ngôn ngữ) — xem `docs/ai-prompt-optimization.md`
+- **Cơ chế dự phòng đồng bộ trạng thái ingestion** (phân loại 404 vs lỗi tạm thời, chống poll vô hạn, retry thủ công) — xem `docs/ingestion-status-fallback.md`
 
 ## Prompt AI & sinh văn bản
 - Prompt tập trung tại `ai/constant/AiPromptTemplates.java` (tiêu đề, rolling summary); source-guide instruction ở `NotebookSourceSummaryConfig`.

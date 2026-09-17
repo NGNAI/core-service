@@ -543,8 +543,17 @@ public class IngestionService {
 
     /**
      * Poll trạng thái xử lý ingestion job bằng jobId trả về từ phương thức pushToVector. Thông thường sẽ cần gọi phương thức này nhiều lần sau khi gọi pushToVector để theo dõi tiến độ xử lý của ingestion job, cho đến khi trạng thái trả về là success hoặc failed thì thôi
-     * @param jobId
-     * @return
+     *
+     * <p>Phân biệt 2 loại lỗi để bên gọi có hướng xử lý dự phòng phù hợp:</p>
+     * <ul>
+     *   <li>404 — job không còn tồn tại trên ingestion service (đã bị xóa, service restart mất state,
+     *       hoặc jobId cũ). Ném {@link AppException} với {@link ApiResponseStatus#INGESTION_JOB_NOT_FOUND}
+     *       và {@link IngestionServiceException#isNotFound()} = true → lỗi vĩnh viễn, KHÔNG nên retry.</li>
+     *   <li>Lỗi khác (timeout, mất kết nối, 5xx...) — lỗi tạm thời, có thể poll lại ở lần scheduler sau.</li>
+     * </ul>
+     *
+     * @param jobId ID của ingestion job cần kiểm tra trạng thái
+     * @return trạng thái hiện tại của job
      */
     @Audited(action = AuditAction.READ, resource = AuditResource.DATA_INGESTION, description = "Get ingestion job status: {0}")
     public IngestionStatusResponseDto getJobStatus(UUID jobId) {
@@ -555,9 +564,27 @@ public class IngestionService {
                     .uri(INGESTION_STATUS_PATH + "/{jobId}", jobId)
                     .retrieve()
                     .body(IngestionStatusResponseDto.class);
+        } catch (RestClientResponseException exception) {
+            // Không dùng printStackTrace để tránh log nhiễu; chỉ log warn 1 dòng có ngữ cảnh,
+            // vì scheduler poll định kỳ nên stack trace đầy đủ sẽ làm ngập log mỗi phút.
+            int statusCode = exception.getStatusCode().value();
+            if (statusCode == 404) {
+                log.warn("INGESTION GET {} job not found on ingestion service. jobId={}, body={}",
+                        INGESTION_STATUS_PATH, jobId, exception.getResponseBodyAsString());
+                throw new IngestionServiceException(ApiResponseStatus.INGESTION_JOB_NOT_FOUND,
+                        exception.getResponseBodyAsString(), statusCode);
+            }
+
+            log.warn("INGESTION GET {} failed with status {} for jobId: {}, body={}",
+                    INGESTION_STATUS_PATH, statusCode, jobId, exception.getResponseBodyAsString());
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE,
+                    exception.getResponseBodyAsString(), statusCode);
         } catch (RestClientException exception) {
-            exception.printStackTrace();
-            throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
+            // Lỗi tạm thời: timeout, mất kết nối, DNS... → có thể thử lại ở lần đồng bộ sau
+            log.warn("INGESTION GET {} request failed for jobId: {}, error={}",
+                    INGESTION_STATUS_PATH, jobId, exception.getMessage());
+            throw new IngestionServiceException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE,
+                    exception.getMessage(), null);
         }
     }
 
