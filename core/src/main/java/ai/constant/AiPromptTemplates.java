@@ -151,4 +151,44 @@ public final class AiPromptTemplates {
                 messageBlock,
                 DELIM_MESSAGES_CLOSE);
     }
+
+    /**
+     * Prompt sinh gợi ý câu hỏi (ask-autocomplete) cho ô chat.
+     *
+     * <p>Output được yêu cầu là JSON object đúng một key {@code suggestions} để có thể
+     * ép kiểu bằng Ollama {@code format=json} và parse an toàn ở service.
+     *
+     * @param prefix         phần text người dùng đang gõ (đã trim, có thể đã cắt ngắn)
+     * @param languageHint   câu chỉ dẫn ngôn ngữ đầu ra
+     * @param count          số gợi ý mong muốn
+     * @param maxItemChars   độ dài tối đa của mỗi gợi ý (tính theo ký tự)
+     * @return prompt hoàn chỉnh
+     */
+    public static String questionSuggestionPrompt(String prefix, String languageHint, int count, int maxItemChars) {
+        return """
+                Bạn là trợ lý hoàn thành câu hỏi cho ô tìm kiếm của một trợ lý AI.
+                Nhiệm vụ: dựa trên phần văn bản người dùng đang gõ, sinh ra các câu hỏi hoàn chỉnh mà người dùng có thể muốn hỏi.
+
+                Quy tắc bắt buộc:
+                - Ngôn ngữ: %s
+                - Sinh đúng %d gợi ý, KHÁC NHAU, không trùng ý.
+                - MỖI gợi ý PHẢI bắt đầu bằng CHÍNH XÁC phần văn bản người dùng đã gõ (giữ nguyên văn bản đó ở đầu câu, sau đó viết tiếp thành câu hỏi hoàn chỉnh).
+                - Mỗi gợi ý tối đa %d ký tự, là một câu hỏi ngắn gọn, tự nhiên, chỉ một dòng.
+                - Không bọc trong dấu nháy, không dùng markdown, không đánh số, không thêm tiền tố kiểu "Gợi ý:".
+                - Không giải thích, không trình bày quá trình suy luận.
+                - Không bịa thông tin ngoài phần văn bản người dùng đã gõ.
+                - Chỉ trả về DUY NHẤT một JSON object đúng định dạng sau, không thêm chữ nào khác:
+                {"suggestions": ["gợi ý 1", "gợi ý 2"]}
+
+                %s
+                %s
+                %s
+                """.formatted(
+                languageHint,
+                count,
+                maxItemChars,
+                DELIM_INPUT_OPEN,
+                prefix,
+                DELIM_INPUT_CLOSE);
+    }
 }

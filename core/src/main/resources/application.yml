@@ -266,6 +266,42 @@ rag:
     min-messages-to-compress: 4
 
 # ============================================================================
+# SUGGESTION SERVICE (Ollama - gợi ý câu hỏi cho ô chat / ask-autocomplete)
+# ============================================================================
+# - url  : địa chỉ Ollama (port mặc định 11434). Dùng native API POST /api/chat.
+# - model: model mini dùng cho tác vụ sinh text ngắn.
+# - connect/read-timeout-ms: PHẢI ngắn (autocomplete) — KHÔNG dùng chung timeout
+#   của RAG (360s). Xem ApiClientConfig#ollamaWebClient.
+# - keep-alive: giữ model trong RAM để giảm latency các lần gọi sau (vd "10m").
+# - think: tắt reasoning cho model thinking -> giảm latency đáng kể.
+# - max-tokens/num-ctx: đổ vào Ollama options.num_predict / options.num_ctx.
+# - min-prefix-chars: ngắn hơn ngưỡng này thì trả rỗng, KHÔNG gọi model.
+# - cache-ttl-minutes: TTL cache Redis theo prefix (chống spam khi user đang gõ).
+# - max-concurrent-requests: chặn dồn request vào Ollama, hết permit -> trả rỗng.
+#
+# LƯU Ý read-timeout-ms: đo thực tế với deepseek-v4-flash:cloud trên Ollama cloud
+#   - cold (model chưa nạp): ~9s  -> cần timeout >= 10s
+#   - warm (keep_alive còn hiệu lực): ~1.2s
+# Đặt 15s để chịu được cold start. Vì có semaphore max-concurrent-requests nên
+# số thread bị block tối đa bằng ngưỡng đó, không rủi ro cạn thread pool.
+suggestion:
+  url: "${OLLAMA_URL:http://192.168.30.16:11434}"
+  model: "${OLLAMA_MODEL:deepseek-v4-flash:cloud}"
+  connect-timeout-ms: 2000
+  read-timeout-ms: 15000
+  keep-alive: "10m"
+  think: false
+  temperature: 0.2
+  max-tokens: 256
+  num-ctx: 2048
+  max-suggestions: 5
+  min-prefix-chars: 3
+  max-prefix-chars: 200
+  max-suggestion-chars: 120
+  cache-ttl-minutes: 20
+  max-concurrent-requests: 4
+
+# ============================================================================
 # INGESTION SERVICE (chuyển đổi dữ liệu -> vector cho RAG)
 # ============================================================================
 # - ingestion.url: địa chỉ service ingest/tách nội dung file.

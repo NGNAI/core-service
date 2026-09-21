@@ -19,6 +19,7 @@ public class AppProperties {
     Jwt jwt;
     Otp otp;
     Rag rag;
+    Suggestion suggestion;
     Ingestion ingestion;
     Minio minio;
     Integration integration;
@@ -67,7 +68,47 @@ public class AppProperties {
         Integer noteBookRecentMessageWindow;
         Integer minMessagesToCompress;
     }
-    
+
+    /**
+     * Cấu hình cho tác vụ sinh gợi ý câu hỏi (ask-autocomplete) qua Ollama.
+     * Đây là tác vụ phụ trợ, yêu cầu latency thấp nên dùng client/timeout riêng,
+     * KHÔNG tái dùng {@code rag.url} (read-timeout 360s quá dài cho autocomplete).
+     */
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class Suggestion {
+        /** Base URL của Ollama (port mặc định 11434). */
+        String url;
+        /** Tên model trên Ollama, ví dụ {@code deepseek-v4-flash:cloud}. */
+        String model;
+        /** Timeout kết nối TCP tới Ollama (ms). Mặc định 2000. */
+        Long connectTimeoutMs;
+        /** Timeout chờ response từ Ollama (ms). Mặc định 12000. */
+        Long readTimeoutMs;
+        /** Thời gian giữ model trong RAM sau mỗi lần gọi (Ollama {@code keep_alive}). */
+        String keepAlive;
+        /** Bật/tắt chế độ suy luận của model (Ollama {@code think}). */
+        Boolean think;
+        /** Nhiệt độ sinh văn bản cho tác vụ tất định. Mặc định 0.2. */
+        Double temperature;
+        /** Số token tối đa sinh ra (Ollama {@code options.num_predict}). Mặc định 256. */
+        Integer maxTokens;
+        /** Kích thước context window (Ollama {@code options.num_ctx}). Mặc định 2048. */
+        Integer numCtx;
+        /** Số gợi ý trả về tối đa. Mặc định 5. */
+        Integer maxSuggestions;
+        /** Độ dài prefix tối thiểu để gọi model; ngắn hơn -> trả rỗng. Mặc định 3. */
+        Integer minPrefixChars;
+        /** Độ dài prefix tối đa đưa vào prompt. Mặc định 200. */
+        Integer maxPrefixChars;
+        /** Độ dài tối đa của mỗi gợi ý. Mặc định 120. */
+        Integer maxSuggestionChars;
+        /** TTL cache Redis cho gợi ý (phút). Mặc định 20. */
+        Long cacheTtlMinutes;
+        /** Số request đồng thời tối đa gửi tới Ollama. Mặc định 4. */
+        Integer maxConcurrentRequests;
+    }
+
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Ingestion {

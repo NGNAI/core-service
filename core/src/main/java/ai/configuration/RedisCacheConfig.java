@@ -16,9 +16,15 @@ import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import ai.AppProperties;
+import ai.constant.CacheName;
+
 @Configuration
 @EnableCaching
 public class RedisCacheConfig {
+
+    /** TTL mặc định cho cache gợi ý câu hỏi (phút). */
+    private static final long DEFAULT_SUGGESTION_CACHE_TTL_MINUTES = 20L;
 	
     @Bean
     @Primary
@@ -44,7 +50,7 @@ public class RedisCacheConfig {
     }
     
     @Bean
-    RedisCacheManager cacheManager(RedisConnectionFactory factory) {
+    RedisCacheManager cacheManager(RedisConnectionFactory factory, AppProperties appProperties) {
 		// LƯU Ý: KHÔNG flushDb() khi khởi động — nếu Redis dùng chung cho nhiều ứng dụng
 		// sẽ xóa sạch cache của app khác. TTL (48h) là đủ để hết giá trị stale.
 
@@ -62,20 +68,28 @@ public class RedisCacheConfig {
                 .entryTtl(Duration.ofHours(48)); // default TTL
 
         Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();
-        
-//        cacheConfigs.put(
-//            "publicMedia",
-//            defaultConfig.entryTtl(Duration.ofHours(24))
-//        );
-//
-//        cacheConfigs.put(
-//            "articleFeaturedImageMapping",
-//            defaultConfig.entryTtl(Duration.ofMinutes(24))
-//        );
+
+        // Cache gợi ý câu hỏi (ask-autocomplete): TTL ngắn vì gợi ý được sinh theo
+        // prefix đang gõ — nội dung nhanh lỗi thời, và mục tiêu chính là chặn spam
+        // model khi người dùng gõ liên tục. Đọc từ config suggestion.cache-ttl-minutes.
+        cacheConfigs.put(
+            CacheName.AI_SUGGESTION,
+            defaultConfig.entryTtl(suggestionCacheTtl(appProperties))
+        );
 
         return RedisCacheManager.builder(factory)
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigs)
                 .build();
+    }
+
+    /** TTL cache gợi ý (mặc định 20 phút) — giá trị <= 0 dùng mặc định. */
+    private Duration suggestionCacheTtl(AppProperties appProperties) {
+        AppProperties.Suggestion suggestion = appProperties.getSuggestion();
+        Long configuredMinutes = suggestion != null ? suggestion.getCacheTtlMinutes() : null;
+        long minutes = (configuredMinutes != null && configuredMinutes > 0)
+                ? configuredMinutes
+                : DEFAULT_SUGGESTION_CACHE_TTL_MINUTES;
+        return Duration.ofMinutes(minutes);
     }
 }

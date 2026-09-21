@@ -82,15 +82,26 @@ Hướng dẫn cho AI agents làm việc trong repo `core-service`.
 - **Upload config** (rào chắn upload file: số lượng file/lần, dung lượng mỗi file, loại file, tổng source notebook) — xem `docs/upload-config-feature.md`
 - **Tối ưu prompt AI** (sinh tiêu đề, rolling summary, source-guide summary — chống reasoning model trả kèm phần suy luận/sai ngôn ngữ) — xem `docs/ai-prompt-optimization.md`
 - **Cơ chế dự phòng đồng bộ trạng thái ingestion** (phân loại 404 vs lỗi tạm thời, chống poll vô hạn, retry thủ công) — xem `docs/ingestion-status-fallback.md`
+- **Gợi ý câu hỏi cho ô chat (ask-autocomplete)** — sinh bằng model mini qua Ollama native API, có Redis cache + semaphore chống lạm dụng — xem `docs/ai-question-autocomplete.md`
 
 ## Prompt AI & sinh văn bản
-- Prompt tập trung tại `ai/constant/AiPromptTemplates.java` (tiêu đề, rolling summary); source-guide instruction ở `NotebookSourceSummaryConfig`.
+- Prompt tập trung tại `ai/constant/AiPromptTemplates.java` (tiêu đề, rolling summary, gợi ý câu hỏi); source-guide instruction ở `NotebookSourceSummaryConfig`.
 - Làm sạch output LLM bằng `ai/util/AiTextSanitizer.java` (bỏ `<thinking>`, nhãn `Title:`/`Summary:`, câu dẫn, dấu nháy, đuôi bịa thêm) — **luôn sanitize trước khi lưu DB**.
 - Ngân sách input/output đọc từ System Settings: `ai.title.maxInputChars` (2000), `ai.summary.maxInputChars` (12000), `ai.summary.maxWords` (300).
 - Tác vụ phụ trợ force `temperature = 0.2` (tất định) thay vì dùng `ai.temperature` của chat.
 - Rolling summary: checkpoint chỉ tiến tới tin nhắn cuối **thực sự** được đưa vào prompt (phần bị cắt theo ngân sách sẽ được tóm tắt ở lần chạy sau).
 - Source-guide summary có vòng đời `PROCESSING → COMPLETED/FAILED` (cột `summary_status`, `summary_retry_count`, `summary_error`, migration `V32`); tối đa 5 lần retry (setting `ai.sourceGuide.maxRetryAttempts`) rồi dừng để tránh poll vô hạn; GET trả `not_found` thì re-trigger POST; callback `failed`/summary rỗng đều tăng retry; API regenerate `POST /user/notebooks/{noteBookId}/sources/{sourceId}/source-guide/regenerate` reset retry và force regenerate.
 - Clamp độ dài đầu ra LLM: title 15 từ (~105 ký tự), summary theo `ai.summary.maxWords` × ~7 ký tự/từ — cắt tại ranh giới từ, chống summary phình to dần.
+
+## Gợi ý câu hỏi cho ô chat (ask-autocomplete)
+- Endpoint `POST /user/ai/suggestions` (`AiSuggestionUserController` → `AiSuggestionService`) — sinh gợi ý câu hỏi theo prefix người dùng đang gõ.
+- Gọi **Ollama native API** `POST /api/chat` (KHÔNG dùng OpenAI-compatible) qua `OllamaApiCore` + bean `ollamaWebClient` (timeout riêng, KHÔNG tái dùng `ragWebClient` 360s). Model mặc định `deepseek-v4-flash:cloud`.
+- Config ở `application.yml` group `suggestion.*` → `AppProperties.Suggestion` (đổi cần restart). Đo thực tế: cold ~9s, warm ~1.2s → `read-timeout-ms: 15000` + `keep-alive: 10m`.
+- **Mọi gợi ý trả về PHẢI bắt đầu bằng chính xác prefix** (FE thay thế text = true completion); prefix dài quá `max-prefix-chars` bị cắt lấy phần **đuôi**.
+- **Best-effort, không bao giờ trả 5xx**: toàn bộ `suggest()` bọc `try/catch` (không chỉ quanh lời gọi Ollama — Redis/System Setting cũng nằm trong đó). Cache Redis là **optional**: Redis down chỉ mất phần tăng tốc, gợi ý vẫn sinh bình thường. Prefix < `min-prefix-chars` → trả rỗng, không gọi model.
+- Chống lạm dụng 3 lớp: guard độ dài prefix → Redis cache theo `prefix|language` (TTL `cache-ttl-minutes`, thao tác thủ công qua `CacheManager`) → semaphore `max-concurrent-requests` (hết permit thì fail fast).
+- Dùng `format: "json"` (structured output) + `think: false` + `keep_alive` của Ollama. Parse bằng `objectMapper.readTree` với fallback tách theo dòng; lọc bỏ gợi ý không khớp prefix, dedupe không phân biệt hoa/thường.
+- Xem `docs/ai-question-autocomplete.md`.
 
 ## Upload config (rào chắn upload file)
 - Cấu hình giới hạn upload theo từng loại (Topic/Notebook/Draft/Data-Ingestion) lưu trong **System Settings DB** (group `UPLOAD`, `isPublic=true`), đọc qua `UploadConfigService` (`ai/service/UploadConfigService.java`) với default fallback hằng số.
