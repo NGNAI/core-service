@@ -90,7 +90,10 @@ public class AiSuggestionService {
                 return List.of();
             }
 
-            String cacheKey = normalizedPrefix + "|" + resolveLanguage();
+            // Cache key PHẢI gồm cả model: admin có thể đổi `ai.suggestion.model` bất cứ lúc nào,
+            // nếu key chỉ có prefix thì gợi ý sinh bởi model cũ sẽ được trả lại (stale) cho tới
+            // khi hết TTL — trong khi kỳ vọng là đổi model có hiệu lực ngay.
+            String cacheKey = normalizedPrefix + "|" + resolveLanguage() + "|" + resolveModelKey();
 
             List<String> cached = readCache(cacheKey);
             if (cached != null) {
@@ -105,6 +108,27 @@ public class AiSuggestionService {
         } catch (Exception e) {
             log.warn("Không lấy được gợi ý cho prefix '{}': {}", prefix, e.getMessage());
             return List.of();
+        }
+    }
+
+    /**
+     * Phần model dùng trong cache key. Ưu tiên {@code ai.suggestion.model}; rỗng thì
+     * fallback về {@code ai.model} (đúng như {@code RagService} chọn model thực tế).
+     *
+     * <p>Best-effort: đọc setting lỗi thì trả {@code "default"} — cache vẫn dùng được,
+     * chỉ là không phân biệt theo model trong tình huống DB lỗi.
+     */
+    private String resolveModelKey() {
+        try {
+            String suggestionModel = systemSettingService.getString(AiSuggestionConfig.KEY_MODEL, "");
+            if (suggestionModel != null && !suggestionModel.isBlank()) {
+                return suggestionModel.trim();
+            }
+            String sharedModel = systemSettingService.getString("ai.model", "");
+            return (sharedModel != null && !sharedModel.isBlank()) ? sharedModel.trim() : "default";
+        } catch (Exception e) {
+            log.debug("Không đọc được model cho cache key, dùng 'default': {}", e.getMessage());
+            return "default";
         }
     }
 
