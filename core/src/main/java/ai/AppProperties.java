@@ -67,7 +67,7 @@ public class AppProperties {
         Integer noteBookRecentMessageWindow;
         Integer minMessagesToCompress;
     }
-    
+
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Ingestion {

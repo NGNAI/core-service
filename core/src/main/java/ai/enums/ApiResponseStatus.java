@@ -310,6 +310,13 @@ public enum ApiResponseStatus {
     INGESTION_JOB_NOT_FOUND(1201, "Ingestion job not found on ingestion service", HttpStatus.NOT_FOUND),
     INGESTION_STATUS_STALE(1202, "Ingestion job has been stuck in a non-final status for too long", HttpStatus.CONFLICT),
     INGESTION_STATUS_SYNC_EXHAUSTED(1203, "Ingestion status sync exceeded the maximum number of attempts", HttpStatus.CONFLICT),
+
+    // ========================================================================
+    // AI SUGGESTION - 1206..1210
+    // Gợi ý câu hỏi (ask-autocomplete) cho ô chat, sinh qua đường ống completion chung của RAG.
+    // Lưu ý: prefix quá ngắn KHÔNG phải lỗi — service trả về danh sách rỗng.
+    // ========================================================================
+    AI_SUGGESTION_PREFIX_CAN_NOT_BE_NULL_OR_EMPTY(1206, "Suggestion prefix cannot be null or empty", HttpStatus.BAD_REQUEST),
     ;
     int code;
     String message;

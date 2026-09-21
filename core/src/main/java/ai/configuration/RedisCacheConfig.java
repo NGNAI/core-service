@@ -16,9 +16,14 @@ import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import ai.constant.CacheName;
+
 @Configuration
 @EnableCaching
 public class RedisCacheConfig {
+
+    /** TTL mặc định cho cache gợi ý câu hỏi (phút). */
+    private static final long DEFAULT_SUGGESTION_CACHE_TTL_MINUTES = 20L;
 	
     @Bean
     @Primary
@@ -62,16 +67,20 @@ public class RedisCacheConfig {
                 .entryTtl(Duration.ofHours(48)); // default TTL
 
         Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();
-        
-//        cacheConfigs.put(
-//            "publicMedia",
-//            defaultConfig.entryTtl(Duration.ofHours(24))
-//        );
-//
-//        cacheConfigs.put(
-//            "articleFeaturedImageMapping",
-//            defaultConfig.entryTtl(Duration.ofMinutes(24))
-//        );
+
+        // Cache gợi ý câu hỏi (ask-autocomplete): TTL ngắn vì gợi ý được sinh theo
+        // prefix đang gõ — nội dung nhanh lỗi thời, và mục tiêu chính là chặn spam
+        // model khi người dùng gõ liên tục.
+        //
+        // LƯU Ý: TTL này CỐ Ý là hằng số, không đọc từ System Settings như các ngưỡng
+        // nghiệp vụ khác của autocomplete. Lý do: class này chính là nơi tạo CacheManager,
+        // mà SystemSettingService lại được cache qua CacheManager đó → đọc setting ở đây
+        // sẽ tạo vòng lặp khởi tạo. Muốn chỉnh TTL thì sửa hằng số này và restart
+        // (đây là tham số hạ tầng, không phải hành vi nghiệp vụ cần chỉnh nóng).
+        cacheConfigs.put(
+            CacheName.AI_SUGGESTION,
+            defaultConfig.entryTtl(Duration.ofMinutes(DEFAULT_SUGGESTION_CACHE_TTL_MINUTES))
+        );
 
         return RedisCacheManager.builder(factory)
                 .cacheDefaults(defaultConfig)

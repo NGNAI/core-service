@@ -1,5 +1,6 @@
 package ai.service;
 
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -89,6 +90,14 @@ public class RagService {
     /** Giới hạn vòng reasoning khi revise draft (theo text_drafting_guide, default 5, min 1, max 15) */
     static final int DRAFT_REVISE_MAX_ITERATIONS = 5;
 
+    /** Timeout mặc định (giây) cho lời gọi sinh gợi ý câu hỏi — người dùng đang gõ nên không thể chờ lâu. */
+    static final int DEFAULT_SUGGESTION_TIMEOUT_SECONDS = 15;
+
+    /** Model riêng cho tác vụ gợi ý câu hỏi; rỗng → dùng {@code ai.model}. */
+    static final String KEY_SUGGESTION_MODEL = "ai.suggestion.model";
+    /** Timeout (giây) cho tác vụ gợi ý câu hỏi. */
+    static final String KEY_SUGGESTION_TIMEOUT_SECONDS = "ai.suggestion.timeoutSeconds";
+
     AppProperties appProperties;
     RagApiService ragApiService;
     TopicService topicService;
@@ -110,39 +119,52 @@ public class RagService {
      */
     public String generateString(RagCompletionRequestDto requestDto) {
         try {
-            String response = ragApiService.general(requestDto);
-
-            if (response == null || response.isBlank()) {
-                return null;
-            }
-
-            JsonNode root = objectMapper.readTree(response);
-            JsonNode contentNode = root.path("choices").path(0).path("message").path("content");
-
-            if (contentNode.isTextual()) {
-                return contentNode.asText();
-            }
-
-            if (contentNode.isArray()) {
-                StringBuilder content = new StringBuilder();
-                for (JsonNode part : contentNode) {
-                    if (part.isTextual()) {
-                        content.append(part.asText());
-                    } else if (part.isObject()) {
-                        JsonNode textPart = part.path("text");
-                        if (textPart.isTextual()) {
-                            content.append(textPart.asText());
-                        }
-                    }
-                }
-                return content.length() > 0 ? content.toString() : null;
-            }
-
-            return null;
+            return extractCompletionContent(ragApiService.general(requestDto));
         } catch (JsonProcessingException e) {
             log.error("Error processing JSON response from RAG API", e);
             return null;
         }
+    }
+
+    /**
+     * Trích nội dung message từ response theo format OpenAI-compatible:
+     * {@code choices[0].message.content}, hỗ trợ cả content dạng chuỗi và dạng mảng part.
+     *
+     * <p>Tách riêng để dùng chung cho {@link #generateString(RagCompletionRequestDto)} và
+     * các tác vụ khác gọi thẳng RAG completion (ví dụ sinh gợi ý câu hỏi).
+     *
+     * @param response raw JSON response từ RAG service
+     * @return nội dung text, hoặc {@code null} nếu không có/không đúng cấu trúc
+     * @throws JsonProcessingException lỗi parse response
+     */
+    private String extractCompletionContent(String response) throws JsonProcessingException {
+        if (response == null || response.isBlank()) {
+            return null;
+        }
+
+        JsonNode root = objectMapper.readTree(response);
+        JsonNode contentNode = root.path("choices").path(0).path("message").path("content");
+
+        if (contentNode.isTextual()) {
+            return contentNode.asText();
+        }
+
+        if (contentNode.isArray()) {
+            StringBuilder content = new StringBuilder();
+            for (JsonNode part : contentNode) {
+                if (part.isTextual()) {
+                    content.append(part.asText());
+                } else if (part.isObject()) {
+                    JsonNode textPart = part.path("text");
+                    if (textPart.isTextual()) {
+                        content.append(textPart.asText());
+                    }
+                }
+            }
+            return content.length() > 0 ? content.toString() : null;
+        }
+
+        return null;
     }
 
     /**
@@ -995,6 +1017,74 @@ public class RagService {
                 truncateForPrompt(input, titleMaxInputChars()));
 
         return generateSanitizedString(buildSimpleCompletionRequest(prompt), true, TITLE_MAX_WORDS);
+    }
+
+    /**
+     * Sinh danh sách câu hỏi gợi ý cho ô chat (ask-autocomplete).
+     *
+     * <p><b>Dùng chung cơ chế sinh text với các tác vụ phụ trợ khác</b> (sinh tiêu đề,
+     * nén summary): cùng {@code POST /generate/v1/chat/completions_simple} qua
+     * {@link #buildSimpleCompletionRequest(String)} + {@link #applyAiSettings}, không stream,
+     * temperature tất định. Nhờ vậy việc chọn model nằm ở phía RAG service — khi RAG có thêm
+     * model nhỏ hơn thì chỉ cần đổi System Setting, core-service không phải sửa code.
+     *
+     * <p>Hai điểm khác biệt so với title/summary:
+     * <ul>
+     *   <li><b>Model riêng:</b> {@code ai.suggestion.model} nếu có, fallback về {@code ai.model}.
+     *       Cho phép dùng model nhanh/rẻ cho autocomplete mà không đổi model của chat.</li>
+     *   <li><b>Timeout riêng:</b> {@code ai.suggestion.timeoutSeconds} — người dùng đang gõ
+     *       nên không thể chờ read-timeout mặc định của RAG client (360s).</li>
+     * </ul>
+     *
+     * <p>Kết quả trả về là <b>raw text</b> của model (thường là JSON
+     * {@code {"suggestions": [...]}}) — việc parse/lọc/làm sạch thuộc về caller
+     * ({@code AiSuggestionService}) vì đó là logic đặc thù của autocomplete.
+     *
+     * @param prompt prompt hoàn chỉnh (dựng bởi {@code AiPromptTemplates})
+     * @return raw output của model, hoặc {@code null} nếu model không trả nội dung
+     * @throws JsonProcessingException lỗi serialize request / parse response
+     */
+    public String generalQuestionsRaw(String prompt) throws JsonProcessingException {
+        RagCompletionRequestDto requestDto = buildSuggestionCompletionRequest(prompt);
+        String response = ragApiService.general(requestDto, suggestionTimeout());
+        return extractCompletionContent(response);
+    }
+
+    /**
+     * Dựng request completion cho tác vụ gợi ý câu hỏi.
+     *
+     * <p>Tái sử dụng toàn bộ khung của {@link #buildSimpleCompletionRequest(String)}
+     * (UUID ngẫu nhiên cho metadata, scopes={@code personal}, {@code stream=false}),
+     * chỉ khác ở model được ưu tiên từ {@code ai.suggestion.model}.
+     */
+    private RagCompletionRequestDto buildSuggestionCompletionRequest(String prompt) {
+        RagCompletionRequestDto.Metadata metadata = new RagCompletionRequestDto.Metadata();
+        metadata.setUserId(UUID.randomUUID());
+        metadata.setOrganizationId(UUID.randomUUID());
+        metadata.setScopes(Set.of(DataScope.PERSONAL.getKey().toLowerCase()));
+
+        RagCompletionRequestDto.RagCompletionRequestDtoBuilder<?, ?> builder = applyAiSettings(
+                RagCompletionRequestDto.builder()
+                        .messages(List.of(createRagMessage(MessageType.USER.getValue(), prompt)))
+                        .stream(false),
+                false);
+
+        // Model riêng cho gợi ý: rỗng thì giữ nguyên ai.model đã áp ở trên.
+        String suggestionModel = systemSettingService.getString(KEY_SUGGESTION_MODEL, "");
+        if (!isBlank(suggestionModel)) {
+            builder.model(suggestionModel.trim());
+        }
+
+        return builder.metadata(metadata).build();
+    }
+
+    /**
+     * Timeout cho tác vụ gợi ý, đọc từ {@code ai.suggestion.timeoutSeconds}.
+     * Giá trị &lt;= 0 hoặc không parse được → dùng {@value #DEFAULT_SUGGESTION_TIMEOUT_SECONDS} giây.
+     */
+    private Duration suggestionTimeout() {
+        int seconds = systemSettingService.getInt(KEY_SUGGESTION_TIMEOUT_SECONDS, -1);
+        return Duration.ofSeconds(seconds > 0 ? seconds : DEFAULT_SUGGESTION_TIMEOUT_SECONDS);
     }
 
     /**

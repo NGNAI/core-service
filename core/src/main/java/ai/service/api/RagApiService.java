@@ -1,5 +1,6 @@
 package ai.service.api;
 
+import java.time.Duration;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -100,6 +101,20 @@ public class RagApiService {
 
     public String general(RagCompletionRequestDto requestDto) throws JsonProcessingException {
         return apiCore.postForString("/generate/v1/chat/completions_simple", requestDto);
+    }
+
+    /**
+     * Completion không stream với timeout tùy chọn.
+     *
+     * <p>Dùng cho tác vụ cần giới hạn thời gian chờ riêng (ví dụ gợi ý câu hỏi khi
+     * người dùng đang gõ) thay vì chờ read-timeout mặc định của RAG client.
+     *
+     * @param requestDto request completion (đã áp dụng AI settings)
+     * @param timeout    thời gian chờ tối đa; {@code null} = dùng timeout mặc định
+     * @return raw response body
+     */
+    public String general(RagCompletionRequestDto requestDto, Duration timeout) throws JsonProcessingException {
+        return apiCore.postForString("/generate/v1/chat/completions_simple", requestDto, timeout);
     }
 
     /**
