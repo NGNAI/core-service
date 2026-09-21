@@ -313,7 +313,7 @@ public enum ApiResponseStatus {
 
     // ========================================================================
     // AI SUGGESTION - 1206..1210
-    // Gợi ý câu hỏi (ask-autocomplete) cho ô chat, sinh bằng model mini qua Ollama.
+    // Gợi ý câu hỏi (ask-autocomplete) cho ô chat, sinh qua đường ống completion chung của RAG.
     // Lưu ý: prefix quá ngắn KHÔNG phải lỗi — service trả về danh sách rỗng.
     // ========================================================================
     AI_SUGGESTION_PREFIX_CAN_NOT_BE_NULL_OR_EMPTY(1206, "Suggestion prefix cannot be null or empty", HttpStatus.BAD_REQUEST),

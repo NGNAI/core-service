@@ -19,8 +19,6 @@ public class ApiClientConfig {
     private static final long DEFAULT_OTP_READ_TIMEOUT_MS = 180_000L;
     private static final long DEFAULT_RAG_CONNECT_TIMEOUT_MS = 60_000L;
     private static final long DEFAULT_RAG_READ_TIMEOUT_MS = 360_000L;
-    private static final long DEFAULT_SUGGESTION_CONNECT_TIMEOUT_MS = 2_000L;
-    private static final long DEFAULT_SUGGESTION_READ_TIMEOUT_MS = 15_000L;
 
     @Bean
     RestClient otpRestClient(AppProperties appProperties){
@@ -57,34 +55,6 @@ public class ApiClientConfig {
 
         return WebClient.builder()
                 .baseUrl(appProperties.getRag().getUrl())
-                .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .build();
-    }
-
-    /**
-     * WebClient riêng cho Ollama (tác vụ gợi ý câu hỏi).
-     *
-     * <p>Cố ý KHÔNG tái dùng {@code ragWebClient}: read-timeout của RAG là 360s
-     * (phù hợp cho chat/stream) nhưng không chấp nhận được với autocomplete — một
-     * request bị treo sẽ giữ thread suốt 6 phút và làm nghẽn pool.
-     */
-    @Bean
-    public WebClient ollamaWebClient(AppProperties appProperties) {
-        AppProperties.Suggestion suggestion = appProperties.getSuggestion();
-
-        long connectTimeoutMs = suggestion != null && suggestion.getConnectTimeoutMs() != null
-                ? suggestion.getConnectTimeoutMs()
-                : DEFAULT_SUGGESTION_CONNECT_TIMEOUT_MS;
-        long readTimeoutMs = suggestion != null && suggestion.getReadTimeoutMs() != null
-                ? suggestion.getReadTimeoutMs()
-                : DEFAULT_SUGGESTION_READ_TIMEOUT_MS;
-
-        HttpClient httpClient = HttpClient.create()
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, (int) connectTimeoutMs)
-                .responseTimeout(Duration.ofMillis(readTimeoutMs));
-
-        return WebClient.builder()
-                .baseUrl(suggestion != null ? suggestion.getUrl() : null)
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
     }

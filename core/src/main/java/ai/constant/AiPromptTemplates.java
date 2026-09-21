@@ -156,7 +156,7 @@ public final class AiPromptTemplates {
      * Prompt sinh gợi ý câu hỏi (ask-autocomplete) cho ô chat.
      *
      * <p>Output được yêu cầu là JSON object đúng một key {@code suggestions} để có thể
-     * ép kiểu bằng Ollama {@code format=json} và parse an toàn ở service.
+     * parse an toàn ở service (prompt ép model trả JSON; caller vẫn có fallback tách dòng).
      *
      * @param prefix         phần text người dùng đang gõ (đã trim, có thể đã cắt ngắn)
      * @param languageHint   câu chỉ dẫn ngôn ngữ đầu ra

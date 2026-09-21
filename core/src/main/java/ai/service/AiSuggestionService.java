@@ -14,11 +14,9 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import ai.AppProperties;
-import ai.api.OllamaApiCore;
 import ai.constant.AiPromptTemplates;
+import ai.constant.AiSuggestionConfig;
 import ai.constant.CacheName;
-import ai.dto.outer.ollama.OllamaChatRequestDto;
 import ai.util.AiTextSanitizer;
 import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
@@ -27,24 +25,30 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Sinh gợi ý câu hỏi (ask-autocomplete) cho ô chat bằng model mini chạy trên Ollama.
+ * Sinh gợi ý câu hỏi (ask-autocomplete) cho ô chat.
  *
- * <p>Đây là tác vụ <b>phụ trợ, best-effort</b>: mọi lỗi (Ollama down, timeout, output
- * không parse được) đều được nuốt và trả về danh sách rỗng để FE degrade êm —
- * autocomplete không bao giờ được phép làm hỏng trải nghiệm chat.
+ * <p><b>Không gọi model trực tiếp.</b> Việc sinh text đi qua đúng cơ chế chung của hệ
+ * thống — {@link RagService#generalQuestionsRaw(String)} → {@code RagApiService.general()}
+ * → {@code POST /generate/v1/chat/completions_simple}. Nhờ vậy:
+ * <ul>
+ *   <li>Model do RAG service quyết định ({@code ai.suggestion.model}, fallback {@code ai.model}).
+ *       RAG có thêm model nhỏ hơn → đổi setting, không cần sửa core-service.</li>
+ *   <li>Cấu hình AI (temperature tất định, maxTokens) áp dụng nhất quán với các tác vụ
+ *       phụ trợ khác (sinh tiêu đề, nén summary).</li>
+ * </ul>
  *
- * <p>Các chốt chống lạm dụng, theo thứ tự kiểm tra:
+ * <p>Lớp này chỉ chịu trách nhiệm phần <b>đặc thù của autocomplete</b>:
  * <ol>
- *   <li>Prefix ngắn hơn {@code suggestion.min-prefix-chars} → trả rỗng, không gọi model.</li>
- *   <li>Redis cache theo {@code prefix + ngôn ngữ} (TTL {@code suggestion.cache-ttl-minutes}).</li>
- *   <li>Semaphore {@code suggestion.max-concurrent-requests} — hết permit thì trả rỗng ngay
- *       (fail fast, không xếp hàng) để không dồn request vào Ollama.</li>
+ *   <li>Chặn khi prefix quá ngắn (không có giá trị gợi ý, chỉ tốn tài nguyên).</li>
+ *   <li>Cache Redis theo {@code prefix + ngôn ngữ} để chặn spam model khi người dùng gõ liên tục.</li>
+ *   <li>Semaphore giới hạn số request đồng thời.</li>
+ *   <li>Parse output của model thành danh sách gợi ý: lọc bỏ mục không bắt đầu bằng prefix,
+ *       khử trùng lặp, clamp độ dài.</li>
  * </ol>
  *
- * <p>Cache được thao tác thủ công qua {@link CacheManager} (theo pattern
- * {@code DataIngestionService}) thay vì {@code @Cacheable}: luồng này kiểm tra điều kiện
- * guard TRƯỚC khi tra cache, và {@code @Cacheable} trên lời gọi nội bộ trong cùng bean
- * sẽ không đi qua proxy nên không có hiệu lực.
+ * <p>Đây là tác vụ <b>best-effort</b>: mọi lỗi (model lỗi, RAG down, Redis down, setting lỗi)
+ * đều được nuốt và trả về danh sách rỗng để FE degrade êm — autocomplete không bao giờ
+ * được phép làm hỏng trải nghiệm chat.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -52,45 +56,29 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class AiSuggestionService {
 
-    /** Ngôn ngữ mặc định khi system setting {@code system.language} chưa có. */
-    static final String DEFAULT_LANGUAGE = "vi";
-
-    /** Giá trị mặc định khi config chưa khai báo — mirror của application.yml. */
-    static final int DEFAULT_MAX_SUGGESTIONS = 5;
-    static final int DEFAULT_MIN_PREFIX_CHARS = 3;
-    static final int DEFAULT_MAX_PREFIX_CHARS = 200;
-    static final int DEFAULT_MAX_SUGGESTION_CHARS = 120;
-    static final int DEFAULT_MAX_TOKENS = 256;
-    static final int DEFAULT_NUM_CTX = 2048;
-    static final double DEFAULT_TEMPERATURE = 0.2;
-    static final int DEFAULT_MAX_CONCURRENT_REQUESTS = 4;
-
-    final OllamaApiCore ollamaApiCore;
+    final RagService ragService;
 
     final ObjectMapper objectMapper;
-
-    final AppProperties appProperties;
 
     final SystemSettingService systemSettingService;
 
     final CacheManager cacheManager;
 
-    /** Giới hạn request đồng thời tới Ollama. Khởi tạo trong {@link #init()} theo config. */
-    Semaphore ollamaSemaphore;
+    /** Giới hạn request đồng thời tới model. Khởi tạo trong {@link #init()} theo config. */
+    Semaphore generationSemaphore;
 
     @PostConstruct
     void init() {
-        ollamaSemaphore = new Semaphore(maxConcurrentRequests());
+        generationSemaphore = new Semaphore(maxConcurrentRequests());
     }
 
     /**
      * Entry point cho controller: sinh danh sách gợi ý câu hỏi cho prefix đang gõ.
      *
-     * <p>Toàn bộ thân method được bọc trong {@code try/catch} — không chỉ riêng lời gọi
-     * Ollama. Lý do: ngoài Ollama, luồng này còn phụ thuộc Redis (cache) và System Setting
-     * (ngôn ngữ). Nếu chỉ bắt lỗi quanh lời gọi Ollama thì Redis down hoặc DB setting lỗi
-     * sẽ ném ra ngoài → {@code GlobalExceptionHandler} trả 500, phá vỡ cam kết
-     * "autocomplete không bao giờ trả 5xx".
+     * <p>Toàn bộ thân method được bọc trong {@code try/catch} — không chỉ riêng lời gọi model.
+     * Ngoài model/RAG, luồng này còn phụ thuộc Redis (cache) và DB (System Setting); nếu chỉ
+     * bắt lỗi quanh lời gọi model thì Redis/DB down sẽ ném ra ngoài và
+     * {@code GlobalExceptionHandler} trả 500, phá vỡ cam kết "autocomplete không bao giờ 5xx".
      *
      * @param prefix phần văn bản người dùng đã nhập
      * @return danh sách gợi ý, rỗng nếu không đủ điều kiện hoặc có lỗi
@@ -102,15 +90,14 @@ public class AiSuggestionService {
                 return List.of();
             }
 
-            String language = resolveLanguage();
-            String cacheKey = normalizedPrefix + "|" + language;
+            String cacheKey = normalizedPrefix + "|" + resolveLanguage();
 
             List<String> cached = readCache(cacheKey);
             if (cached != null) {
                 return cached;
             }
 
-            List<String> generated = generateSuggestions(normalizedPrefix, language);
+            List<String> generated = generateSuggestions(normalizedPrefix);
             if (!generated.isEmpty()) {
                 writeCache(cacheKey, generated);
             }
@@ -125,11 +112,11 @@ public class AiSuggestionService {
     // Sinh gợi ý
     // ------------------------------------------------------------------
 
-    private List<String> generateSuggestions(String normalizedPrefix, String language) {
+    private List<String> generateSuggestions(String normalizedPrefix) {
         // tryAcquire() không tham số = thử lấy permit ngay lập tức (timeout 0):
-        // hết permit thì fail fast thay vì xếp hàng, tránh dồn request vào Ollama.
-        if (!ollamaSemaphore.tryAcquire()) {
-            log.warn("Bỏ qua gợi ý cho prefix '{}': đã đạt giới hạn {} request đồng thời tới Ollama",
+        // hết permit thì fail fast thay vì xếp hàng, tránh dồn request vào model.
+        if (!generationSemaphore.tryAcquire()) {
+            log.warn("Bỏ qua gợi ý cho prefix '{}': đã đạt giới hạn {} request đồng thời",
                     normalizedPrefix, maxConcurrentRequests());
             return List.of();
         }
@@ -142,11 +129,11 @@ public class AiSuggestionService {
 
             String prompt = AiPromptTemplates.questionSuggestionPrompt(
                     effectivePrefix,
-                    languageHint(language),
+                    languageHint(resolveLanguage()),
                     maxSuggestions(),
                     maxSuggestionChars());
 
-            String raw = ollamaApiCore.postChat(buildRequest(prompt));
+            String raw = ragService.generalQuestionsRaw(prompt);
             List<String> suggestions = parseSuggestions(raw, effectivePrefix);
 
             log.debug("Sinh được {} gợi ý cho prefix '{}'", suggestions.size(), effectivePrefix);
@@ -155,35 +142,8 @@ public class AiSuggestionService {
             log.warn("Không sinh được gợi ý cho prefix '{}': {}", normalizedPrefix, e.getMessage());
             return List.of();
         } finally {
-            ollamaSemaphore.release();
+            generationSemaphore.release();
         }
-    }
-
-    /** Dựng request native Ollama cho tác vụ sinh gợi ý. */
-    private OllamaChatRequestDto buildRequest(String prompt) {
-        AppProperties.Suggestion suggestion = suggestionConfig();
-
-        OllamaChatRequestDto.OllamaMessage message = OllamaChatRequestDto.OllamaMessage.builder()
-                .role("user")
-                .content(prompt)
-                .build();
-
-        OllamaChatRequestDto.Options options = OllamaChatRequestDto.Options.builder()
-                .temperature(temperature())
-                .numPredict(maxTokens())
-                .numCtx(numCtx())
-                .build();
-
-        return OllamaChatRequestDto.builder()
-                .model(suggestion != null ? suggestion.getModel() : null)
-                .messages(List.of(message))
-                .stream(false)
-                // Buộc Ollama đảm bảo output là JSON hợp lệ -> parse an toàn.
-                .format("json")
-                .think(suggestion != null ? suggestion.getThink() : null)
-                .keepAlive(suggestion != null ? suggestion.getKeepAlive() : null)
-                .options(options)
-                .build();
     }
 
     // ------------------------------------------------------------------
@@ -191,11 +151,11 @@ public class AiSuggestionService {
     // ------------------------------------------------------------------
 
     /**
-     * Parse response của Ollama thành danh sách gợi ý đã làm sạch.
+     * Parse output của model thành danh sách gợi ý đã làm sạch.
      *
-     * <p>Chiến lược: thử parse JSON trước (nhánh chính vì đã ép {@code format=json}),
-     * nếu thất bại thì fallback tách theo dòng — model nhỏ đôi khi vẫn trả về text
-     * thay vì JSON dù đã ép format.
+     * <p>Chiến lược: thử parse JSON trước (nhánh chính vì prompt đã yêu cầu trả JSON
+     * {@code {"suggestions": [...]}}), nếu thất bại thì fallback tách theo dòng — model nhỏ
+     * đôi khi vẫn trả text thay vì JSON.
      *
      * @param effectivePrefix prefix đã dùng trong prompt — cũng là căn cứ để kiểm tra
      *                        gợi ý có phải là phần hoàn thiện của prefix hay không
@@ -205,36 +165,12 @@ public class AiSuggestionService {
             return List.of();
         }
 
-        String content = extractMessageContent(raw);
-        if (content == null || content.isBlank()) {
-            return List.of();
-        }
-
-        String cleaned = AiTextSanitizer.sanitize(content, false);
+        String cleaned = AiTextSanitizer.sanitize(raw, false);
         if (cleaned == null || cleaned.isBlank()) {
             return List.of();
         }
 
         return filterCandidates(extractCandidates(cleaned), effectivePrefix);
-    }
-
-    /**
-     * Lấy nội dung message từ response JSON của Ollama:
-     * {@code {"message": {"role": "assistant", "content": "..."}}}.
-     * Không dùng DTO cứng để chịu được field thừa/thiếu giữa các phiên bản Ollama.
-     */
-    private String extractMessageContent(String raw) {
-        try {
-            JsonNode root = objectMapper.readTree(raw);
-            JsonNode contentNode = root.path("message").path("content");
-            if (contentNode.isTextual()) {
-                return contentNode.asText();
-            }
-        } catch (Exception e) {
-            // Ollama lỗi giữa chừng có thể trả NDJSON nhiều object -> thử nhánh fallback.
-            log.warn("Không parse được JSON response từ Ollama, thử fallback dạng dòng: {}", e.getMessage());
-        }
-        return raw;
     }
 
     /** Trích danh sách ứng viên từ text model trả về (JSON array/object hoặc text nhiều dòng). */
@@ -267,7 +203,13 @@ public class AiSuggestionService {
     /** Thử parse JSON từ text, trả về {@code null} nếu không phải JSON hợp lệ. */
     private JsonNode tryParseJson(String text) {
         try {
-            JsonNode node = objectMapper.readTree(text);
+            // Model đôi khi bọc JSON trong code fence -> bỏ fence trước khi parse.
+            String candidate = text.trim();
+            if (candidate.startsWith("```")) {
+                candidate = candidate.replaceFirst("^```[a-zA-Z]*\\s*", "")
+                        .replaceFirst("\\s*```$", "");
+            }
+            JsonNode node = objectMapper.readTree(candidate);
             return (node == null || node.isMissingNode() || node.isNull()) ? null : node;
         } catch (Exception e) {
             return null;
@@ -323,7 +265,7 @@ public class AiSuggestionService {
     }
 
     // ------------------------------------------------------------------
-    // Cache
+    // Cache (optional — Redis down chỉ mất phần tăng tốc)
     // ------------------------------------------------------------------
 
     @SuppressWarnings("unchecked")
@@ -343,7 +285,6 @@ public class AiSuggestionService {
             return value instanceof List<?> list ? new ArrayList<>((List<String>) list) : null;
         } catch (Exception e) {
             // Cache là thành phần OPTIONAL: Redis down không được làm mất tính năng.
-            // Bỏ qua cache và sinh gợi ý trực tiếp từ model.
             log.debug("Không đọc được cache gợi ý '{}', bỏ qua cache: {}", cacheKey, e.getMessage());
             return null;
         }
@@ -393,67 +334,61 @@ public class AiSuggestionService {
      */
     private String resolveLanguage() {
         try {
-            String language = systemSettingService.getString("system.language", DEFAULT_LANGUAGE);
-            return (language == null || language.isBlank()) ? DEFAULT_LANGUAGE : language.trim();
+            String language = systemSettingService.getString("system.language",
+                    AiSuggestionConfig.DEFAULT_LANGUAGE);
+            return (language == null || language.isBlank())
+                    ? AiSuggestionConfig.DEFAULT_LANGUAGE
+                    : language.trim();
         } catch (Exception e) {
-            log.debug("Không đọc được system.language, dùng mặc định '{}': {}", DEFAULT_LANGUAGE, e.getMessage());
-            return DEFAULT_LANGUAGE;
+            log.debug("Không đọc được system.language, dùng mặc định '{}': {}",
+                    AiSuggestionConfig.DEFAULT_LANGUAGE, e.getMessage());
+            return AiSuggestionConfig.DEFAULT_LANGUAGE;
         }
     }
 
     private String languageHint(String language) {
-        if (DEFAULT_LANGUAGE.equalsIgnoreCase(language)) {
+        if (AiSuggestionConfig.DEFAULT_LANGUAGE.equalsIgnoreCase(language)) {
             return "Tiếng Việt — giữ đúng ngôn ngữ của phần văn bản người dùng đã gõ.";
         }
         return "Giữ đúng ngôn ngữ của phần văn bản người dùng đã gõ.";
     }
 
-    private AppProperties.Suggestion suggestionConfig() {
-        return appProperties.getSuggestion();
-    }
-
     private int maxSuggestions() {
-        return readPositive(value(suggestion -> suggestion.getMaxSuggestions()), DEFAULT_MAX_SUGGESTIONS);
+        return readPositiveConfig(AiSuggestionConfig.KEY_MAX_SUGGESTIONS,
+                AiSuggestionConfig.DEFAULT_MAX_SUGGESTIONS);
     }
 
     private int minPrefixChars() {
-        return readPositive(value(suggestion -> suggestion.getMinPrefixChars()), DEFAULT_MIN_PREFIX_CHARS);
+        return readPositiveConfig(AiSuggestionConfig.KEY_MIN_PREFIX_CHARS,
+                AiSuggestionConfig.DEFAULT_MIN_PREFIX_CHARS);
     }
 
     private int maxPrefixChars() {
-        return readPositive(value(suggestion -> suggestion.getMaxPrefixChars()), DEFAULT_MAX_PREFIX_CHARS);
+        return readPositiveConfig(AiSuggestionConfig.KEY_MAX_PREFIX_CHARS,
+                AiSuggestionConfig.DEFAULT_MAX_PREFIX_CHARS);
     }
 
     private int maxSuggestionChars() {
-        return readPositive(value(suggestion -> suggestion.getMaxSuggestionChars()), DEFAULT_MAX_SUGGESTION_CHARS);
-    }
-
-    private int maxTokens() {
-        return readPositive(value(suggestion -> suggestion.getMaxTokens()), DEFAULT_MAX_TOKENS);
-    }
-
-    private int numCtx() {
-        return readPositive(value(suggestion -> suggestion.getNumCtx()), DEFAULT_NUM_CTX);
+        return readPositiveConfig(AiSuggestionConfig.KEY_MAX_SUGGESTION_CHARS,
+                AiSuggestionConfig.DEFAULT_MAX_SUGGESTION_CHARS);
     }
 
     private int maxConcurrentRequests() {
-        return readPositive(value(suggestion -> suggestion.getMaxConcurrentRequests()),
-                DEFAULT_MAX_CONCURRENT_REQUESTS);
+        return readPositiveConfig(AiSuggestionConfig.KEY_MAX_CONCURRENT_REQUESTS,
+                AiSuggestionConfig.DEFAULT_MAX_CONCURRENT_REQUESTS);
     }
 
-    private double temperature() {
-        Double configured = value(suggestion -> suggestion.getTemperature());
-        return (configured != null && configured >= 0) ? configured : DEFAULT_TEMPERATURE;
-    }
-
-    /** Đọc một thuộc tính từ config group {@code suggestion}, trả {@code null} nếu group chưa khai báo. */
-    private <T> T value(java.util.function.Function<AppProperties.Suggestion, T> extractor) {
-        AppProperties.Suggestion suggestion = suggestionConfig();
-        return suggestion != null ? extractor.apply(suggestion) : null;
-    }
-
-    /** Giá trị null/<= 0 coi như chưa cấu hình → dùng default (theo convention của repo). */
-    private int readPositive(Integer configured, int defaultValue) {
-        return (configured != null && configured > 0) ? configured : defaultValue;
+    /**
+     * Đọc setting dạng số. Giá trị null/rỗng/{@code <= 0}/không parse được → dùng default
+     * (theo quy ước chung của repo).
+     */
+    private int readPositiveConfig(String key, int defaultValue) {
+        try {
+            int configured = systemSettingService.getInt(key, -1);
+            return configured > 0 ? configured : defaultValue;
+        } catch (Exception e) {
+            log.debug("Không đọc được setting '{}', dùng mặc định {}: {}", key, defaultValue, e.getMessage());
+            return defaultValue;
+        }
     }
 }

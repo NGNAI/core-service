@@ -1,5 +1,7 @@
 package ai.api;
 
+import java.time.Duration;
+
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -13,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -39,16 +42,35 @@ public class RagApiCore {
     }
 
     public String postForString(String endPoint, Object body) throws JsonProcessingException {
+        return postForString(endPoint, body, null);
+    }
+
+    /**
+     * Gọi POST đồng bộ (blocking) với timeout tùy chọn.
+     *
+     * <p>Dùng cho các tác vụ cần giới hạn thời gian chờ riêng, ví dụ sinh gợi ý câu hỏi
+     * (autocomplete) — không thể chờ tới read-timeout mặc định của {@code ragWebClient}
+     * (hiện là 360s) vì người dùng đang gõ.
+     *
+     * @param endPoint  path bắt đầu bằng "/"
+     * @param body      body request sẽ được serialize thành JSON
+     * @param timeout   thời gian chờ tối đa; {@code null} hoặc &lt;= 0 = dùng timeout mặc định của client
+     * @return raw response body
+     */
+    public String postForString(String endPoint, Object body, Duration timeout) throws JsonProcessingException {
         String jsonBody = objectMapper.writeValueAsString(body);
         log.info("RAG POST {} request body:\n{}", endPoint, prettyPrint(jsonBody));
         try {
-            return ragWebClient.post()
+            Mono<String> response = ragWebClient.post()
                     .uri(endPoint)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(jsonBody)
                     .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
+                    .bodyToMono(String.class);
+
+            return (timeout != null && !timeout.isZero() && !timeout.isNegative())
+                    ? response.block(timeout)
+                    : response.block();
         } catch (WebClientResponseException e) {
             log.error("RAG POST {} failed with status {}:\n{}",
                     endPoint, e.getStatusCode(), e.getResponseBodyAsString());

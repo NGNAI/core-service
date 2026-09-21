@@ -52,6 +52,6 @@ ai/
 - Cập nhật `AGENTS.md` và `docs/` khi thêm tính năng lớn
 
 ## Tính năng hiện có
-Auth (local+LDAP), RBAC, audit log, Topic/Notebook (RAG chat SSE), Note, Draft (AI+version), Data ingestion, Dashboard, Reports, System settings, System health, LDAP, **Share link public** (Topic/Notebook read-only), **Gợi ý câu hỏi cho ô chat** (ask-autocomplete qua Ollama).
+Auth (local+LDAP), RBAC, audit log, Topic/Notebook (RAG chat SSE), Note, Draft (AI+version), Data ingestion, Dashboard, Reports, System settings, System health, LDAP, **Share link public** (Topic/Notebook read-only), **Gợi ý câu hỏi cho ô chat** (ask-autocomplete qua đường ống completion chung của RAG).
 
 Xem `AGENTS.md` và `docs/` để biết chi tiết.

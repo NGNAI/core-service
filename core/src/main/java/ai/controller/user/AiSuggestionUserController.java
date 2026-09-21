@@ -37,7 +37,7 @@ public class AiSuggestionUserController {
             summary = "Gợi ý câu hỏi theo prefix",
             description = """
                     Sinh danh sách câu hỏi gợi ý dựa trên phần văn bản người dùng đang gõ.
-                    Trả về mảng rỗng (HTTP 200) khi prefix quá ngắn, khi Ollama quá tải,
+                    Trả về mảng rỗng (HTTP 200) khi prefix quá ngắn, khi hệ thống quá tải
                     hoặc khi không sinh được gợi ý — FE không cần xử lý lỗi cho luồng này.
                     """)
     @PostMapping("/suggestions")

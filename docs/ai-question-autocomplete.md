@@ -1,45 +1,47 @@
 # AI Question Autocomplete (gợi ý câu hỏi cho ô chat)
 
-Ngày tạo: 2026-09-20
+Ngày tạo: 2026-09-20 · Cập nhật kiến trúc: 2026-09-21
 
 ## Mục đích
 
-Khi người dùng đang gõ câu hỏi vào ô chat, FE gọi API để nhận một danh sách câu hỏi
-hoàn chỉnh gợi ý (kiểu `ask-autocomplete`). Người dùng bấm vào gợi ý → text trong ô nhập
-được **thay thế bằng câu hoàn chỉnh** đó.
+Khi người dùng đang gõ câu hỏi vào ô chat, FE gọi API để nhận danh sách câu hỏi hoàn chỉnh
+gợi ý (kiểu `ask-autocomplete`). Người dùng bấm vào gợi ý → text trong ô nhập được **thay thế
+bằng câu hoàn chỉnh** đó.
 
-```mermaid
-sequenceDiagram
-    participant U as Người dùng
-    participant FE as Frontend
-    participant C as AiSuggestionUserController
-    participant S as AiSuggestionService
-    participant R as Redis
-    participant O as Ollama
+## Nguyên tắc thiết kế: dùng chung đường ống sinh text của hệ thống
 
-    U->>FE: gõ "giá xăng dầu"
-    Note over FE: debounce 250-350ms
-    FE->>C: POST /user/ai/suggestions {"prefix":"giá xăng dầu"}
-    C->>S: suggest(prefix)
-    alt prefix < 3 ký tự
-        S-->>C: []
-    else
-        S->>R: get "giá xăng dầu|vi"
-        alt cache hit
-            R-->>S: [danh sách gợi ý]
-            S-->>C: [danh sách gợi ý]
-        else cache miss
-            Note over S: acquire semaphore (max 4)
-            S->>O: POST /api/chat (format=json, think=false)
-            O-->>S: {"message":{"content":"{\"suggestions\":[...]}"}}
-            Note over S: sanitize -> parse -> filter/dedupe/clamp
-            S->>R: put (TTL 20 phút)
-            S-->>C: [danh sách gợi ý]
-        end
-    end
-    C-->>FE: ApiResponseModel<List<String>>
-    FE-->>U: dropdown gợi ý
+Tác vụ này **không gọi model trực tiếp** và **không có LLM client riêng**. Nó đi qua đúng
+cơ chế chung mà các tác vụ AI phụ trợ khác đang dùng (sinh tiêu đề, nén rolling summary):
+
 ```
+AiSuggestionUserController   POST /user/ai/suggestions
+        ↓
+AiSuggestionService          guard prefix + Redis cache + semaphore + parse/filter
+        ↓
+RagService.generalQuestionsRaw(prompt)
+        ↓
+  buildSuggestionCompletionRequest(prompt)   ← tái dùng buildSimpleCompletionRequest + applyAiSettings
+        ↓
+RagApiService.general(dto, timeout)          ← POST /generate/v1/chat/completions_simple
+        ↓
+RagApiCore.postForString(endPoint, body, timeout)
+        ↓
+WebClient ragWebClient  (bean sẵn có, read-timeout 360s)
+        ↓
+RAG service  (quyết định model thực tế)
+```
+
+**Vì sao quan trọng:** việc chọn model nằm ở phía **RAG service**. Khi RAG bổ sung model
+nhỏ/nhanh hơn, chỉ cần đổi System Setting `ai.suggestion.model` — core-service **không phải
+sửa code hay deploy lại**.
+
+Các tác vụ phụ trợ cũng được hưởng lợi từ cấu hình chung: `ai.model`, `ai.temperature`
+(force `0.2` cho tác vụ tất định), `ai.maxTokens` — áp dụng nhất quán qua `applyAiSettings`.
+
+> **Lịch sử:** bản đầu tiên (2026-09-20) tự dựng `OllamaApiCore` + bean `ollamaWebClient`
+> + config `suggestion.*` trong YAML, gọi native Ollama `/api/chat`. Cách đó tạo ra **đường
+> ống thứ hai song song** với đường ống sẵn có, và buộc core-service phải biết về Ollama.
+> Đã refactor bỏ hoàn toàn (xem mục "Đã gỡ bỏ" ở cuối).
 
 ## API
 
@@ -60,11 +62,11 @@ Response (`ApiResponseModel<List<String>>`):
   "status": 1000,
   "message": "Get suggestions successfully",
   "data": [
-    "giá xăng dầu hôm nay bao nhiêu?",
-    "giá xăng dầu tăng hay giảm trong kỳ điều hành này?",
-    "giá xăng dầu mới nhất ngày hôm nay là bao nhiêu?",
-    "giá xăng dầu có biến động gì trong tuần này?",
-    "giá xăng dầu hiện tại tại các tỉnh thành là bao nhiêu?"
+    "giá xăng dầu hiện nay có tăng hay giảm?",
+    "giá xăng dầu ở khu vực miền Bắc so với miền Nam?",
+    "giá xăng dầu dự kiến vào tháng tới sẽ như thế nào?",
+    "giá xăng dầu ảnh hưởng tới giá nguyên liệu thực phẩm ra sao?",
+    "giá xăng dầu trên thị trường quốc tế ảnh hưởng như thế nào?"
   ]
 }
 ```
@@ -73,210 +75,162 @@ Response (`ApiResponseModel<List<String>>`):
 
 | Trường hợp | Hành vi |
 |---|---|
-| Prefix quá ngắn (< `min-prefix-chars`) | `data: []`, **không** gọi model |
-| Ollama quá tải (hết semaphore permit) | `data: []`, HTTP 200 |
-| Ollama down / timeout | `data: []`, HTTP 200, log WARN |
+| Prefix quá ngắn (< `minPrefixChars`) | `data: []`, **không** gọi model |
+| Hệ thống quá tải (hết semaphore permit) | `data: []`, HTTP 200 |
+| RAG service down / timeout | `data: []`, HTTP 200, log WARN |
 | Model trả output không parse được | `data: []`, HTTP 200 |
 | **Redis down** | **vẫn sinh gợi ý bình thường**, chỉ bỏ qua cache (log DEBUG) |
-| System Setting đọc lỗi | dùng ngôn ngữ mặc định `vi`, vẫn sinh gợi ý |
+| System Setting đọc lỗi | dùng default trong code, vẫn sinh gợi ý |
 | `prefix` rỗng/null | HTTP 400, code `1206` |
 | Tất cả gợi ý không bắt đầu bằng prefix | `data: []` (bị lọc sạch) |
 
 > **Thiết kế:** endpoint này **không bao giờ trả lỗi 5xx**. Autocomplete là tính năng phụ
-> trợ; khi lỗi thì im lặng trả rỗng để FE degrade êm, không làm phiền người dùng.
+> trợ; khi lỗi thì im lặng trả rỗng để FE degrade êm.
 >
-> Toàn bộ thân `AiSuggestionService.suggest()` được bọc trong `try/catch`, **không chỉ
-> riêng lời gọi Ollama**. Ngoài Ollama, luồng này còn phụ thuộc Redis (cache) và System
-> Setting (ngôn ngữ) — nếu chỉ bắt lỗi quanh Ollama thì Redis/DB down sẽ ném ra ngoài và
-> `GlobalExceptionHandler` trả 500.
+> Toàn bộ thân `AiSuggestionService.suggest()` được bọc trong `try/catch` — **không chỉ
+> riêng lời gọi model**. Ngoài model/RAG, luồng này còn phụ thuộc Redis (cache) và DB
+> (System Setting); nếu chỉ bắt lỗi quanh lời gọi model thì Redis/DB down sẽ ném ra ngoài
+> và `GlobalExceptionHandler` trả 500.
 >
-> **Cache là thành phần optional**: `readCache`/`writeCache` tự bắt lỗi và chỉ log DEBUG.
-> Redis down làm mất phần tăng tốc nhưng **không** làm mất tính năng — gợi ý vẫn được sinh
-> trực tiếp từ model.
+> **Cache là thành phần optional**: `readCache`/`writeCache`/`resolveLanguage` tự bắt lỗi
+> và chỉ log DEBUG. Redis down làm mất phần tăng tốc nhưng **không** làm mất tính năng.
 
 ## Ràng buộc "gợi ý phải bắt đầu bằng prefix"
 
-Mỗi gợi ý trả về **bắt buộc** bắt đầu bằng chính xác phần text người dùng đã gõ
-(không phân biệt hoa/thường). Điều này cho phép FE thay thế text trong ô nhập bằng gợi ý
-(true completion) mà không gây cảm giác "nhảy" nội dung.
+Mỗi gợi ý trả về **bắt buộc** bắt đầu bằng chính xác phần text người dùng đã gõ (không phân
+biệt hoa/thường). Điều này cho phép FE thay thế text trong ô nhập bằng gợi ý (true
+completion) mà không gây cảm giác "nhảy" nội dung.
 
 Hệ quả cần lưu ý:
 
-- Nếu model trả về gợi ý không khớp prefix, gợi ý đó bị **loại bỏ** → số lượng trả về
-  có thể **ít hơn** `max-suggestions`.
-- Prefix dài hơn `max-prefix-chars` bị **cắt lấy phần đuôi** (phần người dùng vừa gõ chứa
-  nhiều ngữ cảnh hơn phần đầu). Bước kiểm tra prefix cũng dùng chính giá trị đã cắt này,
-  nếu không mọi gợi ý sẽ bị lọc sạch.
+- Model trả gợi ý không khớp prefix → gợi ý đó bị **loại bỏ**, nên số lượng trả về có thể
+  **ít hơn** `maxSuggestions`.
+- Prefix dài hơn `maxPrefixChars` bị **cắt lấy phần đuôi** (phần người dùng vừa gõ chứa
+  nhiều ngữ cảnh hơn). Bước kiểm tra prefix cũng dùng chính giá trị đã cắt này, nếu không
+  mọi gợi ý sẽ bị lọc sạch.
 
-## Cấu hình
+## Cấu hình — System Settings (chỉnh nóng, không cần deploy)
 
-Toàn bộ nằm trong `application.yml`, group `suggestion:` (bind vào `AppProperties.Suggestion`).
-Đổi giá trị cần **restart** (không đọc từ System Settings DB).
+Toàn bộ ngưỡng nghiệp vụ nằm trong **System Settings DB**, nhóm `AI`, `is_public=false`,
+seed bởi migration `V36__add_ai_suggestion_settings.sql`. Key + default khai báo tập trung tại
+`ai/constant/AiSuggestionConfig.java`.
+
+Đọc qua `SystemSettingService` với quy ước chung của repo: **giá trị rỗng, `<= 0` hoặc không
+parse được → dùng default trong code**.
 
 | Key | Mặc định | Ý nghĩa |
 |---|---|---|
-| `suggestion.url` | `${OLLAMA_URL:http://192.168.30.16:11434}` | Base URL Ollama |
-| `suggestion.model` | `${OLLAMA_MODEL:deepseek-v4-flash:cloud}` | Model dùng để sinh gợi ý |
-| `suggestion.connect-timeout-ms` | `2000` | Timeout kết nối TCP |
-| `suggestion.read-timeout-ms` | `15000` | Timeout đọc response (xem ghi chú latency bên dưới) |
-| `suggestion.keep-alive` | `10m` | Giữ model trong RAM giữa các lần gọi |
-| `suggestion.think` | `false` | Tắt reasoning của model thinking → giảm latency |
-| `suggestion.temperature` | `0.2` | Tất định (tác vụ phụ trợ) |
-| `suggestion.max-tokens` | `256` | → Ollama `options.num_predict` |
-| `suggestion.num-ctx` | `2048` | → Ollama `options.num_ctx` |
-| `suggestion.max-suggestions` | `5` | Số gợi ý tối đa |
-| `suggestion.min-prefix-chars` | `3` | Ngắn hơn → trả rỗng, không gọi model |
-| `suggestion.max-prefix-chars` | `200` | Cắt prefix trước khi đưa vào prompt |
-| `suggestion.max-suggestion-chars` | `120` | Độ dài tối đa mỗi gợi ý |
-| `suggestion.cache-ttl-minutes` | `20` | TTL cache Redis |
-| `suggestion.max-concurrent-requests` | `4` | Giới hạn request đồng thời tới Ollama |
+| `ai.suggestion.model` | `''` (rỗng) | **Model riêng cho autocomplete. Rỗng = dùng chung `ai.model`** |
+| `ai.suggestion.timeoutSeconds` | `15` | Timeout riêng cho lời gọi sinh gợi ý |
+| `ai.suggestion.maxSuggestions` | `5` | Số gợi ý tối đa |
+| `ai.suggestion.minPrefixChars` | `3` | Ngắn hơn → trả rỗng, không gọi model |
+| `ai.suggestion.maxPrefixChars` | `200` | Cắt prefix trước khi đưa vào prompt |
+| `ai.suggestion.maxSuggestionChars` | `120` | Độ dài tối đa mỗi gợi ý |
+| `ai.suggestion.maxConcurrentRequests` | `4` | Giới hạn request đồng thời |
 
-Quy ước: **giá trị null hoặc `<= 0` → dùng default trong code** (nhất quán với
-`ai.title.*` / `ai.summary.*`).
+### Cách đổi model cho autocomplete
 
-### Ghi chú về latency (đo thực tế 2026-09-20)
+Khi RAG service có thêm model nhỏ/nhanh hơn:
 
-Model `deepseek-v4-flash:cloud` chạy qua Ollama remote (`remote_host: https://ollama.com`):
+1. Vào System Settings, set `ai.suggestion.model` = tên model mới (VD `model-mini`).
+2. Không cần deploy core-service. Lần gọi tiếp theo đã dùng model mới
+   (`SystemSettingService` có `@Cacheable`, cache bị evict khi admin update setting).
 
-| Trạng thái | Latency |
-|---|---|
-| Cold (model chưa nạp) | **~8.9s** |
-| Warm (`keep_alive` còn hiệu lực) | **~1.2s** |
+Để trống `ai.suggestion.model` = quay về dùng `ai.model` chung.
 
-→ `read-timeout-ms` đặt **15s** để chịu được cold start. Rủi ro cạn thread pool được chặn
-bởi semaphore: số thread bị block tối đa bằng `max-concurrent-requests`.
+### Cấu hình KHÔNG chỉnh nóng
 
-→ **`keep_alive: "10m"` rất quan trọng**: lần gọi đầu sau khoảng nghỉ sẽ chậm ~9s.
-Nếu cần cải thiện trải nghiệm lần đầu, có thể chạy một request "làm nóng" lúc khởi động app.
+| Giá trị | Ở đâu | Lý do |
+|---|---|---|
+| `rag.url`, `rag.read-timeout-ms` | `application.yml` | Hạ tầng, dùng chung cho cả chat |
+| Timeout của cache gợi ý (20 phút) | hằng số trong `RedisCacheConfig` | Class này tạo `CacheManager`, mà `SystemSettingService` được cache qua chính nó → đọc setting ở đó sẽ tạo vòng lặp khởi tạo |
 
 ## Kiến trúc code
 
-```
-ai/controller/user/AiSuggestionUserController.java   REST endpoint
-        ↓
-ai/service/AiSuggestionService.java                  guard + cache + prompt + parse + filter
-        ↓
-ai/api/OllamaApiCore.java                            transport (POST /api/chat, block with timeout)
-        ↓
-WebClient ollamaWebClient (ApiClientConfig)          baseUrl + timeout ngắn
-        ↓
-Ollama /api/chat                                     native API, format=json
-```
+| File | Vai trò |
+|---|---|
+| `ai/controller/user/AiSuggestionUserController.java` | REST endpoint |
+| `ai/service/AiSuggestionService.java` | Guard prefix, cache, semaphore, parse/filter output |
+| `ai/service/RagService.java` → `generalQuestionsRaw(prompt)` | Dựng request + gọi RAG completion |
+| `ai/service/api/RagApiService.java` → `general(dto, timeout)` | Endpoint `/generate/v1/chat/completions_simple` |
+| `ai/api/RagApiCore.java` → `postForString(endPoint, body, timeout)` | Transport (overload timeout) |
+| `ai/constant/AiPromptTemplates.java` → `questionSuggestionPrompt(...)` | Prompt |
+| `ai/constant/AiSuggestionConfig.java` | Key + default của System Settings |
+| `ai/util/AiTextSanitizer.java` | Làm sạch output (`<thinking>`, nhãn, câu dẫn, dấu nháy) |
+| `ai/constant/CacheName.java` → `AI_SUGGESTION` | Tên cache Redis |
+| `ai/configuration/RedisCacheConfig.java` | TTL riêng cho cache gợi ý |
 
-Các thành phần dùng chung:
+### Điểm nhỏ đã sửa khi refactor
 
-- `ai/constant/AiPromptTemplates.java` → `questionSuggestionPrompt(prefix, languageHint, count, maxItemChars)`
-- `ai/util/AiTextSanitizer.java` → bỏ `<thinking>`, nhãn `Title:`/`Summary:`, câu dẫn, dấu nháy
-- `ai/dto/outer/ollama/OllamaChatRequestDto.java` → request body native Ollama
-- `ai/constant/CacheName.java` → `AI_SUGGESTION = "ai:suggestion"`
-- `ai/configuration/RedisCacheConfig.java` → TTL riêng cho cache này
-
-### Vì sao dùng WebClient riêng thay vì `ragWebClient`
-
-`ragWebClient` có read-timeout **360s** (phù hợp chat/stream). Nếu dùng chung cho
-autocomplete, một request bị treo sẽ giữ thread suốt 6 phút và làm nghẽn pool.
-Ollama cũng là host khác (`192.168.30.16`) so với RAG service (`192.168.30.75`).
-
-### Vì sao dùng native `/api/chat` thay vì OpenAI-compatible
-
-Ollama native API cho phép dùng `format: "json"` (structured output) và `think: false`
-(tắt reasoning) — cả hai đều quan trọng cho autocomplete. `keep_alive` cũng là đặc thù
-của Ollama, không có trong spec OpenAI.
-
-### Vì sao cache thao tác thủ công qua `CacheManager` thay vì `@Cacheable`
-
-Luồng này có guard (prefix quá ngắn → trả rỗng, **không cache**) chạy **trước** bước tra
-cache. Ngoài ra `@Cacheable` không có hiệu lực với lời gọi nội bộ trong cùng một bean
-(Spring AOP dùng proxy). Cách thao tác thủ công theo đúng pattern đã có trong
-`DataIngestionService.evictDataIngestionDetailsCache()`.
+- `RagService.generateString(...)` được tách: phần trích `choices[0].message.content` chuyển
+  thành helper `extractCompletionContent(response)` để `generalQuestionsRaw` tái dùng, tránh
+  lặp logic parse.
 
 ## Cấu trúc prompt
 
-Prompt trong `AiPromptTemplates.questionSuggestionPrompt(...)`, theo convention của repo
-(delimiter `<<<INPUT ... INPUT>>>`, mỗi luật một dòng, output contract tường minh):
+`AiPromptTemplates.questionSuggestionPrompt(prefix, languageHint, count, maxItemChars)` theo
+convention của repo (delimiter `<<<INPUT ... INPUT>>>`, mỗi luật một dòng, output contract
+tường minh):
 
-- Ngôn ngữ lấy từ system setting `system.language` (mặc định `vi`).
-- Yêu cầu trả về **duy nhất** JSON `{"suggestions": [...]}` — khớp với `format: "json"`.
+- Ngôn ngữ lấy từ System Setting `system.language` (mặc định `vi`).
+- Yêu cầu trả về **duy nhất** JSON `{"suggestions": [...]}`.
 - Mỗi gợi ý phải bắt đầu bằng chính xác prefix.
 - Cấm markdown, đánh số, dấu nháy bao, giải thích, trình bày suy luận, bịa thông tin.
 
-## Kết quả kiểm thử thủ công
+Phía service vẫn có **fallback tách theo dòng** nếu model không trả JSON (model nhỏ đôi khi
+trả text), và bỏ code fence nếu có.
 
-Đã verify trực tiếp với Ollama:
+## Kết quả kiểm thử (2026-09-21, sau refactor)
 
-```bash
-curl http://192.168.30.16:11434/api/tags
-# -> có model "deepseek-v4-flash:cloud"
+| Case | Kết quả | Latency |
+|---|---|---|
+| Happy path `"giá xăng dầu"` | 200, 5 gợi ý đều bắt đầu bằng prefix | 4316 ms |
+| Cache hit (cùng prefix) | 200, cùng kết quả | **66 ms** (~65×) |
+| Prefix mới `"lãi suất"` | 200, 5 gợi ý | 1640 ms |
+| Prefix quá ngắn `"gi"` | 200, `data: []` (không gọi model) | 42 ms |
+| Prefix rỗng `""` | 400, code `1206` | 49 ms |
+| **RAG down + cache miss** | **200, `data: []`**, log WARN `Connection refused` | 914 ms |
 
-curl -X POST http://192.168.30.16:11434/api/chat -H "Content-Type: application/json" \
-  -d '{"model":"deepseek-v4-flash:cloud","messages":[{"role":"user","content":"..."}],
-       "stream":false,"format":"json","think":false,"keep_alive":"10m",
-       "options":{"temperature":0.2,"num_predict":256,"num_ctx":2048}}'
+Log xác nhận đúng đường ống:
+
+```
+INFO  a.a.RagApiCore: RAG POST /generate/v1/chat/completions_simple request body:
+WARN  a.s.AiSuggestionService: Không sinh được gợi ý cho prefix '...': Connection refused
 ```
 
-Kết quả: model tôn trọng `format: "json"` và trả đúng shape
-`{"message":{"content":"{\"suggestions\":[...]}"}}`; cả 5 gợi ý đều bắt đầu bằng prefix.
-
-### Kết quả test end-to-end (chạy app local, 2026-09-20)
-
-Endpoint thực tế: `POST /api/v1/user/ai/suggestions` (context path `/api/v1`).
-
-| Case | Input | Kết quả | Latency |
-|---|---|---|---|
-| Happy path | `prefix="giá xăng dầu"` | HTTP 200, 5 gợi ý đều bắt đầu bằng prefix | 1886 ms (cold) |
-| Cache hit | cùng prefix | HTTP 200, cùng kết quả | **57 ms** |
-| Prefix mới | `prefix="lãi suất ngân hàng"` | HTTP 200, 5 gợi ý | 994 ms (warm) |
-| Prefix quá ngắn | `prefix="gi"` | HTTP 200, `data: []` (không gọi model) | 41 ms |
-| Prefix rỗng | `prefix=""` | HTTP 400, code `1206` | 55 ms |
-| Prefix toàn khoảng trắng | `prefix="   "` | HTTP 400, code `1206` | 49 ms |
-| Prefix quá dài | 260 ký tự | HTTP 200, `data: []` (bị lọc vì không khớp) | 802 ms |
-| **Ollama down + cache miss** | `suggestion.url=http://127.0.0.1:1` | **HTTP 200, `data: []`**, log WARN `Connection refused` | 235 ms |
-| **Redis down (cache miss)** | `REDIS_HOST=127.0.0.1` | **HTTP 200, vẫn trả 5 gợi ý** (cache bị bỏ qua) | 1757 ms |
-| Không có JWT | — | HTTP 401 | — |
-
-Chuỗi "giá xăng dầu" thực nhận được:
-
-```json
-["giá xăng dầu hôm nay bao nhiêu?",
- "giá xăng dầu thay đổi khi nào?",
- "giá xăng dầu tăng hay giảm?",
- "giá xăng dầu tại Việt Nam hiện tại?",
- "giá xăng dầu dự báo tuần tới?"]
-```
-
-**Kết luận:** cache giảm latency ~33× (1886ms → 57ms); degradation hoạt động đúng —
-Ollama chết vẫn trả HTTP 200 + mảng rỗng thay vì 500, và có log WARN để truy vết.
-
-### Ghi chú khi chạy app trên máy dev
-
-- App cần context path `/api/v1` → URL đầy đủ là `http://localhost:8080/api/v1/...`.
-- `./mvnw spring-boot:run -pl core` báo *"Unable to find a suitable main class"* vì
-  `Application.main` là package-private → phải thêm `-Dspring-boot.run.main-class=ai.Application`.
-- Nếu ổ `D:` (thư mục auto-ingestion `D:/input`) không sẵn sàng, app fail lúc khởi động.
-  Override khi chạy local:
-  `--auto-ingestion.input-dir=<temp>/ingest-input --auto-ingestion.processing-dir=... --auto-ingestion.failed-dir=...`
-- Tài khoản dev: `root` / mật khẩu mặc định trong `V5__init_user.sql`; body login cần đủ
-  3 field `username`, `password`, `source` (`local`).
-- Payload tiếng Việt phải gửi dạng UTF-8 (dùng `--data-binary "@file"` với file UTF-8),
-  nếu không sẽ bị lỗi encoding.
-
+Ghi chú latency: model `gpt-oss:20b` qua RAG service ~1.6–4.3s. Nếu thấy chậm, có thể set
+`ai.suggestion.model` sang model nhỏ hơn (khi RAG hỗ trợ) mà không cần đổi model của chat.
 
 ## Frontend
 
-1. **Debounce 250-350ms** trước khi gọi — đây là biện pháp giảm tải quan trọng nhất.
+1. **Debounce 250-350ms** trước khi gọi — biện pháp giảm tải quan trọng nhất.
 2. **Không gọi khi prefix < 3 ký tự** (backend cũng chặn, nhưng tránh round-trip vô ích).
-3. **Huỷ request cũ** khi có request mới (AbortController) để tránh gợi ý của prefix cũ
-   ghi đè lên prefix mới.
+3. **Huỷ request cũ** khi có request mới (AbortController) để gợi ý của prefix cũ không ghi
+   đè lên prefix mới.
 4. Bấm gợi ý → **thay thế toàn bộ** text trong ô nhập bằng gợi ý đó.
 5. `data` là mảng rỗng → **ẩn dropdown**, không hiển thị thông báo lỗi.
 
 ## Hạn chế đã biết
 
-- **Chỉ dựa theo text đang gõ**, không dùng ngữ cảnh Topic/Notebook. Muốn gợi ý sát ngữ
-  cảnh hơn thì mở rộng bằng cách thêm tham số context (tên source, message gần nhất) vào
-  prompt builder.
-- **Không cache khi prefix < `min-prefix-chars`** và không cache kết quả rỗng.
-- **Cold start ~9s** — lần gọi đầu sau khoảng nghỉ sẽ chậm; xem ghi chú latency ở trên.
-- **Không có rate limit theo user** — mới chỉ có semaphore toàn cục. Nếu bị lạm dụng,
-  cân nhắc thêm giới hạn theo `userId`.
-- **Không lưu lịch sử gợi ý** — không có bảng DB, không có migration.
+- **Chỉ dựa theo text đang gõ**, không dùng ngữ cảnh Topic/Notebook. Mở rộng bằng cách thêm
+  tham số context (tên source, message gần nhất) vào prompt builder.
+- **Không cache khi prefix < `minPrefixChars`** và không cache kết quả rỗng.
+- **Không có rate limit theo user** — mới có semaphore toàn cục.
+- **Không lưu lịch sử gợi ý** — không có bảng DB, không có migration (ngoài V36 seed settings).
+- **Latency phụ thuộc model RAG đang dùng**. Nếu model hiện tại chậm, dùng
+  `ai.suggestion.model` để trỏ sang model nhanh hơn.
+
+## Đã gỡ bỏ khi refactor (2026-09-21)
+
+| Thành phần | Ghi chú |
+|---|---|
+| `ai/api/OllamaApiCore.java` | Xoá — dùng `RagApiCore` chung |
+| `ai/dto/outer/ollama/OllamaChatRequestDto.java` | Xoá cả package `ollama` |
+| bean `ollamaWebClient` trong `ApiClientConfig` | Xoá — dùng `ragWebClient` chung |
+| block `suggestion:` trong `application.yml` | Xoá — chuyển sang System Settings |
+| class `AppProperties.Suggestion` | Xoá |
+| 2 hằng `DEFAULT_SUGGESTION_*_TIMEOUT_MS` | Xoá |
+| Tham số `AppProperties` trong `RedisCacheConfig.cacheManager` | Bỏ (không còn cần) |
+
+Lý do: tránh **hai đường ống sinh text song song**, và để việc chọn model thuộc về RAG service
+thay vì hard-code trong core-service.
