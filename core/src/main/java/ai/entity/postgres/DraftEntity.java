@@ -76,6 +76,9 @@ public class DraftEntity {
     OrganizationEntity organization;
 
     @OneToMany(mappedBy = "draft", cascade = CascadeType.ALL)
+    List<DraftMessageEntity> draftMessages;
+
+    @OneToMany(mappedBy = "draft", cascade = CascadeType.ALL)
     List<DraftVersionEntity> versions;
 
     @OneToMany(mappedBy = "draft", cascade = CascadeType.ALL, orphanRemoval = true)
