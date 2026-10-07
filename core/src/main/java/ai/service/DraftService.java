@@ -122,10 +122,17 @@ public class DraftService {
             messageFeedbackHistoryRepository.deleteByMessage_IdIn(messageIds);
         }
 
-        // 2. Xoá share links của draft (nếu có)
+        // 2. Xoá draft_messages trước khi xoá draft — bảng nối có FK draft_id NOT NULL,
+        //    không có ON DELETE CASCADE nên phải xoá tường minh (cascade xoá message qua CascadeType.ALL)
+        draftMessagesRepository.deleteAll(draftMessages);
+
+        // 3. Xoá các version của draft
+        draftVersionRepository.deleteByDraft_Id(draftId);
+
+        // 4. Xoá share links của draft (nếu có)
         shareLinkRepository.deleteByResourceTypeAndResourceId(ShareResource.DRAFT, draftId);
 
-        // 3. Xoá draft (cascade xoá draft_messages + draft_versions + draft_sources)
+        // 5. Xoá draft (cascade xoá draft_sources)
         draftRepository.deleteById(draftId);
     }
    
