@@ -603,7 +603,10 @@ public class IngestionService {
                     .retrieve()
                     .body(IngestionDeleteResponseDto.class);
         } catch (RestClientException exception) {
-            exception.printStackTrace();
+            // deleteFileRag còn được gọi best-effort trước khi retry/redo (xem purgeRagFileBestEffort),
+            // nên chỉ log 1 dòng warn có ngữ cảnh thay vì xả stack trace đầy log mỗi lần RAG lỗi.
+            log.warn("INGESTION DELETE {} failed for fileId={}, error={}",
+                    INGESTION_DELETE_FILE_RAG_PATH, fileId, exception.getMessage());
             throw new AppException(ApiResponseStatus.INGESTION_SERVICE_UNAVAILABLE);
         }
     }

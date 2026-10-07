@@ -278,6 +278,20 @@ public class DataIngestionUserController {
                                                 .build());
         }
 
+        @Operation(summary = "Redo ingestion",
+                description = "Làm lại ingestion cho data ingestion ở BẤT KỲ trạng thái nào (kể cả đã COMPLETED "
+                                + "hoặc đang xử lý). Không xóa record trong DB, không xóa file trên MinIO — chỉ dọn file "
+                                + "cũ trên ingestion service (RAG, best-effort) rồi đẩy lại file từ MinIO với job_id mới.")
+        @PostMapping("/{dataIngestionId}/ingestion/redo")
+        ResponseEntity<ApiResponseModel<DataIngestionResponseDto>> redoIngestion(
+                        @PathVariable UUID dataIngestionId) {
+                return ResponseEntity.ok(
+                                ApiResponseModel.<DataIngestionResponseDto>builder()
+                                                .message("Redo data ingestion successfully")
+                                                .data(dataIngestionService.redoIngestion(dataIngestionId))
+                                                .build());
+        }
+
         @Operation(summary = "Get ingestion job status", description = "Poll ingestion processing status for a data ingestion item")
         @GetMapping("/{dataIngestionId}/ingestion/job-status")
         ResponseEntity<ApiResponseModel<DataIngestionJobStatusResponseDto>> ingestionJobStatus(
