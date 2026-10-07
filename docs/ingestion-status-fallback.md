@@ -78,7 +78,42 @@ Khi record bị đánh dấu `FAILED` do RAG mất job, cần đường khôi ph
 | Endpoint | Mô tả |
 |---|---|
 | `POST /user/data-ingestion/{id}/ingestion/retry` | Đã có sẵn (chỉ cho phép khi `FAILED`) |
+| `POST /user/data-ingestion/{id}/ingestion/redo` | **Mới** — làm lại ở **mọi** trạng thái (kể cả `COMPLETED`/đang xử lý), không xóa record DB/MinIO |
 | `POST /user/notebooks/{noteBookId}/sources/{sourceId}/ingestion/retry` | **Mới** — reset `jobId`, các bộ đếm, rồi dispatch lại source lên RAG |
+
+### 5. Purge RAG trước khi nộp lại (chống nhân đôi vector)
+
+**Vấn đề:** `data_ingestion` ghi `FAILED` và còn `job_id`, nhưng bên RAG (Qdrant) file đó **đã ingest
+xong, có vector đầy đủ** — thường do job rớt callback nên core-service không nhận được kết quả và
+scheduler đánh dấu `FAILED` theo cơ chế dự phòng ở trên. Nếu nộp lại **mà không dọn file cũ**, RAG nhận
+`file_id` trùng và **sinh vector thứ hai** cùng nội dung → dữ liệu nhân đôi trong Qdrant.
+
+**Giải pháp:** gọi `ingestionService.deleteFileRag(fileId)` (dùng `data_ingestion.id` làm `file_id`)
+**trước khi** đẩy lại lên RAG.
+
+Đây là bước **best-effort**: RAG lỗi (timeout/5xx/404) chỉ `log.warn` và **vẫn tiếp tục** nộp lại —
+bỏ qua bước dọn vẫn tốt hơn là chặn hẳn khả năng khôi phục của người dùng.
+
+Áp dụng ở **4 luồng nộp lại**:
+
+| Luồng | Điểm chèn | Ghi chú |
+|---|---|---|
+| `DataIngestionService.retryIngestion` | sau validate, trước khi upload | helper `purgeRagFileBestEffort` |
+| `DataIngestionService.redoIngestion` | trước khi reset trạng thái | helper `purgeRagFileBestEffort` |
+| `DataIngestionService.pushToIngestionService` | đầu `try` | auto-import tái sử dụng record `FAILED` cũ nên `job_id` có thể còn |
+| `NoteBookSourceService.retrySourceIngestion` | sau guard `FAILED`, trước khi reset `jobId` | `ingestionService.deleteFileNotebook` |
+
+Helper chỉ gọi RAG khi record **đã có `job_id`** (chưa từng đẩy lên RAG thì không có gì để dọn).
+
+**Reset bộ đếm trước khi bắt đầu job mới:** cả `retryIngestion` và `redoIngestion` đều phải reset
+`statusSyncFailureCount` — nếu record bị `FAILED` do **vượt ngưỡng** (bộ đếm đã chạm
+`max-status-sync-failures`), chỉ cần lần poll đầu của job mới gặp 1 lỗi tạm thời là bộ đếm vượt ngưỡng
+ngay và scheduler đánh dấu `FAILED` trở lại dù job mới còn đang chạy bình thường.
+
+`redoIngestion` reset nhiều hơn (`job_id = null`, `ingestion_status = CREATED`, `ingestion_error = null`,
+`status_sync_failure_count = 0`, `retry_count = 0`) vì nó chạy được ở **mọi** trạng thái nên phải xóa
+sạch dấu vết trước đó; `retryIngestion` chỉ reset `status_sync_failure_count` và giữ `retry_count`
+(trường này còn dùng chung cho ngân sách retry của hàng đợi xóa — `max-delete-retries`).
 
 ## Cấu hình
 

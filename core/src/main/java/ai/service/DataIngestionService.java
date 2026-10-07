@@ -583,6 +583,10 @@ public class DataIngestionService {
             OrganizationEntity organization,
             DataScope accessLevel) {
         try {
+            // Auto-import tái sử dụng record FAILED cũ nên jobId của lần đẩy trước có thể vẫn còn
+            // → dọn file cũ trên RAG trước (best-effort) để không nhân đôi vector
+            purgeRagFileBestEffort(dataIngestion, "pushToIngestionService");
+
             String callbackUrl = resolveCallbackUrl(null);
             // Đẩy trực tiếp từ file trên disk (FileSystemResource) để tránh load toàn bộ file vào RAM
             IngestionUploadResponseDto ingestionResponse = ingestionService.uploadRag(
@@ -923,6 +927,97 @@ public class DataIngestionService {
             throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);
         }
 
+        // Reset bộ đếm lỗi đồng bộ trạng thái trước khi bắt đầu job mới. Bắt buộc phải reset vì nếu
+        // record bị FAILED do vượt ngưỡng (statusSyncFailureCount đã chạm max-status-sync-failures),
+        // chỉ cần lần poll đầu của job mới gặp 1 lỗi tạm thời là bộ đếm vượt ngưỡng ngay và scheduler
+        // đánh dấu FAILED trở lại dù job mới còn đang chạy bình thường. Không reset retryCount ở đây
+        // vì trường đó còn dùng chung cho ngân sách retry của hàng đợi xóa (max-delete-retries).
+        if (dataIngestion.getStatusSyncFailureCount() != null && dataIngestion.getStatusSyncFailureCount() != 0) {
+            dataIngestion.setStatusSyncFailureCount(0);
+            dataIngestion = dataIngestionRepository.save(dataIngestion);
+        }
+
+        // Dọn file cũ trên RAG trước khi đẩy lại để không nhân đôi vector (best-effort)
+        purgeRagFileBestEffort(dataIngestion, "retryIngestion");
+
+        return dispatchFromMinioToIngestion(dataIngestion);
+    }
+
+    /**
+     * Định nghĩa phương thức để làm lại ingestion cho một data ingestion ở <b>bất kỳ</b> trạng thái nào
+     * (kể cả đã COMPLETED hoặc đang xử lý), khác với retryIngestion chỉ cho phép khi FAILED. Phương thức
+     * này <b>không</b> xóa record trong database và <b>không</b> xóa file trên MinIO — chỉ thực hiện các bước:
+     * 1) truy vấn data ingestion theo ID, báo lỗi nếu không tồn tại, là folder, đang chờ xóa, hoặc thiếu minioPath,
+     * 2) dọn file cũ trên ingestion service (RAG) theo best-effort để tránh còn vector cũ trong Qdrant,
+     * 3) đưa record về trạng thái trung tính (job_id null, ingestion_status CREATED, reset bộ đếm và lỗi cũ),
+     * 4) đẩy lại file từ MinIO lên RAG để lấy job_id mới. Nếu upload lỗi, record được đánh dấu FAILED kèm
+     * ingestion_error để client thấy nguyên nhân, tránh kẹt ở trạng thái trung gian.
+     * @param dataIngestionId
+     * @return
+     */
+    @Transactional(noRollbackFor = AppException.class)
+    public DataIngestionResponseDto redoIngestion(UUID dataIngestionId) {
+        DataIngestionEntity dataIngestion = dataIngestionRepository.findById(dataIngestionId)
+                .orElseThrow(() -> new AppException(ApiResponseStatus.DATA_INGESTION_NOT_EXISTS));
+
+        if (dataIngestion.isFolder()) {
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_FOLDER_ONLY_OPERATION);
+        }
+
+        if (DataIngestionDeleteStatus.PENDING_DELETE.equals(resolveDeleteStatus(dataIngestion))) {
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_DELETE_IN_PROGRESS);
+        }
+
+        if (dataIngestion.getMinioPath() == null || dataIngestion.getMinioPath().isBlank()) {
+            throw new AppException(ApiResponseStatus.DATA_INGESTION_UPLOAD_FAILED);
+        }
+
+        // 1. Dọn file cũ trên RAG (best-effort) để không còn vector cũ trong Qdrant
+        purgeRagFileBestEffort(dataIngestion, "redoIngestion");
+
+        // 2. Đưa record về trạng thái trung tính trước khi upload: jobId cũ không còn giá trị trên RAG,
+        //    bộ đếm và lỗi của lần trước phải reset. Nếu upload lỗi giữa chừng, helper sẽ set FAILED.
+        dataIngestion.setJobId(null);
+        dataIngestion.setIngestionStatus(IngestionStatus.CREATED);
+        dataIngestion.setIngestionError(null);
+        dataIngestion.setStatusSyncFailureCount(0);
+        dataIngestion.setRetryCount(0);
+        dataIngestion = dataIngestionRepository.save(dataIngestion);
+
+        // 3. Đẩy lại file từ MinIO lên RAG, cập nhật jobId mới
+        return dispatchFromMinioToIngestion(dataIngestion);
+    }
+
+    /**
+     * Dọn file cũ trên ingestion service (RAG) trước khi nộp lại, tránh trường hợp database ghi FAILED
+     * nhưng Qdrant đã có vector hoàn chỉnh (job rớt callback) — nộp lại sẽ nhân đôi vector cùng nội dung.
+     * <p>Đây là bước <b>best-effort</b>: RAG lỗi (timeout/5xx/404) chỉ log warn và vẫn cho luồng nộp lại
+     * tiếp tục, vì bỏ qua bước dọn vẫn tốt hơn là chặn hẳn khả năng khôi phục của người dùng.</p>
+     * @param dataIngestion record cần dọn file trên RAG
+     * @param context tên luồng gọi để tiện tra log
+     */
+    private void purgeRagFileBestEffort(DataIngestionEntity dataIngestion, String context) {
+        if (dataIngestion.getJobId() == null) {
+            // Chưa từng đẩy lên RAG lần nào → không có file nào để dọn
+            return;
+        }
+
+        try {
+            ingestionService.deleteFileRag(dataIngestion.getId().toString());
+        } catch (Exception exception) {
+            log.warn("Best-effort purge RAG file failed during {}. dataIngestionId={}, jobId={}, error={}",
+                    context, dataIngestion.getId(), dataIngestion.getJobId(), exception.getMessage());
+        }
+    }
+
+    /**
+     * Đẩy file đã lưu trên MinIO lên ingestion service (RAG) cho một data ingestion đã có trong database.
+     * Dùng chung cho luồng retry thủ công và redo. Nếu response trả về không hợp lệ hoặc gặp lỗi khi gọi
+     * ingestion service, record được đánh dấu FAILED kèm ingestion_error để tránh kẹt ở trạng thái trung gian.
+     * @param dataIngestion record đã có id và minioPath
+     * @return response với trạng thái mới nhất (CREATED nếu thành công)
+     */
+    private DataIngestionResponseDto dispatchFromMinioToIngestion(DataIngestionEntity dataIngestion) {
         UserEntity owner = dataIngestion.getOwner();
         OrganizationEntity organization = dataIngestion.getOrganization();
 
@@ -945,7 +1040,8 @@ public class DataIngestionService {
                         dataIngestion.getAccessLevel(),
                         callbackUrl);
             }
-            System.out.println("Ingestion response after retrying ingestion for data ingestion with ID " + dataIngestionId + ": " + ingestionResponse);
+            log.info("Ingestion response after dispatching data ingestion with ID {}: {}",
+                    dataIngestion.getId(), ingestionResponse);
 
              // Nếu response từ ingestion service không hợp lệ thì đánh dấu dữ liệu này là failed để tránh bị treo ở trạng thái pending mãi mãi
 
@@ -963,7 +1059,7 @@ public class DataIngestionService {
 
             return dataIngestionMapper.entityToResponseDto(dataIngestion);
         } catch (AppException exception) {
-            exception.printStackTrace();
+            log.error("Dispatch to ingestion service failed for data ingestion with ID: {}", dataIngestion.getId(), exception);
             dataIngestion.setIngestionStatus(IngestionStatus.FAILED);
             dataIngestion.setIngestionError(resolveIngestionError(exception));
             dataIngestionRepository.save(dataIngestion);

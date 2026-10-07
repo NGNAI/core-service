@@ -697,6 +697,17 @@ public class NoteBookSourceService {
             throw new AppException(ApiResponseStatus.NOTEBOOK_SOURCE_NOT_COMPLETED);
         }
 
+        // Dọn file cũ trên RAG (best-effort) trước khi gửi lại, tránh vector cũ còn nằm trong Qdrant
+        // khiến dữ liệu bị nhân đôi sau khi nạp lại. Lỗi ở bước này chỉ log warn, không chặn retry.
+        if (source.getJobId() != null) {
+            try {
+                ingestionService.deleteFileNotebook(source.getId().toString());
+            } catch (Exception exception) {
+                log.warn("Best-effort purge RAG notebook file failed during retrySourceIngestion. sourceId={}, jobId={}, error={}",
+                        source.getId(), source.getJobId(), exception.getMessage());
+            }
+        }
+
         // Reset toàn bộ dấu vết của lần thất bại trước: jobId cũ không còn giá trị trên RAG,
         // bộ đếm retry phải về 0 để scheduler tiếp tục theo dõi source này.
         source.setJobId(null);
