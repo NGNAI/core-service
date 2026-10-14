@@ -1,10 +1,15 @@
 package ai.service.api;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.util.UriUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -136,5 +141,61 @@ public class RagApiService {
     public RagSourceGuideResponseDto getSourceGuide(String fileId, String notebookId) {
         return apiCore.getForObject("/notebook/v2/source-guide?file_id={fileId}&notebook_id={notebookId}",
                 RagSourceGuideResponseDto.class, fileId, notebookId);
+    }
+
+    /**
+     * Xuất nội dung bản soạn thảo (draft) ra file Word (.docx) qua RAG service.
+     *
+     * <p>Đây là endpoint trả về <b>file nhị phân</b> (không phải JSON/SSE), nên phải dùng
+     * {@link RagApiCore#getForBytes(java.net.URI)} thay vì {@link RagApiCore#getForObject}.
+     *
+     * @param sessionId      session soạn thảo trên RAG (draft.sessionId), bắt buộc
+     * @param filename       tên file mong muốn; {@code null}/rỗng thì bỏ qua để RAG tự đặt tên
+     * @param formatStandard chuẩn định dạng (format_standard); {@code null}/rỗng thì dùng mặc định của RAG
+     * @return nội dung file .docx
+     */
+    public byte[] exportDraftDocx(String sessionId, String filename, String formatStandard) {
+        URI uri = buildDraftExportUri(sessionId, filename, formatStandard);
+        try {
+            byte[] content = apiCore.getForBytes(uri);
+            if (content == null || content.length == 0) {
+                log.error("RAG GET {} trả về nội dung rỗng", uri);
+                throw new AppException(ApiResponseStatus.DRAFT_EXPORT_FAILED);
+            }
+            return content;
+        } catch (WebClientResponseException e) {
+            // RagApiCore đã log chi tiết response; ở đây chỉ map sang error code nghiệp vụ
+            if (e.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+                // RAG không tìm thấy session soạn thảo tương ứng
+                throw new AppException(ApiResponseStatus.DRAFT_EXPORT_NOT_AVAILABLE);
+            }
+            if (e.getStatusCode().is4xxClientError()) {
+                throw new AppException(ApiResponseStatus.INVALID_REQUEST_INFORMATION);
+            }
+            throw new AppException(ApiResponseStatus.DRAFT_EXPORT_FAILED);
+        }
+    }
+
+    /**
+     * Build URI (đã encode) cho endpoint export docx, chỉ thêm query param khi có giá trị.
+     * Encode thủ công để tên file tiếng Việt / ký tự đặc biệt không làm hỏng query string.
+     */
+    private URI buildDraftExportUri(String sessionId, String filename, String formatStandard) {
+        StringBuilder uri = new StringBuilder("/draft/")
+                .append(UriUtils.encodePathSegment(sessionId, StandardCharsets.UTF_8))
+                .append("/export/docx");
+
+        List<String> queryParams = new ArrayList<>();
+        if (filename != null && !filename.isBlank()) {
+            queryParams.add("filename=" + UriUtils.encodeQueryParam(filename, StandardCharsets.UTF_8));
+        }
+        if (formatStandard != null && !formatStandard.isBlank()) {
+            queryParams.add("format_standard=" + UriUtils.encodeQueryParam(formatStandard, StandardCharsets.UTF_8));
+        }
+        if (!queryParams.isEmpty()) {
+            uri.append('?').append(String.join("&", queryParams));
+        }
+
+        return URI.create(uri.toString());
     }
 }

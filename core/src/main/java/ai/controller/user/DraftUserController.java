@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.util.Pair;
 import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,7 @@ import ai.dto.own.request.DraftSourcesAddRequestDto;
 import ai.dto.own.request.DraftUpdateRequestDto;
 import ai.dto.own.request.MessageFeedbackRequestDto;
 import ai.dto.own.request.filter.MessageFilterDto;
+import ai.dto.own.response.DraftExportData;
 import ai.dto.own.response.DraftResponseDto;
 import ai.dto.own.response.DraftSourceDownloadData;
 import ai.dto.own.response.DraftSourcePresignedUrlResponseDto;
@@ -220,6 +222,25 @@ public class DraftUserController {
                                                 .message("Get draft successfully")
                                                 .data(draftService.getById(draftId))
                                                 .build());
+        }
+
+        @Operation(summary = "Export draft to docx", description = "Xuất bản nháp của phiên soạn thảo sang file Word (.docx). "
+                        + "Chỉ cần draftId; filename để đặt tên file tùy chỉnh, format_standard để ghi đè chuẩn định dạng của draft")
+        @GetMapping("/{draftId}/export/docx")
+        public ResponseEntity<byte[]> exportDocx(
+                        @PathVariable UUID draftId,
+                        @RequestParam(required = false) String filename,
+                        @RequestParam(name = "format_standard", required = false) String formatStandard) {
+                DraftExportData exportData = draftService.exportDocx(draftId, filename, formatStandard);
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(exportData.contentType()));
+                headers.setContentDisposition(ContentDisposition.attachment().filename(exportData.fileName()).build());
+
+                return ResponseEntity.ok()
+                                .headers(headers)
+                                .contentLength(exportData.bytes().length)
+                                .body(exportData.bytes());
         }
 
         @Operation(summary = "Delete draft", description = "Xóa một bản soạn thảo theo id")
