@@ -317,6 +317,13 @@ public enum ApiResponseStatus {
     // Lưu ý: prefix quá ngắn KHÔNG phải lỗi — service trả về danh sách rỗng.
     // ========================================================================
     AI_SUGGESTION_PREFIX_CAN_NOT_BE_NULL_OR_EMPTY(1206, "Suggestion prefix cannot be null or empty", HttpStatus.BAD_REQUEST),
+
+    // ========================================================================
+    // DRAFT EXPORT - 1207..1209
+    // Xuất bản soạn thảo (draft) ra file Word (.docx) qua RAG service.
+    // ========================================================================
+    DRAFT_EXPORT_NOT_AVAILABLE(1207, "Draft has no generated content available for export", HttpStatus.CONFLICT),
+    DRAFT_EXPORT_FAILED(1208, "Export draft document failed", HttpStatus.BAD_GATEWAY),
     ;
     int code;
     String message;

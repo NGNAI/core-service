@@ -85,6 +85,7 @@ Hướng dẫn cho AI agents làm việc trong repo `core-service`.
 - **Tối ưu prompt AI** (sinh tiêu đề, rolling summary, source-guide summary — chống reasoning model trả kèm phần suy luận/sai ngôn ngữ) — xem `docs/ai-prompt-optimization.md`
 - **Cơ chế dự phòng đồng bộ trạng thái ingestion** (phân loại 404 vs lỗi tạm thời, chống poll vô hạn, retry thủ công) — xem `docs/ingestion-status-fallback.md`
 - **Gợi ý câu hỏi cho ô chat (ask-autocomplete)** — sinh qua **đường ống completion chung của RAG** (không có client LLM riêng), có Redis cache + semaphore chống lạm dụng — xem `docs/ai-question-autocomplete.md`
+- **Xuất bản soạn thảo ra file Word** — `GET /user/drafts/{draftId}/export/docx` (FE chỉ cần `draftId`; `session_id`/`format_standard` suy ra từ draft, proxy file nhị phân từ RAG)
 
 ## Prompt AI & sinh văn bản
 - Prompt tập trung tại `ai/constant/AiPromptTemplates.java` (tiêu đề, rolling summary, gợi ý câu hỏi); source-guide instruction ở `NotebookSourceSummaryConfig`.

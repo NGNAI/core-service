@@ -1,5 +1,6 @@
 package ai.api;
 
+import java.net.URI;
 import java.time.Duration;
 
 import org.springframework.http.MediaType;
@@ -122,6 +123,33 @@ public class RagApiCore {
         } catch (WebClientResponseException e) {
             log.error("RAG GET {} failed with status {}:\n{}",
                     endPoint, e.getStatusCode(), e.getResponseBodyAsString());
+            throw e;
+        }
+    }
+
+    /**
+     * Gọi GET đồng bộ (blocking) và trả về nội dung nhị phân (binary) của response.
+     *
+     * <p>Dùng cho các endpoint trả về file (ví dụ export draft ra .docx) — không dùng
+     * {@link #getForObject} vì Jackson không deserialize được nội dung nhị phân.
+     *
+     * <p>Nhận sẵn {@link URI} đã được build (đã encode) để tránh nhập nhằng giữa giá trị
+     * query param và dấu phân cách, do tên file có thể chứa ký tự đặc biệt.
+     *
+     * @param uri URI đầy đủ (đã encode) của endpoint RAG
+     * @return mảng byte nội dung file
+     */
+    public byte[] getForBytes(URI uri) {
+        try {
+            return ragWebClient.get()
+                    .uri(uri)
+                    .accept(MediaType.ALL)
+                    .retrieve()
+                    .bodyToMono(byte[].class)
+                    .block();
+        } catch (WebClientResponseException e) {
+            log.error("RAG GET (binary) {} failed with status {}:\n{}",
+                    uri, e.getStatusCode(), e.getResponseBodyAsString());
             throw e;
         }
     }

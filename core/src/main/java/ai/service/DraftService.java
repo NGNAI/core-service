@@ -15,6 +15,7 @@ import ai.annotation.Audited;
 import ai.dto.own.request.DraftCreateRequestDto;
 import ai.dto.own.request.DraftSaveVersionRequestDto;
 import ai.dto.own.request.DraftUpdateRequestDto;
+import ai.dto.own.response.DraftExportData;
 import ai.dto.own.response.DraftResponseDto;
 import ai.dto.own.response.DraftVersionResponseDto;
 import ai.entity.postgres.DraftEntity;
@@ -48,6 +49,8 @@ import lombok.extern.slf4j.Slf4j;
 public class DraftService {
     static final int DEFAULT_PAGE_SIZE = 20;
     static final int MAX_PAGE_SIZE = 100;
+    static final String DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    static final String DOCX_EXTENSION = ".docx";
 
     DraftRepository draftRepository;
     DraftVersionRepository draftVersionRepository;
@@ -274,6 +277,75 @@ public class DraftService {
         return draftVersionRepository.findFirstByDraft_IdOrderByVersionNumberDesc(draftId)
                 .map(DraftVersionEntity::getGeneratedContent)
                 .orElse(null);
+    }
+
+    /**
+     * Xuất bản soạn thảo (draft) ra file Word (.docx).
+     *
+     * <p>FE chỉ cần truyền {@code draftId} (+ tùy chọn {@code filename} để đặt tên file).
+     * Các tham số còn lại của API RAG được suy ra từ dữ liệu đã có trong draft:
+     * <ul>
+     *   <li>{@code session_id} → {@code draftEntity.sessionId} (được lưu sau khi chat với AI)</li>
+     *   <li>{@code format_standard} → {@code draftEntity.formatStandard} (FE vẫn có thể override)</li>
+     *   <li>{@code filename} → tên file FE truyền vào, nếu không thì sinh từ tiêu đề draft</li>
+     * </ul>
+     *
+     * @param draftId        id draft
+     * @param filename       tên file tùy chọn (không cần đuôi .docx, server tự thêm)
+     * @param formatStandard chuẩn định dạng tùy chọn; để trống thì dùng của draft
+     * @return dữ liệu file docx để controller stream về client
+     */
+    @Audited(action = AuditAction.DOWNLOAD, resource = AuditResource.DRAFT, resourceIdExpression = "#arg0", description = "Xuất bản soạn thảo ra file .docx: {0}")
+    @Transactional(readOnly = true)
+    public DraftExportData exportDocx(UUID draftId, String filename, String formatStandard) {
+        UUID userId = JwtUtil.getUserId();
+        validateDraftOfUser(draftId, userId);
+
+        DraftEntity draft = getEntityById(draftId);
+
+        String sessionId = normalizeNullable(draft.getSessionId());
+        if (sessionId == null) {
+            // Chưa chat với AI lần nào → chưa có session trên RAG để export
+            throw new AppException(ApiResponseStatus.DRAFT_EXPORT_NOT_AVAILABLE);
+        }
+
+        // Ưu tiên format FE truyền lên, fallback về format đã lưu của draft
+        String resolvedFormat = normalizeNullable(formatStandard);
+        if (resolvedFormat == null) {
+            resolvedFormat = normalizeNullable(draft.getFormatStandard());
+        }
+
+        String resolvedFileName = resolveExportFileName(filename, draft);
+
+        byte[] content = ragApiService.exportDraftDocx(sessionId, resolvedFileName, resolvedFormat);
+
+        return new DraftExportData(resolvedFileName, DOCX_CONTENT_TYPE, content);
+    }
+
+    /**
+     * Chuẩn hóa tên file export: bỏ ký tự điều khiển / dấu phân cách đường dẫn,
+     * thêm đuôi .docx nếu thiếu, và sinh từ tiêu đề draft nếu FE không truyền.
+     */
+    private String resolveExportFileName(String filename, DraftEntity draft) {
+        String baseName = normalizeNullable(filename);
+        if (baseName == null) {
+            baseName = normalizeNullable(draft.getTitle());
+        }
+        if (baseName == null) {
+            baseName = "draft";
+        }
+
+        // Loại bỏ ký tự không hợp lệ trong tên file và đường dẫn
+        baseName = baseName.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_").trim();
+        if (baseName.isEmpty()) {
+            baseName = "draft";
+        }
+
+        if (!baseName.toLowerCase(Locale.ROOT).endsWith(DOCX_EXTENSION)) {
+            baseName = baseName + DOCX_EXTENSION;
+        }
+
+        return baseName;
     }
 
     private DraftVersionEntity getDraftVersionEntity(UUID draftId, UUID versionId) {
