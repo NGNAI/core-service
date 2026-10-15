@@ -1,11 +1,11 @@
 package ai.api;
 
-import java.net.URI;
 import java.time.Duration;
 
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -133,23 +133,33 @@ public class RagApiCore {
      * <p>Dùng cho các endpoint trả về file (ví dụ export draft ra .docx) — không dùng
      * {@link #getForObject} vì Jackson không deserialize được nội dung nhị phân.
      *
-     * <p>Nhận sẵn {@link URI} đã được build (đã encode) để tránh nhập nhằng giữa giá trị
-     * query param và dấu phân cách, do tên file có thể chứa ký tự đặc biệt.
+     * <p>Tham số theo đúng style các method khác trong class: {@code endPoint} là URI template
+     * tương đối (bắt đầu bằng "/") + {@code uriVariables}. Đây là overload {@code uri(String, Object...)}
+     * nên Spring vẫn ghép {@code baseUrl} và encode giá trị.
      *
-     * @param uri URI đầy đủ (đã encode) của endpoint RAG
+     * <p><b>Lưu ý:</b> tuyệt đối KHÔNG build {@code java.net.URI} tương đối rồi gọi {@code uri(URI)} —
+     * overload đó dùng URI nguyên trạng, không resolve với baseUrl, khiến request rơi về
+     * {@code localhost:80} (lỗi {@code Connection refused: /[0:0:0:0:0:0:0:1]:80}).
+     *
+     * @param endPoint     path bắt đầu bằng "/", có thể chứa placeholder dạng {name}
+     * @param uriVariables giá trị cho các placeholder theo đúng thứ tự xuất hiện
      * @return mảng byte nội dung file
      */
-    public byte[] getForBytes(URI uri) {
+    public byte[] getForBytes(String endPoint, Object... uriVariables) {
         try {
             return ragWebClient.get()
-                    .uri(uri)
+                    .uri(endPoint, uriVariables)
                     .accept(MediaType.ALL)
                     .retrieve()
                     .bodyToMono(byte[].class)
                     .block();
         } catch (WebClientResponseException e) {
-            log.error("RAG GET (binary) {} failed with status {}:\n{}",
-                    uri, e.getStatusCode(), e.getResponseBodyAsString());
+            log.error("RAG GET {} failed with status {}:\n{}",
+                    endPoint, e.getStatusCode(), e.getResponseBodyAsString());
+            throw e;
+        } catch (WebClientRequestException e) {
+            // Không kết nối được tới RAG (sai URL, service chưa lên, timeout mạng...)
+            log.error("RAG GET {} request failed (không kết nối được RAG service):", endPoint, e);
             throw e;
         }
     }

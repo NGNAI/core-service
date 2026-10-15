@@ -68,8 +68,13 @@ sequenceDiagram
   vì RAG chưa có nội dung để export.
 - **Tên file:** được sanitize (bỏ `\ / : * ? " < > |` và ký tự điều khiển), tự thêm `.docx` nếu thiếu.
   Không truyền `filename` thì lấy `draft.title`.
-- **Encode:** `filename` và `format_standard` được encode query (`UriUtils.encodeQueryParam`), `session_id`
-  encode path segment → tên file tiếng Việt/ký tự đặc biệt không làm hỏng URL.
+- **Encode:** `filename`/`format_standard` được truyền vào URI template dạng `{name}` rồi đưa value
+  qua `uriVariables` (giống `getForObject`/`postForString` trong `RagApiCore`) → Spring vừa ghép
+  `baseUrl` vừa encode đúng giá trị, tên file tiếng Việt/ký tự đặc biệt (`&`, `?`) không làm hỏng URL.
+- ⚠️ **Bẫy quan trọng:** KHÔNG build `java.net.URI` tương đối rồi gọi `webClient.uri(URI)`. Overload
+  `uri(URI)` dùng URI nguyên trạng và **không resolve với `baseUrl`**, khiến request rơi về
+  `localhost:80` → lỗi `Connection refused: /[0:0:0:0:0:0:0:1]:80`. Luôn dùng `uri(String, Object...)`
+  hoặc `uri(Function<UriBuilder, URI>)`.
 - **Không có JSON response:** endpoint trả file nhị phân trực tiếp (không bọc `ApiResponseModel`),
   giống các endpoint download source của Topic/Notebook/Draft.
 
@@ -81,6 +86,7 @@ sequenceDiagram
 | `PERMISSION_DENIED`              | 403  | Không phải chủ draft                                    |
 | `DRAFT_EXPORT_NOT_AVAILABLE` (1207) | 409 | Draft chưa có session (chưa chat với AI) hoặc RAG trả 404 |
 | `INVALID_REQUEST_INFORMATION` (1172) | 400 | RAG trả 4xx (tham số không hợp lệ)                  |
+| `RAG_SERVICE_UNAVAILABLE` (1156) | 502  | Không kết nối được RAG (sai URL / service chưa lên / timeout) |
 | `DRAFT_EXPORT_FAILED` (1208)     | 502 | RAG lỗi 5xx hoặc trả nội dung rỗng                      |
 
 ## Audit
