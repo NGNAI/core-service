@@ -1,15 +1,14 @@
 package ai.service.api;
 
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
-import org.springframework.web.util.UriUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -147,7 +146,11 @@ public class RagApiService {
      * Xuất nội dung bản soạn thảo (draft) ra file Word (.docx) qua RAG service.
      *
      * <p>Đây là endpoint trả về <b>file nhị phân</b> (không phải JSON/SSE), nên phải dùng
-     * {@link RagApiCore#getForBytes(java.net.URI)} thay vì {@link RagApiCore#getForObject}.
+     * {@link RagApiCore#getForBytes} thay vì {@link RagApiCore#getForObject}.
+     *
+     * <p>Query param được đưa vào URI template dạng {@code {name}} + truyền value qua uriVariables
+     * (giống các method khác trong {@link RagApiCore}) để Spring vừa ghép {@code baseUrl} vừa encode
+     * đúng giá trị — tên file có thể chứa tiếng Việt / ký tự đặc biệt như {@code &}, {@code ?}.
      *
      * @param sessionId      session soạn thảo trên RAG (draft.sessionId), bắt buộc
      * @param filename       tên file mong muốn; {@code null}/rỗng thì bỏ qua để RAG tự đặt tên
@@ -155,14 +158,33 @@ public class RagApiService {
      * @return nội dung file .docx
      */
     public byte[] exportDraftDocx(String sessionId, String filename, String formatStandard) {
-        URI uri = buildDraftExportUri(sessionId, filename, formatStandard);
+        StringBuilder endPoint = new StringBuilder("/draft/{sessionId}/export/docx");
+        List<Object> uriVariables = new ArrayList<>();
+        uriVariables.add(sessionId);
+
+        boolean hasQueryParam = false;
+        if (StringUtils.hasText(filename)) {
+            endPoint.append("?filename={filename}");
+            uriVariables.add(filename);
+            hasQueryParam = true;
+        }
+        if (StringUtils.hasText(formatStandard)) {
+            endPoint.append(hasQueryParam ? "&" : "?")
+                    .append("format_standard={formatStandard}");
+            uriVariables.add(formatStandard);
+        }
+
         try {
-            byte[] content = apiCore.getForBytes(uri);
+            byte[] content = apiCore.getForBytes(endPoint.toString(), uriVariables.toArray());
             if (content == null || content.length == 0) {
-                log.error("RAG GET {} trả về nội dung rỗng", uri);
+                log.error("RAG export draft docx trả về nội dung rỗng (session_id={})", sessionId);
                 throw new AppException(ApiResponseStatus.DRAFT_EXPORT_FAILED);
             }
             return content;
+        } catch (WebClientRequestException e) {
+            // Sai URL / RAG chưa lên / timeout kết nối
+            log.error("Không kết nối được RAG service để export draft docx (session_id={})", sessionId, e);
+            throw new AppException(ApiResponseStatus.RAG_SERVICE_UNAVAILABLE);
         } catch (WebClientResponseException e) {
             // RagApiCore đã log chi tiết response; ở đây chỉ map sang error code nghiệp vụ
             if (e.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
@@ -174,28 +196,5 @@ public class RagApiService {
             }
             throw new AppException(ApiResponseStatus.DRAFT_EXPORT_FAILED);
         }
-    }
-
-    /**
-     * Build URI (đã encode) cho endpoint export docx, chỉ thêm query param khi có giá trị.
-     * Encode thủ công để tên file tiếng Việt / ký tự đặc biệt không làm hỏng query string.
-     */
-    private URI buildDraftExportUri(String sessionId, String filename, String formatStandard) {
-        StringBuilder uri = new StringBuilder("/draft/")
-                .append(UriUtils.encodePathSegment(sessionId, StandardCharsets.UTF_8))
-                .append("/export/docx");
-
-        List<String> queryParams = new ArrayList<>();
-        if (filename != null && !filename.isBlank()) {
-            queryParams.add("filename=" + UriUtils.encodeQueryParam(filename, StandardCharsets.UTF_8));
-        }
-        if (formatStandard != null && !formatStandard.isBlank()) {
-            queryParams.add("format_standard=" + UriUtils.encodeQueryParam(formatStandard, StandardCharsets.UTF_8));
-        }
-        if (!queryParams.isEmpty()) {
-            uri.append('?').append(String.join("&", queryParams));
-        }
-
-        return URI.create(uri.toString());
     }
 }
