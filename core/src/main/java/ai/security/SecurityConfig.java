@@ -124,9 +124,11 @@ public class SecurityConfig {
     @Order(3)
     public SecurityFilterChain accessFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
-                .securityMatcher("/admin/**","/user/**","/category/**")
+                // /spellcheck/** là route proxy sang RAG service (Gateway MVC) — service đó
+                // KHÔNG có xác thực, nên BẮT BUỘC đi qua chain này để kiểm tra JWT của core-service.
+                .securityMatcher("/admin/**","/user/**","/category/**", "/spellcheck/**")
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/admin/**", "/user/**", "/category/**").authenticated()
+                        .requestMatchers("/admin/**", "/user/**", "/category/**", "/spellcheck/**").authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->
                         oauth2
