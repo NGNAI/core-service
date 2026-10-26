@@ -45,19 +45,27 @@
         <appender-ref ref="Console" />
     </logger>
 
-    <!-- ── Root ────────────────────────────────────────────────────────── -->
-    <root level="INFO">
-        <appender-ref ref="RollingFile" />
-        <appender-ref ref="Console" />
-    </root>
-
     <!-- ── Loki Appender: đẩy log sang Loki server ──────────────────────── -->
+    <!--
+         Có thể BẬT/TẮT Loki hoàn toàn từ application.yml qua property:
+           logging.loki.level: "OFF"   -> tắt (mặc định, không gửi log, không retry/ConnectException)
+           logging.loki.level: "INFO"  -> bật, chỉ gửi log từ mức INFO trở lên
+           logging.loki.level: "DEBUG" -> bật, gửi cả log DEBUG
+         Kỹ thuật: ThresholdFilter với level OFF sẽ loại bỏ MỌI event trước khi
+         appender nhận -> pipeline không bao giờ gửi batch nào -> không có lỗi
+         ConnectException khi máy không chạy Loki.
+    -->
     <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="NGN AI core" />
+    <springProperty scope="context" name="lokiLevel" source="logging.loki.level" defaultValue="OFF" />
     <springProperty scope="context" name="lokiUrl" source="logging.loki.url" defaultValue="http://localhost:3100/loki/api/v1/push" />
     <springProperty scope="context" name="lokiUser" source="logging.loki.user" defaultValue="" />
     <springProperty scope="context" name="lokiPassword" source="logging.loki.password" defaultValue="" />
 
     <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <!-- Tắt hẳn Loki khi logging.loki.level = OFF (xem giải thích ở trên) -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>${lokiLevel}</level>
+        </filter>
         <http>
             <url>${lokiUrl}</url>
             <auth>
