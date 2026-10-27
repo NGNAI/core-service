@@ -547,8 +547,8 @@ springdoc:
     # - /public/docs/spellcheck : spec của service Spellcheck, core-service gọi
     #   hộ rồi rewrite `servers` về /api/v1/spellcheck để "Try it out" đi qua proxy.
     urls:
-      - name: Main System APIs
-        url: /v3/api-docs
+      # - name: Main System APIs
+      #   url: /v3/api-docs
       - name: Spellcheck Service (via core-service)
         url: /public/docs/spellcheck
 
