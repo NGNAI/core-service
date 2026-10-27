@@ -157,28 +157,28 @@ spring:
   #   FE gọi  : /api/v1/spellcheck/api/health
   #   Upstream: /api/health
   #   -> RewritePath regex: ^/api/v1/spellcheck/(?<seg>.*)$  ->  /$\{seg}
-  cloud:
-    gateway:
-      server:
-        webmvc:
-          # read-timeout phải đủ dài cho endpoint SSE (/api/jobs/{id}/events)
-          http-client:
-            read-timeout: "10m"
-            connect-timeout: "10s"
-          routes:
-            # ------------------------------------------------------------------
-            # Spellcheck service (RAG service, FastAPI) — cần JWT của core-service
-            # vì bản thân nó KHÔNG có xác thực. Xem SecurityConfig#accessFilterChain.
-            # ------------------------------------------------------------------
-            - id: rag-spellcheck-proxy
-              uri: "http://192.168.30.73:8000"
-              predicates:
-                - Path=/spellcheck/**
-              filters:
-                # Cắt đúng tiền tố "spellcheck" (context-path /api/v1 KHÔNG xuất hiện
-                # trong path mà Path predicate nhìn thấy, nhưng CÓ trong uri() của
-                # RewritePath — nên regex phải gồm cả context-path).
-                - RewritePath=/api/v1/spellcheck/(?<seg>.*), /${seg}
+  # cloud:
+  #   gateway:
+  #     server:
+  #       webmvc:
+  #         # read-timeout phải đủ dài cho endpoint SSE (/api/jobs/{id}/events)
+  #         http-client:
+  #           read-timeout: "10m"
+  #           connect-timeout: "10s"
+  #         routes:
+  #           # ------------------------------------------------------------------
+  #           # Spellcheck service (RAG service, FastAPI) — cần JWT của core-service
+  #           # vì bản thân nó KHÔNG có xác thực. Xem SecurityConfig#accessFilterChain.
+  #           # ------------------------------------------------------------------
+  #           - id: rag-spellcheck-proxy
+  #             uri: "http://192.168.30.73:8000"
+  #             predicates:
+  #               - Path=/spellcheck/**
+  #             filters:
+  #               # Cắt đúng tiền tố "spellcheck" (context-path /api/v1 KHÔNG xuất hiện
+  #               # trong path mà Path predicate nhìn thấy, nhưng CÓ trong uri() của
+  #               # RewritePath — nên regex phải gồm cả context-path).
+  #               - RewritePath=/api/v1/spellcheck/(?<seg>.*), /${seg}
 
 
 
@@ -546,11 +546,11 @@ springdoc:
     # - /v3/api-docs : spec của chính core-service (springdoc tự sinh)
     # - /public/docs/spellcheck : spec của service Spellcheck, core-service gọi
     #   hộ rồi rewrite `servers` về /api/v1/spellcheck để "Try it out" đi qua proxy.
-    urls:
-      - name: Main System APIs
-        url: /v3/api-docs
-      - name: Spellcheck Service (via core-service)
-        url: /public/docs/spellcheck
+    # urls:
+    #   # - name: Main System APIs
+    #   #   url: /v3/api-docs
+    #   - name: Spellcheck Service (via core-service)
+    #     url: /public/docs/spellcheck
 
 # ============================================================================
 # SPELLCHECK SERVICE (RAG service — API kiểm tra lỗi chính tả)

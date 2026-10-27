@@ -72,6 +72,8 @@ spring:
 | `StripPrefix=1` khi app có `server.servlet.context-path` | Cắt **sai** segment → upstream trả 404, nhưng response có header `Server: uvicorn` (chứng tỏ proxy đã forward) | `RewritePath` với regex gồm cả context-path |
 | Trả `JsonNode` từ controller | Jackson serialize thành `{"array":false,"boolean":false,...}` | Trả `String` JSON |
 | `produces = APPLICATION_JSON_VALUE` | Tiếng Việt bị mojibake | `APPLICATION_JSON_VALUE + ";charset=UTF-8"` |
+| Inject `WebClient.Builder` | `APPLICATION FAILED TO START: required a bean of type 'WebClient$Builder'` | Dùng `WebClient.builder()` |
+| `spring.cloud.gateway.server.webmvc.enabled=false` | `APPLICATION FAILED TO START: Parameter 0 of constructor in ...FilterAutoConfiguration$RetryFilterConfiguration required a bean of type 'GatewayMvcProperties'` | Exclude đủ 7 auto-configuration (mục 8) |
 
 **Vì sao `StripPrefix` cắt sai:** `BeforeFilterFunctions.lambda$stripPrefix` thao tác trên
 `request.uri().getRawPath()` — URI này **bao gồm** context-path (`/api/v1/spellcheck/...`).
@@ -191,3 +193,77 @@ Dựa trên `openapi.json` thật của Spellcheck service:
 | Có JWT | `200` `{"status":"ok","llm":"model_not_found","database":"available","storage":"available"}` |
 | Docs endpoint | `200`, `application/json;charset=UTF-8`, `servers[0].url=/api/v1/spellcheck`, 13 paths |
 | Swagger config | dropdown có `Spellcheck Service (via core-service)` |
+
+## 8. Tắt Gateway khi không cần
+
+### Bẫy: `enabled=false` một mình sẽ làm app CHẾT
+
+Trong jar 5.0.4, `GatewayServerMvcAutoConfiguration` có:
+
+```java
+@ConditionalOnProperty(name = "spring.cloud.gateway.server.webmvc.enabled",
+                       matchIfMissing = true)
+```
+
+Property này **có thật** nhưng **không nằm trong `spring-configuration-metadata.json`**
+(nên IDE không gợi ý). Và tắt nó **một mình** gây lỗi:
+
+```
+APPLICATION FAILED TO START
+Parameter 0 of constructor in ...FilterAutoConfiguration$RetryFilterConfiguration
+required a bean of type '...config.GatewayMvcProperties' that could not be found.
+```
+
+Vì 6 auto-config phụ **không** có cùng điều kiện `enabled` → chúng vẫn nạp và
+đòi bean `GatewayMvcProperties` (do config chính tạo).
+
+### Cách đúng: dùng profile `no-gateway`
+
+File `core/src/main/resources/application-no-gateway.yml` đã tạo sẵn, exclude đủ 7 class:
+
+```yaml
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.cloud.gateway.server.mvc.GatewayServerMvcAutoConfiguration
+      - org.springframework.cloud.gateway.server.mvc.GatewayMvcClassPathWarningAutoConfiguration
+      - org.springframework.cloud.gateway.server.mvc.filter.FilterAutoConfiguration
+      - org.springframework.cloud.gateway.server.mvc.handler.HandlerFunctionAutoConfiguration
+      - org.springframework.cloud.gateway.server.mvc.handler.GatewayMultipartAutoConfiguration
+      - org.springframework.cloud.gateway.server.mvc.predicate.PredicateAutoConfiguration
+      - org.springframework.cloud.gateway.server.mvc.config.DefaultFunctionConfiguration
+```
+
+Chạy:
+
+```bash
+./mvnw spring-boot:run -pl core -Dspring-boot.run.profiles=no-gateway
+# hoặc
+java -jar core-1.0-SNAPSHOT.jar --spring.profiles.active=no-gateway
+# hoặc
+SPRING_PROFILES_ACTIVE=no-gateway
+```
+
+### Hệ quả khi tắt (đã test thật)
+
+| Mục | Trước | Sau khi tắt |
+|---|---|---|
+| Khởi động | OK | OK (`Started Application in 19.4s`, profile `no-gateway` active) |
+| Gateway bean | `gatewayRouterFunctionHolder`, `gatewayCompositeRouterFunction` | **Không còn** (chỉ còn `routerFunctionMapping` / `routerFunctionProvider` của Spring MVC core) |
+| Tổng bean | 869 | 828 (giảm 41) |
+| `GET /api/v1/spellcheck/api/health` (có JWT) | `200` | `500` (UNEXPECTED — `NoResourceFoundException` bị `GlobalExceptionHandler` bắt) |
+| `GET /api/v1/public/docs/spellcheck` | `200` | `502` (upstream docs không reachable lúc test; endpoint vẫn tồn tại vì không phụ thuộc gateway) |
+| Swagger dropdown | có spellcheck | vẫn còn (bỏ comment trong profile để ẩn) |
+
+> Block `spring.cloud.gateway.*` trong `application.yml` **không cần xóa** khi tắt —
+> không có auto-config nào đọc nên bị bỏ qua hoàn toàn.
+
+### Nếu muốn xóa hẳn (không chỉ tắt)
+
+Code Java **không** import gì của Spring Cloud (đã quét `core/src/main/java` — 0 match).
+Nên có thể xóa được: dependency `spring-cloud-starter-gateway-server-webmvc`,
+`spring-cloud.version` + `dependencyManagement` trong `pom.xml`, block
+`spring.cloud.gateway.*` và profile `no-gateway`. Nhưng khi đó `/spellcheck/**`
+sẽ mất hoàn toàn → phải bỏ luôn mục trong `springdoc.swagger-ui.urls` và
+`ExternalDocsPublicController` (nếu không dùng nữa).
+
