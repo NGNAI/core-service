@@ -94,17 +94,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
-        <!--
-            Spring Cloud Gateway bản SERVLET (chạy trên Tomcat/Spring MVC).
-            Từ Spring Cloud 2025.1.x (Spring Boot 4) artifact ĐÃ ĐỔI TÊN:
-              cũ  (4.x) : spring-cloud-starter-gateway-mvc
-              mới (5.x) : spring-cloud-starter-gateway-server-webmvc
-            Cấu hình route nằm dưới: spring.cloud.gateway.server.webmvc.routes
-        -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-gateway-server-webmvc</artifactId>
-        </dependency>
         <dependency>
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
