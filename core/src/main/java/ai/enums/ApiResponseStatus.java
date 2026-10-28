@@ -324,13 +324,6 @@ public enum ApiResponseStatus {
     // ========================================================================
     DRAFT_EXPORT_NOT_AVAILABLE(1207, "Draft has no generated content available for export", HttpStatus.CONFLICT),
     DRAFT_EXPORT_FAILED(1208, "Export draft document failed", HttpStatus.BAD_GATEWAY),
-
-    // ========================================================================
-    // EXTERNAL SERVICE DOCS - 1209..1212
-    // Tổng hợp tài liệu OpenAPI của service ngoài về chung Swagger UI core-service.
-    // ========================================================================
-    EXTERNAL_DOCS_NOT_CONFIGURED(1209, "External service docs URL is not configured", HttpStatus.SERVICE_UNAVAILABLE),
-    EXTERNAL_DOCS_UNAVAILABLE(1210, "External service docs is unavailable", HttpStatus.BAD_GATEWAY),
     ;
     int code;
     String message;
