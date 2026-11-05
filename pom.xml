@@ -31,19 +31,6 @@
         <java.version>25</java.version>
         <org.mapstruct.version>1.6.3</org.mapstruct.version>
         <!--
-            Spring Cloud 2025.1.x (Oakwood) = release train tương thích Spring Boot 4.0.x/4.1.x.
-            Theo bảng tương thích chính thức tại https://spring.io/projects/spring-cloud:
-              2025.1.x -> Spring Boot 4.0.x, 4.1.x (từ 2025.1.2)
-              2025.0.x -> Spring Boot 3.5.x   (KHÔNG dùng được với Spring Boot 4)
-            Dùng 2025.0.0 sẽ gây lỗi:
-              "Unable to read meta-data for class
-               org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration"
-            vì Spring Boot 4 đã module hóa, class đó chuyển sang package
-            org.springframework.boot.restclient.autoconfigure.
-        -->
-        <spring-cloud.version>2025.1.4</spring-cloud.version>
-
-        <!--
             Spring Boot 4.0.9 vẫn quản lý httpclient5 5.5.2 / httpcore5 5.3.6 — cả hai
             đều nằm trong dải bị ảnh hưởng CVE. Ghi đè lên bản đã vá:
               httpclient5 5.5.2 -> 5.6.4  (vá CVE-2026-71290 TLS hostname verify,
@@ -62,14 +49,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
             <!--
                 `kotlin-stdlib-common` bị kéo về 1.9.10 từ `okio-jvm` (qua okhttp 4.12.0)
                 -> dính CVE-2026-53914 (CRITICAL 9.8) và CVE-2020-29582.

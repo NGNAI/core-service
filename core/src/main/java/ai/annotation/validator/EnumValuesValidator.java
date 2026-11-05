@@ -22,6 +22,7 @@ public class EnumValuesValidator implements ConstraintValidator<EnumValue, CharS
             acceptedValues.addAll(Stream.of(UserSource.values()).map(UserSource::getValue).toList());
         } if (annotation.enumClass() == RagScope.class) {
             acceptedValues.addAll(Stream.of(RagScope.values()).map(RagScope::getKey).toList());
+            acceptedValues.addAll(Stream.of(RagScope.values()).map(RagScope::name).toList());
         } else if (annotation.enumClass() == PermissionResource.class) {
             acceptedValues.addAll(Stream.of(PermissionResource.values()).map(PermissionResource::getKey).toList());
         } else if (annotation.enumClass() == PermissionScope.class) {

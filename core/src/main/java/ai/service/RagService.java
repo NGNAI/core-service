@@ -47,6 +47,7 @@ import ai.entity.postgres.TopicEntity;
 import ai.enums.DataScope;
 import ai.enums.MessageParentType;
 import ai.enums.MessageType;
+import ai.enums.RagScope;
 import ai.enums.SystemEventSource;
 import ai.enums.SystemEventType;
 import ai.enums.TopicType;
@@ -247,7 +248,7 @@ public class RagService {
         metadata.setUserId(JwtUtil.getUserId());
         metadata.setOrganizationId(JwtUtil.getOrgId());
         metadata.setTopicId(finalTopicId);
-        metadata.setScopes(requestDto.getScopes());
+        metadata.setScopes(RagScope.normalizeKeys(requestDto.getScopes()));
         // metadata.setFileIds(attachments.stream().map(e ->
         // e.getId().toString()).collect(Collectors.toSet()));
         // Chỗ fileIds này tạm thời là lấy theo attachment của message đầu vào, sau này
@@ -429,7 +430,7 @@ public class RagService {
         metadata.setFileIds(requestDto.getSourceIds());
         metadata.setSummaries(buildSummaryMetadata(noteBookEntity));
         metadata.setUserInstruction(noteBookEntity.getInstruction());
-        metadata.setScopes(requestDto.getScopes());
+        metadata.setScopes(RagScope.normalizeKeys(requestDto.getScopes()));
 
         NotebookRagCompletionRequestDto ragCompletionRequestDto = applyAiSettings(NotebookRagCompletionRequestDto.builder()
                 .messages(historyConversations)
@@ -566,9 +567,7 @@ public class RagService {
                 .context(draftResponse.getDetailedDescription())
                 .userId(capturedUserId)
                 .organizationId(capturedOrgId)
-                .scopes(draftResponse.getScopes() != null
-                        ? Set.copyOf(draftResponse.getScopes())
-                        : Set.of())
+                .scopes(RagScope.normalizeKeys(draftResponse.getScopes()))
                 .fileIds(fileIds)
                 .stream(true)
                 .max_iterations(DRAFT_CREATE_MAX_ITERATIONS)
@@ -724,7 +723,7 @@ public class RagService {
         DraftRagReviseRequestDto draftRagReviseRequestDto = DraftRagReviseRequestDto.builder()
                 .session_id(draftEntity.getSessionId())
                 .feedback(requestDto.getMessage())
-                .scopes(requestDto.getScopes())
+                .scopes(RagScope.normalizeKeys(requestDto.getScopes()))
                 .fileIds(fileIds)
                 .stream(true)
                 .max_iterations(DRAFT_REVISE_MAX_ITERATIONS)

@@ -28,7 +28,6 @@ public class AppProperties {
     Security security;
     Share share;
     Sse sse;
-    Spellcheck spellcheck;
 
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -301,27 +300,5 @@ public class AppProperties {
          * Mặc định 30 phút (30 * 60 * 1000).
          */
         Long timeoutMs;
-    }
-
-    /**
-     * Cấu hình cho service Spellcheck (RAG service) — chỉ dùng cho endpoint
-     * tổng hợp tài liệu OpenAPI về chung Swagger UI của core-service.
-     * <p>
-     * Lưu ý: route proxy thật sự nằm trong {@code application.yml} dưới
-     * {@code spring.cloud.gateway.server.webmvc.routes} — Gateway đọc trực tiếp từ đó.
-     */
-    @Data
-    @FieldDefaults(level = AccessLevel.PRIVATE)
-    public static class Spellcheck {
-        /**
-         * URL gốc của service Spellcheck (vd {@code http://192.168.30.73:8000}).
-         * Phải TRÙNG với {@code uri} của route proxy trong application.yml.
-         */
-        String url;
-
-        /**
-         * Đường dẫn tới file mô tả OpenAPI của service. Mặc định {@code /openapi.json}.
-         */
-        String openapiPath;
     }
 }
