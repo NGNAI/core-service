@@ -306,6 +306,72 @@ Nhưng cách **đúng nhất vẫn là tạo secret**:
 
 Có key thì NVD cho phép 50 request/30s thay vì 5 request/30s, tải nhanh hơn nhiều.
 
+### ⚠️ Bẫy 2: `HOME: unbound variable` trên self-hosted runner
+
+Triệu chứng (đã gặp thật):
+
+```
+Run chmod +x ./mvnw
+./mvnw: line 145: HOME: unbound variable
+Error: Process completed with exit code 1.
+```
+
+Nguyên nhân: `mvnw` mở đầu bằng `set -euf` (dòng 32). Cờ **`u`** làm bash **thoát ngay**
+khi gặp biến chưa khai báo. Dòng 145 của `mvnw` là:
+
+```bash
+MAVEN_USER_HOME="${MAVEN_USER_HOME:-${HOME}/.m2}"
+```
+
+Trên **self-hosted runner**, shell của job **không có biến `HOME`** (khác runner do
+GitHub host). `${HOME}` → unbound → bash exit 1 → step đỏ, chưa kịp chạy Maven.
+
+Đây là lý do `deploy-core-service.yml` đã phải workaround từ trước:
+
+```yaml
+- name: Build JAR
+  env:
+    HOME: /home/github-runner   # Hoặc tùy user chạy runner
+  run: |
+    ./mvnw ...
+```
+
+**Fix**: mọi bước gọi `./mvnw` trên self-hosted runner **phải** set `HOME`.
+Đã áp dụng cho `security-scan.yml`:
+
+```yaml
+- name: Run OWASP Dependency-Check
+  env:
+    NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+    HOME: /home/github-runner
+  run: |
+    ./mvnw -B -ntp dependency-check:aggregate
+```
+
+Kiểm tra user chạy runner thật trên server để đặt đúng path:
+
+```bash
+ps -o user= -p $(pgrep -f "Runner.Listener" | head -1)
+# hoặc
+systemctl show 'actions.runner.*' -p User --value
+```
+
+Nếu user là `ubuntu` thì đổi thành `HOME: /home/ubuntu`, v.v.
+
+### ⚠️ Bẫy 3: `~` trong `path:` của `actions/cache`
+
+`actions/cache` resolve `~` lúc **đọc cấu hình**, trước khi bất kỳ step nào set `HOME`.
+Trên self-hosted runner, `~` có thể ra path rỗng hoặc path của user khác → cache
+lưu sai chỗ (hoặc không lưu). Dùng **đường dẫn tuyệt đối**:
+
+```yaml
+- name: Cache NVD data
+  uses: actions/cache@v4
+  with:
+    path: /home/github-runner/.m2/repository/org/owasp/dependency-check-data
+    key: nvd-data-v1
+```
+
 ## Checklist định kỳ (khuyến nghị hàng tháng)
 
 1. Chạy `./mvnw dependency-check:aggregate`.

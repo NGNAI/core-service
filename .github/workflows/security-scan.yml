@@ -47,10 +47,14 @@ jobs:
 
       # Cache dữ liệu NVD (~240 MB) giữa các lần chạy. Không có bước này, MỌI lần
       # chạy đều phải tải lại toàn bộ NVD từ đầu -> rất chậm và dễ bị rate-limit 429.
+      #
+      # LƯU Ý: KHÔNG dùng `~/.m2/...` ở đây. Trên self-hosted runner, `~` được resolve
+      # lúc ĐỌC cấu hình (trước khi bất kỳ bước nào set HOME), nên có thể ra path rỗng
+      # hoặc path của user khác. Dùng đường dẫn tuyệt đối cho chắc chắn.
       - name: Cache NVD data
         uses: actions/cache@v4
         with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
+          path: /home/github-runner/.m2/repository/org/owasp/dependency-check-data
           # Không dùng hashFiles để key ổn định giữa các lần chạy;
           # 24h/lần plugin tự kiểm tra cập nhật NVD (nvdValidForHours=24).
           key: nvd-data-v1
@@ -60,6 +64,11 @@ jobs:
       - name: Run OWASP Dependency-Check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          # BẮT BUỘC trên self-hosted runner: shell của job không có HOME.
+          # `mvnw` chạy với `set -euf` (dòng 32) nên `${HOME}` unbound = crash ngay:
+          #   ./mvnw: line 145: HOME: unbound variable
+          # Cùng workaround này đã dùng trong deploy-core-service.yml.
+          HOME: /home/github-runner
         run: |
           chmod +x ./mvnw
 
