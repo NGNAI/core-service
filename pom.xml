@@ -161,12 +161,28 @@
                     </suppressionFiles>
 
                     <!--
-                        KHÔNG hardcode NVD API key vào pom (rò rỉ qua git/Maven debug log).
-                        Không có key vẫn chạy được nhưng tải NVD rất chậm và dễ bị rate-limit.
-                        Đặt biến môi trường NVD_API_KEY trước khi chạy.
-                        Lấy key miễn phí: https://nvd.nist.gov/developers/request-an-api-key
+                        NVD API KEY - đặt TRỰC TIẾP giá trị key ở đây.
+
+                        Phân biệt 2 tag (theo plugin.xml của dependency-check-maven 12.1.0):
+                          nvdApiKey                    = GIÁ TRỊ key thật  (dùng cái này)
+                          nvdApiKeyEnvironmentVariable = TÊN biến môi trường để đọc key
+
+                        `nvdApiKey` có độ ưu tiên CAO HƠN `nvdApiKeyEnvironmentVariable`,
+                        nên chỉ cần khai báo `nvdApiKey` là đủ. Không khai báo cả hai
+                        (dễ nhầm và không có tác dụng gì thêm).
+
+                        Key lấy miễn phí tại: https://nvd.nist.gov/developers/request-an-api-key
+                        Rate limit: có key 50 request/30s (không key chỉ 5 request/30s).
+
+                        CẢNH BÁO: key nằm trong pom sẽ xuất hiện trong
+                          - `mvn -X` debug log (GHSA-qqhq-8r2c-c3f5)
+                          - git history vĩnh viễn (xoá khỏi HEAD vẫn còn trong history)
+                          - mọi bản clone/fork, kể cả repo private
+                        Nếu sau này repo thành public hoặc cần rotate key, phải sửa
+                        pom + commit lại. Khi đó nên chuyển sang biến môi trường:
+                          nvdApiKeyEnvironmentVariable = NVD_API_KEY
                     -->
-                    <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+                    <nvdApiKey>3814AF4A-C4E6-4F5D-B518-7E78CD1E2A8A</nvdApiKey>
 
                     <!-- Chỉ kiểm tra lại NVD sau 24h thay vì mỗi lần build -->
                     <nvdValidForHours>24</nvdValidForHours>
