@@ -256,8 +256,55 @@ xoá đi để tránh nhiễu.
 - Upload SARIF lên GitHub Code Scanning (nếu repo bật tính năng này).
 - Upload HTML + JSON làm artifact, giữ 30 ngày.
 - Ghi summary (số CVE theo severity + top 10 CRITICAL) vào trang Summary của lần chạy.
+- Cache thư mục `~/.m2/repository/org/owasp/dependency-check-data` (~240 MB) giữa
+  các lần chạy — không có cache thì **mỗi lần chạy đều tải lại toàn bộ NVD**, rất
+  chậm và dễ bị rate-limit 429.
+- `timeout-minutes: 40` để chặn job treo vô hạn khi NVD chậm.
 
-Cần đặt secret `NVD_API_KEY` trong repo settings.
+### ⚠️ Bẫy: secret chưa tạo làm job đỏ (đã gặp thật 2026-11-05)
+
+Trong workflow có:
+
+```yaml
+env:
+  NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+```
+
+Nếu **secret `NVD_API_KEY` chưa được tạo**, GitHub Actions không báo lỗi —
+biểu thức trả về **chuỗi rỗng**. Lúc đó plugin gửi request:
+
+```
+https://services.nvd.nist.gov/rest/json/cves/2.0?...&apiKey=
+```
+
+Đã kiểm chứng phản ứng của NVD API:
+
+| Request | Kết quả |
+| --- | --- |
+| **Không có** tham số `apiKey` | `200 OK` |
+| `apiKey=` (rỗng) | **`404 Not Found`** |
+| `apiKey=abc-invalid` | **`404 Not Found`** |
+
+→ 404 làm plugin ném `NoDataException` → `failOnError=false` **không cứu được**
+(vì đây là lỗi khi khởi tạo datasource, không phải analyzer) → **job đỏ**.
+
+**Cách xử lý trong workflow** (đã áp dụng): unset biến khi rỗng để plugin chạy
+chế độ "không key", kèm warning rõ ràng:
+
+```bash
+if [ -z "${NVD_API_KEY:-}" ]; then
+  unset NVD_API_KEY
+  echo "::warning title=NVD_API_KEY chua cau hinh::..."
+fi
+```
+
+Nhưng cách **đúng nhất vẫn là tạo secret**:
+
+> Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+> Name: `NVD_API_KEY`
+> Secret: key lấy miễn phí tại <https://nvd.nist.gov/developers/request-an-api-key>
+
+Có key thì NVD cho phép 50 request/30s thay vì 5 request/30s, tải nhanh hơn nhiều.
 
 ## Checklist định kỳ (khuyến nghị hàng tháng)
 
