@@ -125,6 +125,21 @@ Hướng dẫn cho AI agents làm việc trong repo `core-service`.
 - Alertmanager: `monitoring/alertmanager/alertmanager.yml` (receivers TODO khi cần email/Slack)
 - Grafana alert qua UI (provisioning file không hoạt động trên Grafana 13)
 
+## Quét lỗ hổng bảo mật (OWASP Dependency-Check)
+- `./mvnw dependency-check:aggregate` (hoặc `./mvnw -Psecurity-scan verify -DskipTests`) → report ở `target/dependency-check-report.{html,json,sarif}`
+- **Dùng `aggregate`, KHÔNG dùng `check`**: `check` chạy theo từng module nên gọi từ root sẽ bỏ qua module con; `aggregate` gom cả reactor vào 1 report. Bắt buộc `<inherited>false</inherited>`.
+- **Không bind vào lifecycle mặc định** — chỉ chạy qua profile `security-scan` hoặc gọi trực tiếp, tránh làm `mvn install` chậm bất ngờ khi chưa có NVD cache.
+- Đặt env `NVD_API_KEY` trước khi quét (pom đọc qua `nvdApiKeyEnvironmentVariable`, KHÔNG hardcode key).
+- Analyzer đã tắt: `knownExploitedEnabled` (CISA feed 403), `ossindexAnalyzerEnabled` (401 thiếu tài khoản, chậm 145s), `assemblyAnalyzerEnabled` (không có `dotnet`).
+- ⚠️ **Bẫy tên tham số**: `cisaAnalyzerEnabled` KHÔNG tồn tại (đúng là `knownExploitedEnabled`); `ossIndexAnalyzerEnabled` cũng sai (đúng là `ossindexAnalyzerEnabled`). Tham số sai chỉ gây WARNING rồi bị bỏ qua → analyzer vẫn chạy.
+- ⚠️ **Report nhiều false-positive**: NVD gán CPE theo cấp project (`vmware:spring_framework`), nên CVE của `spring-jms` bị gắn cho `spring-core`. **Nhưng không phải mọi CVE "gán sai artifact" là FP** — phải `jar tf` kiểm tra class bị lỗi có thật trong jar không.
+- Suppression ở `dependency-check-suppressions.xml` (mỗi rule cần `<notes>` + `<until>`). Rule dư → plugin log `Suppression Rule had zero matches`, xoá đi.
+- **Trạng thái 2026-11-05: 0 CVE / 135 dependency** (trước là 197 CVE). Đã nâng Boot 4.0.9, SBA 4.1.4, httpclient5 5.6.4, httpcore5 5.4.3, swagger-ui 5.34.1.
+- ⚠️ **Pin cứng version trong module pom sẽ CHẶN BOM nâng cấp** — `spring-integration-file` từng pin 7.0.5 khiến 14 CVE quay lại khi nâng Boot. Khi BOM đã vượt qua version pin thì **xoá pin**.
+- ⚠️ **`kotlin-stdlib-common` từ Kotlin 2.x không có file jar** (metadata-only) → ép version sẽ fail build; phải `exclude` khỏi `okio-jvm`.
+- CI: `.github/workflows/security-scan.yml` (push đổi pom, PR, cron thứ Hai hàng tuần, upload SARIF + artifact).
+- Chi tiết: `docs/security-scan-owasp.md`.
+
 ## Khi thêm tính năng mới
 1. Thêm error codes vào `ApiResponseStatus` (theo dải số tương ứng, comment section header)
 2. Thêm enum nếu cần (`ai.enums`)

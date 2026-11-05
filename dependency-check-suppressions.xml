@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    OWASP Dependency-Check — danh sách false-positive / CVE đã đánh giá và chấp nhận.
+
+    Cách dùng:
+      1. Chạy: ./mvnw dependency-check:aggregate
+      2. Mở target/dependency-check-report.html, tìm CVE cần bỏ qua
+      3. Thêm <suppress> bên dưới, LUÔN kèm <notes> giải thích lý do + ngày đánh giá
+
+    Lưu ý: suppress ở đây chỉ ẩn khỏi report, KHÔNG sửa được lỗ hổng thật.
+    Chỉ suppress khi: (a) false-positive, (b) dependency không dùng tới code bị lỗi,
+    hoặc (c) đã chấp nhận rủi ro có ghi nhận. Còn lại phải NÂNG VERSION.
+
+    Mỗi rule có <until> để buộc review lại — hết hạn thì cảnh báo xuất hiện lại.
+-->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+    <!--
+        FALSE-POSITIVE: CVE-2026-53914 (CRITICAL 9.8) — áp cho MỌI artifact kotlin-*
+        "In JetBrains Kotlin before 2.4.20 code execution was possible via
+        unsafe deserialization in the build cache metadata"
+
+        Lỗi nằm ở BUILD CACHE METADATA — module `kotlin-build-tools` / Gradle Kotlin
+        plugin, KHÔNG phải `kotlin-stdlib`, `kotlin-stdlib-jdk7`, `kotlin-stdlib-jdk8`
+        (runtime library).
+
+        Đã kiểm chứng: kotlin-stdlib-2.2.21.jar chỉ chứa các package annotation,
+        collections, comparisons, concurrent, contracts, coroutines, enums,
+        experimental, internal, io, jdk7, jvm, math, properties, random, ranges,
+        reflect, sequences, streams, system, text, time, uuid
+        -> KHÔNG có module build-cache.
+
+        Đánh giá ngày 2026-11-05.
+    -->
+    <suppress until="2027-05-05Z">
+        <notes><![CDATA[
+            False-positive: CVE-2026-53914 noi ve Kotlin build cache metadata
+            (kotlin-build-tools/gradle plugin), khong phai kotlin-stdlib runtime.
+            jar tf xac nhan khong co module build-cache trong kotlin-stdlib*.
+            Danh gia 2026-11-05.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-stdlib.*@.*$</packageUrl>
+        <cve>CVE-2026-53914</cve>
+    </suppress>
+
+    <!--
+        FALSE-POSITIVE: CVE-2025-7962 (angus-activation)
+        "In Jakarta Mail versions prior to 2.0.2 it is possible to perform an SMTP
+        Injection by utilizing the \r and \n UTF-8 characters to separate different
+        messages."
+
+        Lỗi ở tầng **SMTP / Jakarta Mail (angus-mail)**, cụ thể phần dựng message
+        và gửi qua Transport.
+
+        `angus-activation` là **activation framework** (Mailcap / MimeType registry) —
+        toàn bộ 32 entry của jar chỉ gồm:
+          MailcapFile, MailcapTokenizer, MailcapParseException,
+          MailcapRegistryProviderImpl, MimeTypeFile, MimeTypeRegistryProviderImpl,
+          LineTokenizer, LogSupport, nativeimage/*
+        -> KHÔNG có class SMTP/Transport nào.
+
+        NVD gán CPE `eclipse:angus_mail` cho angus-activation vì cùng vendor/version.
+
+        Đánh giá ngày 2026-11-05.
+    -->
+    <suppress until="2027-05-05Z">
+        <notes><![CDATA[
+            False-positive: CVE-2025-7962 la loi SMTP injection cua angus-mail
+            (Jakarta Mail), khong phai angus-activation (Mailcap/MimeType registry).
+            jar tf: 32 entry, khong co class SMTP/Transport nao.
+            CPE eclipse:angus_mail bi NVD gan nham cho angus-activation.
+            Danh gia 2026-11-05.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.eclipse\.angus/angus-activation@.*$</packageUrl>
+        <cve>CVE-2025-7962</cve>
+    </suppress>
+
+    <!--
+        FALSE-POSITIVE: CVE-2022-31691 (CRITICAL 9.8)
+        "Spring Tools 4 for Eclipse version 4.16.0 and below as well as VSCode
+        extensions such as Spring Boot Tools ... all use Snakeyaml ..."
+
+        Lỗi thuộc SPRING TOOLS 4 FOR ECLIPSE và VS Code extension — IDE tooling,
+        KHÔNG phải `spring-boot-devtools` (thư viện runtime, chỉ dùng khi dev).
+
+        NVD gán CPE `vmware:spring_boot_tools` / `vmware:spring_tools` cho artifact
+        có tên chứa "spring-boot" cùng version -> gán nhầm.
+
+        Đánh giá ngày 2026-11-05.
+    -->
+    <suppress until="2027-05-05Z">
+        <notes><![CDATA[
+            False-positive: CVE-2022-31691 la loi cua Spring Tools 4 for Eclipse /
+            VSCode extension (IDE tooling), khong phai spring-boot-devtools.
+            CPE vmware:spring_boot_tools bi NVD gan theo cap project -> gan nham.
+            Danh gia 2026-11-05.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.boot/spring-boot-devtools@.*$</packageUrl>
+        <cve>CVE-2022-31691</cve>
+    </suppress>
+
+    <!--
+        FALSE-POSITIVE: CVE-2025-15104
+        "Nu Html Checker (validator.nu) contains a restriction bypass that allows
+        remote attackers to make the server perform arbitrary HTTP/HTTPS requests
+        to internal resources, including localhost services."
+
+        `validator.nu` là dịch vụ kiểm tra HTML trực tuyến — KHÔNG liên quan
+        `hibernate-validator` (bean validation JSR-380).
+
+        Đã kiểm chứng: hibernate-validator-9.0.2.Final.jar (1108 entry) KHÔNG có
+        entry nào chứa "nu/validator", "validator/nu", "htmlchecker".
+
+        Đánh giá ngày 2026-11-05.
+    -->
+    <suppress until="2027-05-05Z">
+        <notes><![CDATA[
+            False-positive: CVE-2025-15104 la loi cua validator.nu (Nu Html Checker -
+            dich vu kiem tra HTML online), khong phai hibernate-validator (JSR-380).
+            jar tf xac nhan khong co package nu/validator trong jar.
+            CPE validator:validator bi NVD gan nham.
+            Danh gia 2026-11-05.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.hibernate\.validator/hibernate-validator@.*$</packageUrl>
+        <cve>CVE-2025-15104</cve>
+    </suppress>
+
+    <!--
+        FALSE-POSITIVE: CVE-2026-42154
+        "Prometheus ... the remote read endpoint (/api/v1/read) does not validate the
+        declared decoded length in a snappy-compressed request body ..."
+
+        Lỗi ở PROMETHEUS SERVER (remote read endpoint) — KHÔNG phải
+        `micrometer-registry-prometheus` (client xuất metric).
+
+        Đã kiểm chứng: micrometer-registry-prometheus-1.16.8.jar (26 entry) KHÔNG
+        có entry nào chứa "api/v1/read" hay remote-read endpoint.
+
+        Đánh giá ngày 2026-11-05.
+    -->
+    <suppress until="2027-05-05Z">
+        <notes><![CDATA[
+            False-positive: CVE-2026-42154 la loi cua Prometheus SERVER (remote read
+            endpoint /api/v1/read), khong phai micrometer-registry-prometheus (client
+            xuat metric). jar tf xac nhan khong co endpoint nay trong jar.
+            CPE prometheus:prometheus bi gan nham.
+            Danh gia 2026-11-05.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/io\.micrometer/micrometer-registry-prometheus@.*$</packageUrl>
+        <cve>CVE-2026-42154</cve>
+    </suppress>
+
+</suppressions>
