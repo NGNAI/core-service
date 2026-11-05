@@ -1,0 +1,5 @@
+1. Cách chạy quét lỗi vá bảo mật các gói
+./mvnw dependency-check:aggregate                          # ~25s
+./mvnw -Psecurity-scan verify -DskipTests                  # qua profile
+
+2. Trong 

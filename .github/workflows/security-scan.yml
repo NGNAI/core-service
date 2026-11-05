@@ -1,0 +1,131 @@
+name: Security Scan (OWASP Dependency-Check)
+
+# Quét CVE cho dependency bằng OWASP Dependency-Check.
+# - Chạy khi có thay đổi dependency (pom.xml) hoặc khi sửa chính workflow này
+# - Chạy định kỳ hàng tuần để phát hiện CVE MỚI công bố cho dependency cũ
+# - Chạy tay khi cần
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "**/pom.xml"
+      - "dependency-check-suppressions.xml"
+      - ".github/workflows/security-scan.yml"
+  pull_request:
+    paths:
+      - "**/pom.xml"
+      - "dependency-check-suppressions.xml"
+  schedule:
+    # 02:00 UTC thứ Hai hàng tuần — bắt CVE mới cho dependency đang dùng
+    - cron: "0 2 * * 1"
+  workflow_dispatch:
+
+jobs:
+  dependency-check:
+    # Runner linux. Repo này đang dùng self-hosted cho deploy; nếu muốn dùng runner
+    # GitHub-hosted thì đổi thành `runs-on: ubuntu-latest`.
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: read
+      # Cần cho bước upload SARIF lên GitHub Code Scanning
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Run OWASP Dependency-Check
+        env:
+          # Không có key vẫn chạy được nhưng tải NVD rất chậm và dễ bị rate-limit (429).
+          # Tạo secret NVD_API_KEY: https://nvd.nist.gov/developers/request-an-api-key
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          chmod +x ./mvnw
+          ./mvnw -B -ntp dependency-check:aggregate
+
+      # SARIF giúp CVE hiện trực tiếp trong tab "Security > Code scanning" của repo.
+      # Chỉ hoạt động khi repo bật GitHub Advanced Security / Code Scanning;
+      # nếu chưa bật, bước này fail nhưng không làm hỏng job (continue-on-error).
+      - name: Upload SARIF to Code Scanning
+        if: always()
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: target/dependency-check-report.sarif
+
+      # Luôn giữ HTML + JSON để xem lại khi job đỏ
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: |
+            target/dependency-check-report.html
+            target/dependency-check-report.json
+          retention-days: 30
+
+      # Tóm tắt nhanh số CVE lên trang Summary của lần chạy
+      - name: Write job summary
+        if: always()
+        run: |
+          if [ ! -f target/dependency-check-report.json ]; then
+            echo "Không có report JSON — kiểm tra log bước Dependency-Check." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, collections
+
+          with open("target/dependency-check-report.json", encoding="utf-8") as f:
+              deps = json.load(f).get("dependencies", [])
+
+          vulns = [
+              (d["fileName"], v)
+              for d in deps
+              for v in d.get("vulnerabilities") or []
+          ]
+
+          # Đếm CVE duy nhất (một CVE có thể gắn cho nhiều artifact)
+          uniq = {}
+          for _, v in vulns:
+              uniq.setdefault(v["name"], v)
+
+          sev = collections.Counter(
+              (v.get("severity") or "unknown").upper() for v in uniq.values()
+          )
+
+          print("## OWASP Dependency-Check\n")
+          print(f"- Dependency đã quét: **{len(deps)}**")
+          print(f"- Dependency có CVE: **{len({f for f, _ in vulns})}**")
+          print(f"- CVE duy nhất: **{len(uniq)}**\n")
+          print("| Severity | Số CVE |")
+          print("| --- | ---: |")
+          for s in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN"):
+              if sev.get(s):
+                  print(f"| {s} | {sev[s]} |")
+
+          crit = sorted(
+              (v for v in uniq.values() if (v.get("severity") or "").upper() == "CRITICAL"),
+              key=lambda v: -(v.get("cvssv3", {}) or {}).get("baseScore") or 0,
+          )[:10]
+          if crit:
+              print("\n### 10 CVE CRITICAL có CVSS cao nhất\n")
+              print("| CVE | CVSS | Artifact |")
+              print("| --- | ---: | --- |")
+              for v in crit:
+                  score = (v.get("cvssv3", {}) or {}).get("baseScore", "—")
+                  arts = sorted({f for f, x in vulns if x["name"] == v["name"]})
+                  print(f"| {v['name']} | {score} | {', '.join(arts[:2])} |")
+
+          print("\n> Report đầy đủ ở artifact `dependency-check-report`.")
+          print("> Nhiều CVE của Spring/Netty là **false-positive do CPE khớp theo cấp project**")
+          print("> (NVD gắn 1 CPE cho cả spring-* cùng version). Cần đọc description trước khi xử lý.")
+          PY

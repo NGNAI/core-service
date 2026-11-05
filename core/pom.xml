@@ -28,11 +28,15 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
-        <!-- Spring Boot Admin Client: đăng ký ứng dụng với Spring Boot Admin Server để theo dõi qua UI -->
+        <!--
+            Spring Boot Admin Client: đăng ký ứng dụng với Spring Boot Admin Server để theo dõi qua UI.
+            Nâng 4.0.4 -> 4.1.4 vì bundle UI của 4.0.x nhúng moment.js 2.30.1 -> dính CVE-2026-17495;
+            4.1.4 dùng moment 2.31.0 (đã kiểm chứng bằng cách đọc file js trong jar).
+        -->
         <dependency>
             <groupId>de.codecentric</groupId>
             <artifactId>spring-boot-admin-starter-client</artifactId>
-            <version>4.0.4</version>
+            <version>4.1.4</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -126,8 +130,13 @@
         <dependency>
             <groupId>org.springframework.integration</groupId>
             <artifactId>spring-integration-file</artifactId>
-            <!-- Ghi đè version BOM (7.0.4) để vá CVE-2026-40987 (HIGH) -->
-            <version>7.0.5</version>
+            <!--
+                KHÔNG pin version ở đây — để Spring Boot BOM 4.0.9 quyết định (7.0.7).
+                Trước đây pin 7.0.5 để vá CVE-2026-40987; nhưng BOM 4.0.9 đã đi xa hơn
+                (7.0.7) và vá luôn CVE-2026-47864, CVE-2026-59307, CVE-2026-59324,
+                CVE-2026-59293, CVE-2026-59274... Pin cứng sẽ CHẶN BOM nâng cấp và
+                khiến các CVE đó quay lại.
+            -->
         </dependency>
         <dependency>
             <groupId>com.github.f4b6a3</groupId>

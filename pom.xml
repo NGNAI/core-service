@@ -11,7 +11,19 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.6</version>
+        <!--
+            Nâng 4.0.6 -> 4.0.9 để vá CVE trong Spring Framework / Spring Security /
+            Netty / Tomcat / Jackson. Boot BOM 4.0.9 kéo theo:
+              spring-framework   7.0.7  -> 7.0.10
+              spring-security    7.0.5  -> 7.0.8
+              netty              4.2.12 -> 4.2.19.Final
+              tomcat-embed-core  11.0.21-> 11.0.27
+              jackson (3.x)      3.1.2  -> 3.1.7
+              jackson (2.x)      2.21.2 -> 2.21.7
+              spring-integration 7.0.4  -> 7.0.7
+              spring-batch       6.0.3  -> 6.0.6
+        -->
+        <version>4.0.9</version>
         <relativePath/>
     </parent>
 
@@ -30,6 +42,22 @@
             org.springframework.boot.restclient.autoconfigure.
         -->
         <spring-cloud.version>2025.1.4</spring-cloud.version>
+
+        <!--
+            Spring Boot 4.0.9 vẫn quản lý httpclient5 5.5.2 / httpcore5 5.3.6 — cả hai
+            đều nằm trong dải bị ảnh hưởng CVE. Ghi đè lên bản đã vá:
+              httpclient5 5.5.2 -> 5.6.4  (vá CVE-2026-71290 TLS hostname verify,
+                                            CVE-2026-64607 connection leak; fix ở 5.6.4)
+              httpcore5   5.3.6 -> 5.4.3   (vá CVE-2026-54399 HTTP/1.1 parser DoS,
+                                            CVE-2026-54428 HTTP/2 HPACK DoS; fix ở 5.4.3)
+            Đây là version cặp tương thích theo đúng parent pom client5 5.6.4
+            (httpcore.version = 5.4.3).
+
+            Lưu ý: httpclient5 chỉ vào qua `spring-boot-admin-starter-client` ở module
+            admin-server, nhưng override ở pom gốc để mọi module dùng cùng bản vá.
+        -->
+        <httpclient5.version>5.6.4</httpclient5.version>
+        <httpcore5.version>5.4.3</httpcore5.version>
     </properties>
 
     <dependencyManagement>
@@ -41,6 +69,45 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
+            <!--
+                `kotlin-stdlib-common` bị kéo về 1.9.10 từ `okio-jvm` (qua okhttp 4.12.0)
+                -> dính CVE-2026-53914 (CRITICAL 9.8) và CVE-2020-29582.
+
+                KHÔNG thể ép version: từ Kotlin 2.x, `kotlin-stdlib-common` là
+                metadata-only artifact, KHÔNG publish file .jar nữa (nội dung đã gộp
+                vào `kotlin-stdlib`). Ép version sẽ làm build fail "Could not find
+                artifact ...jar".
+
+                Cách đúng: loại trừ nó khỏi `okio-jvm`, vì `kotlin-stdlib` 2.2.21
+                (do BOM quản lý) đã cung cấp đầy đủ API mà okio cần.
+            -->
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio-jvm</artifactId>
+                <version>3.6.0</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-stdlib-common</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <!--
+                `swagger-ui` webjar 5.18.3 bundle sẵn DOMPurify 3.1.6 -> dính 23 CVE
+                JS (CVE-2025-26791, CVE-2026-41240, CVE-2026-49458/49459, CVE-2026-65898-65914,
+                CVE-2026-66010, CVE-2026-109345, CVE-2026-116802/116803...).
+                Đây là file .js tĩnh phục vụ Swagger UI, không phải code Java chạy server,
+                nhưng vẫn là bề mặt XSS cho người dùng mở /swagger-ui -> nên vá.
+                5.34.1 bundle DOMPurify 3.40.0 (đã kiểm chứng bằng cách đọc nội dung
+                swagger-ui-bundle.js trong 2 jar).
+            -->
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>swagger-ui</artifactId>
+                <version>5.34.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -49,4 +116,165 @@
         <module>common</module>
         <module>admin-server</module>
     </modules>
+
+    <build>
+        <plugins>
+            <!--
+                OWASP Dependency-Check — quét CVE cho toàn bộ dependency (multi-module).
+
+                Vì sao dùng goal `aggregate` ở pom gốc thay vì `check`?
+                  - `check` chạy theo từng module => mỗi module sinh 1 report riêng,
+                    và khi gọi trực tiếp `./mvnw dependency-check:check` từ root thì
+                    chỉ có project root (packaging=pom) được chạy, các module con bị bỏ qua.
+                  - `aggregate` (aggregator mojo) chạy DUY NHẤT 1 lần tại pom gốc và gộp
+                    dependency của cả reactor => 1 report duy nhất cho toàn dự án.
+                  - `<inherited>false</inherited>` là BẮT BUỘC: nếu module con kế thừa
+                    aggregator mojo, Maven sẽ báo lỗi khi chạy aggregate trên module con.
+
+                Lưu ý về tham số: tên đúng là `knownExploitedEnabled`.
+                `cisaAnalyzerEnabled` KHÔNG tồn tại trong plugin 12.x/13.x — Maven chỉ
+                cảnh báo "Parameter 'cisaAnalyzerEnabled' is unknown" rồi bỏ qua, nên
+                analyzer CISA vẫn chạy và vẫn chết vì 403 Forbidden.
+            -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>12.1.0</version>
+                <inherited>false</inherited>
+                <configuration>
+                    <!--
+                        Tắt analyzer CISA Known Exploited Vulnerabilities.
+                        Feed https://www.cisa.gov/.../known_exploited_vulnerabilities.json
+                        trả 403 (chặn theo User-Agent / rate-limit) từ nhiều mạng.
+                        Muốn bật lại: đổi thành true (khi đó nên đặt failOnError=false
+                        để lỗi mạng chỉ cảnh báo, không phá build).
+                    -->
+                    <knownExploitedEnabled>false</knownExploitedEnabled>
+
+                    <!--
+                        Không làm fail build khi 1 analyzer/datasource lỗi (mạng, 403, 429...).
+                        Report vẫn được sinh ra với dữ liệu local — phù hợp cho dev & CI chạy
+                        không ổn định. Nếu muốn CI "đỏ" khi có CVE nghiêm trọng thì dùng
+                        failBuildOnCVSS bên dưới, KHÔNG cần failOnError.
+                    -->
+                    <failOnError>false</failOnError>
+
+                    <!--
+                        Ngưỡng CVSS để fail build. 11 = không bao giờ fail (mặc định của plugin).
+                        Đổi thành 7 nếu muốn chặn build khi có lỗ hổng HIGH/CRITICAL.
+                    -->
+                    <failBuildOnCVSS>11</failBuildOnCVSS>
+
+                    <!--
+                        HTML  : xem bằng trình duyệt (target/dependency-check-report.html)
+                        JSON  : dễ parse / lưu trữ lịch sử
+                        SARIF : upload lên GitHub Code Scanning / Azure DevOps
+                    -->
+                    <formats>
+                        <format>HTML</format>
+                        <format>JSON</format>
+                        <format>SARIF</format>
+                    </formats>
+
+                    <!-- Danh sách false-positive / CVE đã đánh giá và chấp nhận -->
+                    <suppressionFiles>
+                        <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
+                    </suppressionFiles>
+
+                    <!--
+                        KHÔNG hardcode NVD API key vào pom (rò rỉ qua git/Maven debug log).
+                        Không có key vẫn chạy được nhưng tải NVD rất chậm và dễ bị rate-limit.
+                        Đặt biến môi trường NVD_API_KEY trước khi chạy.
+                        Lấy key miễn phí: https://nvd.nist.gov/developers/request-an-api-key
+                    -->
+                    <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+
+                    <!-- Chỉ kiểm tra lại NVD sau 24h thay vì mỗi lần build -->
+                    <nvdValidForHours>24</nvdValidForHours>
+
+                    <!-- Bỏ qua dependency scope test (JUnit, Mockito...) — không lên production -->
+                    <skipTestScope>true</skipTestScope>
+
+                    <!--
+                        Sonatype OSS Index: TẮT mặc định.
+                        API công khai hiện trả 401 khi không có tài khoản
+                        (https://ossindex.sonatype.org) => analyzer chạy ~145s và lỗi
+                        từng artifact, không đóng góp được CVE nào, chỉ làm build chậm.
+
+                        LƯU Ý TÊN THAM SỐ: ở plugin 12.x tên là `ossindexAnalyzerEnabled`
+                        (chữ "i" thường), KHÔNG phải `ossIndexAnalyzerEnabled`.
+                        Viết sai => Maven báo "Parameter ... is unknown" rồi BỎ QUA,
+                        analyzer vẫn chạy ở giá trị mặc định (true).
+
+                        Bật lại CHỈ KHI đã cấu hình credential trong ~/.m2/settings.xml:
+
+                            <server>
+                              <id>ossindex</id>
+                              <username>email@example.com</username>
+                              <password>{...API token...}</password>
+                            </server>
+
+                        rồi thêm <ossIndexServerId>ossindex</ossIndexServerId> ở đây.
+                    -->
+                    <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
+
+                    <!--
+                        Tắt .NET Assembly Analyzer: project là Java thuần, không có file
+                        .NET nào cần phân tích. Nếu không tắt, plugin sẽ cố gọi `dotnet`
+                        và log ERROR "The 'dotnet' executable could not be found on the path"
+                        mỗi lần chạy (vì netty/snappy jar có kèm file .dll).
+                    -->
+                    <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+
+                    <!-- Mỗi lần build chỉ kiểm tra version plugin 1 lần, không spam mạng -->
+                    <versionCheckEnabled>false</versionCheckEnabled>
+                </configuration>
+                <!--
+                    KHÔNG bind sẵn vào lifecycle: lần chạy đầu tiên (hoặc sau khi cache NVD
+                    hết hạn) có thể tải dữ liệu NVD vài phút nếu không có NVD_API_KEY, làm
+                    `./mvnw install` chậm bất ngờ. Bật tường minh bằng profile `security-scan`
+                    hoặc gọi trực tiếp `./mvnw dependency-check:aggregate`.
+                -->
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!--
+            Profile quét bảo mật: bật bằng `-Psecurity-scan`.
+            Khi bật, scan chạy tự động ở phase `verify`.
+
+                ./mvnw -Psecurity-scan verify -DskipTests
+                # hoặc chạy riêng, không cần profile:
+                ./mvnw dependency-check:aggregate
+
+            Bỏ qua khi cần (ví dụ CI offline):
+                ./mvnw -Psecurity-scan verify -Ddependency-check.skip=true
+        -->
+        <profile>
+            <id>security-scan</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>12.1.0</version>
+                        <!-- Bắt buộc: aggregate mojo chỉ chạy được ở pom gốc, module con
+                             mà kế thừa execution này sẽ làm Maven báo lỗi. -->
+                        <inherited>false</inherited>
+                        <executions>
+                            <execution>
+                                <id>dependency-check-aggregate</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>aggregate</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 </project>

@@ -15,7 +15,8 @@
         <dependency>
             <groupId>de.codecentric</groupId>
             <artifactId>spring-boot-admin-starter-server</artifactId>
-            <version>4.0.3</version>
+            <!-- Nâng cùng client lên 4.1.4: UI bundle dùng moment.js 2.31.0 thay vì 2.30.1 (CVE-2026-17495) -->
+            <version>4.1.4</version>
         </dependency>
         
         <!-- Spring Boot Web: cần thiết cho server -->
